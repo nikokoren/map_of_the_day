@@ -36,6 +36,7 @@ from collections import Counter
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 POOL_PATH = os.path.join(HERE, "pool.json")
+QUALITY_PATH = os.path.join(HERE, "quality.json")
 
 UA = "mission-control-trmnl/1.0 (github.com/nikokoren/mission_control)"
 
@@ -127,6 +128,31 @@ DESC_REJECT = ["braille", "relief model", "globe gores"]
 PER_CATEGORY_CAP = 1200
 
 POOL_VERSION = 1
+
+# --- how a map renders once the screen has dithered it ---
+#
+# Metadata cannot tell a legible map from a grey rectangle. Measuring
+# can: fetch the map small, and look at how its tones fall.
+#
+#   mush   share of pixels that are neither ink nor paper. Mid greys are
+#          what dithering turns into noise, and a scan that is almost
+#          all mid grey arrives as a uniform stipple with nothing in it.
+#   detail mean edge magnitude. Separates a blank sheet from a map, both
+#          of which can have little mush.
+#
+# Calibrated by rendering a spread of maps at 1-bit and looking at them:
+# under 45 mush reads as line work, 45-60 goes murky, and past 70 there
+# is nothing on the screen at all. The floor here is deliberately loose
+# -- it throws out what is unreadable rather than what is imperfect,
+# because a tighter one would empty the smaller topics.
+UNREADABLE_MUSH = 70.0
+UNREADABLE_DETAIL = 22.0
+
+# Measuring costs one request per map, so a run measures at most this
+# many new ones and remembers the answers in quality.json. The pool is
+# covered after a few runs and re-measured never.
+MEASURE_BUDGET = 1200
+MEASURE_SIZE = "!400,240"
 
 
 # ============================================================
@@ -461,6 +487,16 @@ def evaluate(record, category, label):
     """
     if record.get("access_restricted"):
         return None, "access restricted"
+
+    # A record whose resource holds several files is a sectioned map, a
+    # sketchbook, or a bound volume -- and the image we are handed is
+    # whichever file came first, which for a sectioned map is the
+    # engraved title sheet rather than any of the map. There is no way
+    # to tell from here which of 12 sections is worth showing, so the
+    # whole record goes.
+    resource = (record.get("resources") or [{}])[0]
+    if (resource.get("files") or 1) > 1:
+        return None, "one sheet of a set"
     if not record.get("digitized", True):
         return None, "not digitized"
 
@@ -610,6 +646,75 @@ def score(entry):
 
 
 # ============================================================
+# render quality
+# ============================================================
+
+def load_quality():
+    try:
+        with open(QUALITY_PATH) as fh:
+            return json.load(fh).get("scores") or {}
+    except (OSError, ValueError):
+        return {}
+
+
+def save_quality(scores):
+    with open(QUALITY_PATH, "w") as fh:
+        json.dump({"version": 1, "measured": len(scores), "scores": scores},
+                  fh, separators=(",", ":"), sort_keys=True)
+        fh.write("\n")
+
+
+def measure(entry):
+    """(mush, detail) for one map, or None if it could not be fetched."""
+    try:
+        from PIL import Image, ImageFilter
+    except ImportError:
+        return None
+    url = "https://tile.loc.gov/image-services/iiif/{}/full/{}/0/gray.jpg".format(
+        entry["s"], MEASURE_SIZE)
+    delay = 3
+    for attempt in range(3):
+        try:
+            req = urllib.request.Request(url, headers={"User-Agent": UA})
+            raw = urllib.request.urlopen(req, timeout=45).read()
+            break
+        except Exception:
+            if attempt == 2:
+                return None
+            time.sleep(delay)
+            delay *= 2
+    try:
+        import io
+        image = Image.open(io.BytesIO(raw)).convert("L")
+    except Exception:
+        return None
+    pixels = list(image.getdata())
+    total = len(pixels) or 1
+    ink = sum(1 for p in pixels if p < 90) / total
+    paper = sum(1 for p in pixels if p > 200) / total
+    mush = (1.0 - ink - paper) * 100.0
+    edges = image.filter(ImageFilter.FIND_EDGES).getdata()
+    detail = sum(edges) / float(len(edges) or 1)
+    return round(mush, 1), round(detail, 1)
+
+
+def readable(score):
+    """None means not measured yet, which is not held against a map."""
+    if score is None:
+        return True
+    mush, detail = score
+    return mush < UNREADABLE_MUSH and detail > UNREADABLE_DETAIL
+
+
+def render_rank(score):
+    """Lower is better. Unmeasured maps sort between good and bad."""
+    if score is None:
+        return 50.0
+    mush, detail = score
+    return mush - min(detail, 60.0) * 0.5
+
+
+# ============================================================
 # harvest
 # ============================================================
 
@@ -660,12 +765,43 @@ def build_pool(max_pages):
                 by_id[entry["id"]] = entry
         time.sleep(REQUEST_DELAY)
 
-    # Cap each category, best first, then sort the survivors by id so the
-    # file is stable between harvests and the diff stays readable.
+    # Measure how the survivors render, cheapest-first: anything already
+    # measured costs nothing, and a run only pays for MEASURE_BUDGET new
+    # ones. Metadata cannot tell a map from a grey rectangle, so this is
+    # the only filter that knows what the screen will show.
+    quality = load_quality()
+    candidates = list(by_id.values())
+    unmeasured = [e for e in candidates if e["id"] not in quality]
+    if unmeasured:
+        # Measure the best-looking ones on paper first, so the maps most
+        # likely to survive the cap are the ones that get judged.
+        unmeasured.sort(key=score, reverse=True)
+        todo = unmeasured[:MEASURE_BUDGET]
+        sys.stderr.write("measuring {} of {} unmeasured maps\n"
+                         .format(len(todo), len(unmeasured)))
+        for i, entry in enumerate(todo, 1):
+            result = measure(entry)
+            if result:
+                quality[entry["id"]] = list(result)
+            if i % 100 == 0:
+                sys.stderr.write("  measured {}/{}\n".format(i, len(todo)))
+                save_quality(quality)
+        save_quality(quality)
+
+    readable_candidates = []
+    for entry in candidates:
+        sc = quality.get(entry["id"])
+        if readable(sc):
+            readable_candidates.append(entry)
+        else:
+            stats["renders as grey mush"] += 1
+
+    # Cap each category. Ranking is by how the map renders, falling back
+    # to the metadata score to separate maps that render alike.
     kept = []
     for category in sorted({c for c, _, _, _ in SOURCES}):
-        group = [e for e in by_id.values() if e["k"] == category]
-        group.sort(key=score, reverse=True)
+        group = [e for e in readable_candidates if e["k"] == category]
+        group.sort(key=lambda e: (render_rank(quality.get(e["id"])), -score(e)))
         if len(group) > PER_CATEGORY_CAP:
             stats["over category cap"] += len(group) - PER_CATEGORY_CAP
         kept.extend(group[:PER_CATEGORY_CAP])

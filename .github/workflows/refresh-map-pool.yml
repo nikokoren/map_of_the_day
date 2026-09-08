@@ -22,7 +22,7 @@ concurrency:
 jobs:
   harvest:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 90
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
@@ -31,6 +31,9 @@ jobs:
           # job was running, without cloning the whole daily history.
           fetch-depth: 20
 
+      - name: Install Pillow
+        run: pip install --quiet pillow
+
       - name: Harvest map pool from the Library of Congress
         run: python3 harvest.py --pages "${{ github.event.inputs.pages || 25 }}"
 
@@ -38,7 +41,7 @@ jobs:
         run: |
           git config user.name "GitHub Action"
           git config user.email "action@github.com"
-          git add pool.json
+          git add pool.json quality.json
 
           if git diff --staged --quiet; then
             echo "Pool unchanged, nothing to commit"

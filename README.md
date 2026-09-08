@@ -382,6 +382,39 @@ railways 594, exploration 199, nature 90. Nature is the shallow one -- 90
 maps is a three-month cycle before it repeats -- so it is the first category
 to widen if the setting ships.
 
+### Sectioned maps
+
+A record whose resource holds several files is a sectioned map, a sketchbook
+or a bound volume, and the image the API hands back is whichever file came
+first -- which for a sectioned map is the engraved title sheet rather than
+any of the map. There is no way to tell from the metadata which of twelve
+sections is worth showing, so the whole record goes. It is expensive: it
+takes most of the Atlantic Neptune and two thirds of the military sketchbook
+material with it.
+
+### How it renders, measured
+
+Metadata cannot tell a legible map from a grey rectangle, and the byte-size
+check below only catches the blank ones -- a dark, muddy scan makes a *large*
+file and sails through. So the harvest measures: it fetches each map at
+400x240 and looks at how the tones fall.
+
+- **mush** -- the share of pixels that are neither ink nor paper. Mid greys
+  are what dithering turns into noise, and a scan that is nearly all mid grey
+  arrives as a uniform stipple with nothing in it.
+- **detail** -- mean edge magnitude, which separates a blank sheet from a map.
+
+Calibrated by rendering a spread of maps at 1-bit and looking at them: under
+45 mush reads as line work, 45-60 goes murky, past 70 there is nothing on the
+screen at all. The floor is deliberately loose (70 mush, 22 detail) -- it
+throws out what is unreadable rather than what is imperfect, because a
+tighter one would empty the smaller topics. The measurement also *ranks* each
+category, so the maps that survive the cap are the ones that render best.
+
+Measuring costs one request per map, so a run measures at most 1200 new ones
+and remembers the answers in `quality.json`. The pool is covered after a few
+runs and re-measured never.
+
 ### The blank-paper check
 
 Metadata cannot tell you whether a map is a dense engraved city view or four
