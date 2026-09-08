@@ -77,17 +77,22 @@ PER_PAGE = 100
 MAX_YEAR = 1929
 MIN_YEAR = 1400
 
-# A map smaller than this was scanned badly or is a tiny inset. Below
-# roughly 1200px on the short side there is not enough ink left to read
-# anything once the screen dithers it.
-MIN_SHORT_SIDE = 1100
+# A map smaller than this was scanned badly or is a tiny inset. The
+# larger panel is 1404px on its short side, so a scan under about that
+# is being upscaled before it is even dithered.
+MIN_SHORT_SIDE = 1400
 MIN_PIXELS = 2_500_000
 
-# Aspect (width / height). The screen is landscape 800x480 (1.67). Very
-# tall maps end up as a stripe down the middle and very wide ones as a
-# band across it; both still read, extremes do not.
+# Aspect (width / height). The panels are landscape: 1.67 on the OG
+# (800x480) and 1.33 on the larger one (1040x780). Very tall maps end up
+# as a stripe down the middle and very wide ones as a band across it;
+# both still read, extremes do not.
 MIN_ASPECT = 0.55
 MAX_ASPECT = 3.60
+
+# The band the panels span. A map inside it fills whichever screen it
+# lands on; outside it, the cost grows with the distance.
+ASPECT_BAND = (1.33, 1.67)
 
 # Titles that mean "one sheet of a set", "a photocopy", or "a page of an
 # atlas" -- all of which look like a fragment on screen with no context.
@@ -463,8 +468,9 @@ def score(entry):
     points = 0.0
     # Detail to spare: more pixels means the downscale hides scan noise.
     points += min(entry["w"] * entry["h"] / 40_000_000.0, 1.0) * 40
-    # 1.67 is the screen. Distance from it costs, in either direction.
-    points += max(0.0, 1.0 - abs(aspect - 1.67) / 1.6) * 30
+    # Inside the band it fits every panel; outside, distance costs.
+    off = max(ASPECT_BAND[0] - aspect, aspect - ASPECT_BAND[1], 0.0)
+    points += max(0.0, 1.0 - off / 1.6) * 30
     if entry["d"]:
         points += 15
     if entry["c"]:

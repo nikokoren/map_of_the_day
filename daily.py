@@ -40,9 +40,26 @@ UA = "mission-control-trmnl/1.0 (github.com/nikokoren/mission_control)"
 # is occasionally useful and otherwise should be left alone.
 SALT = "mission-control/map-of-the-day/v1"
 
-# The e-ink panel. Images are requested pre-fitted to it, in grayscale,
-# so the device dithers a picture that is already the right shape.
-SCREEN_W, SCREEN_H = 800, 480
+# The panels this has to look right on. TRMNL's framework gives the OG an
+# 800x480 viewport and the newer, larger panel a 1040x780 one -- but that
+# is the CSS box, and the physical panel behind it is 1872x1404 at 227
+# ppi. An image meant for it has to carry the panel's pixels, not the
+# box's, or it renders soft.
+#
+# So the payload ships a URL per panel and, more importantly, the IIIF
+# base to build any other: markup that knows its own screen can ask for
+# exactly what it needs (see image_base in the README). The default
+# `image` is the largest, because the picture is fetched by whatever
+# renders the markup, not by the battery-powered device -- so paying for
+# pixels costs the screen nothing.
+OG_BOX = (800, 480)
+X_BOX = (1872, 1404)
+DEFAULT_BOX = X_BOX
+
+# The size the ink measurement is taken at. Not a display size: a fixed
+# yardstick, so the byte threshold below means the same thing for every
+# map regardless of which panel ends up showing it.
+PROBE_BOX = (800, 480)
 
 # A candidate whose image is definitively gone -- or too sparse to be
 # worth a day of screen time -- is skipped and the next one in the day's
@@ -52,12 +69,12 @@ MAX_SKIPS = 4
 DEAD_CODES = (403, 404, 410, 451)
 CHECK_TIMEOUT = 12
 
-# How many bytes the fitted greyscale JPEG has to weigh. At a fixed
-# 800x480 the file size is a direct measure of how much ink is on the
-# map: hand-drawn plats of four blocks come back at 16-29KB, engraved
-# city views and railroad maps at 50-80KB. Cheaper and more honest than
-# any metadata field, because it measures the picture itself.
-MIN_IMAGE_BYTES = 32_000
+# How many bytes the map has to weigh at PROBE_BOX. At a fixed size the
+# file size is a direct measure of how much ink is on the map: hand-drawn
+# plats of four blocks come back at 16-29KB, engraved city views and
+# railroad maps at 50-80KB. Cheaper and more honest than any metadata
+# field, because it measures the picture itself.
+MIN_INK_BYTES = 32_000
 
 # Total seconds all the image checks together may spend. The image
 # service usually answers a HEAD in under a second but can take six or
@@ -122,22 +139,33 @@ def candidates_for(entries, category, day):
 # images
 # ============================================================
 
-def iiif(service, size, quality="gray"):
-    return "https://tile.loc.gov/image-services/iiif/{}/full/{}/0/{}.jpg".format(
-        service, size, quality)
+def iiif_base(service):
+    return "https://tile.loc.gov/image-services/iiif/" + service
+
+
+def iiif(service, box, quality="gray"):
+    """
+    One image URL. "!w,h" means "fit inside this box", so the map keeps
+    its proportions whatever box it is given.
+    """
+    return "{}/full/!{},{}/0/{}.jpg".format(
+        iiif_base(service), box[0], box[1], quality)
 
 
 def image_urls(entry):
     """
-    IIIF does the resizing and the grayscale conversion for us. "!w,h"
-    means "fit inside this box", so a map keeps its proportions and no
-    map ever comes back upscaled past its own resolution.
+    The Library's IIIF service does the resizing and the greyscale
+    conversion, so a size is just a different URL -- which is why the
+    base is in the payload too.
     """
     return {
-        "image": iiif(entry["s"], "!{},{}".format(SCREEN_W, SCREEN_H)),
-        "image_large": iiif(entry["s"], "!{},{}".format(SCREEN_W * 2, SCREEN_H * 2)),
-        "image_color": iiif(entry["s"], "!{},{}".format(SCREEN_W, SCREEN_H), "default"),
-        "thumb": iiif(entry["s"], "!320,320"),
+        "image": iiif(entry["s"], DEFAULT_BOX),
+        "image_og": iiif(entry["s"], OG_BOX),
+        "image_x": iiif(entry["s"], X_BOX),
+        "image_color": iiif(entry["s"], DEFAULT_BOX, "default"),
+        "thumb": iiif(entry["s"], (320, 320)),
+        "probe": iiif(entry["s"], PROBE_BOX),
+        "image_base": iiif_base(entry["s"]),
     }
 
 
@@ -168,7 +196,7 @@ def image_state(url):
             size = int(resp.headers.get("Content-Length") or 0)
             if not size:
                 return "unknown", 0
-            return ("ok" if size >= MIN_IMAGE_BYTES else "thin"), size
+            return ("ok" if size >= MIN_INK_BYTES else "thin"), size
     except urllib.error.HTTPError as e:
         return ("dead" if e.code in DEAD_CODES else "unknown"), 0
     except (urllib.error.URLError, http.client.HTTPException, TimeoutError,
@@ -193,7 +221,7 @@ def title_line(entry):
     return title[:61].rsplit(" ", 1)[0].rstrip(" ,;:.-") + "..."
 
 
-def build_payload(entry, category, day, pool, checked, image_bytes=0):
+def build_payload(entry, category, day, pool, checked, ink_bytes=0):
     aspect = round(entry["w"] / float(entry["h"]), 3)
     urls = image_urls(entry)
     creator = entry.get("c") or ""
@@ -220,9 +248,12 @@ def build_payload(entry, category, day, pool, checked, image_bytes=0):
         "subtitle": " - ".join(p for p in (place, entry.get("col", "")) if p),
 
         "image": urls["image"],
-        "image_large": urls["image_large"],
+        "image_og": urls["image_og"],
+        "image_x": urls["image_x"],
         "image_color": urls["image_color"],
         "thumb": urls["thumb"],
+        # Build any other size from this: <base>/full/!w,h/0/gray.jpg
+        "image_base": urls["image_base"],
         "image_width": entry["w"],
         "image_height": entry["h"],
         "aspect": aspect,
@@ -237,7 +268,7 @@ def build_payload(entry, category, day, pool, checked, image_bytes=0):
         "pool_size": pool["count"],
         "pool_generated": pool.get("generated", ""),
         "image_checked": checked,
-        "image_bytes": image_bytes,
+        "ink_bytes": ink_bytes,
         "generated": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
     }
     return payload
@@ -251,7 +282,7 @@ def pick(entries, category, day, check):
     for entry in candidates:
         if budget_left() <= 0:
             return entry, "skipped", 0
-        state, size = image_state(image_urls(entry)["image"])
+        state, size = image_state(image_urls(entry)["probe"])
         if state in ("ok", "unknown"):
             return entry, state, size
         sys.stderr.write("  {} is {}, trying the next one\n"

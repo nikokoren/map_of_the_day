@@ -100,9 +100,11 @@ the setting later. Nothing else about the recipe changes either way.
 | `medium` | `col. map 52 x 40 cm.` | the physical object |
 | `byline` | `New Hampshire. Railroad Commissioners - 1894` | creator and year, pre-joined |
 | `subtitle` | `New Hampshire - Railroad Maps, 1828-1900` | place and collection, pre-joined |
-| `image` | `https://tile.loc.gov/.../full/!800,480/0/gray.jpg` | grayscale, pre-fitted to the panel |
-| `image_large` | `.../full/!1600,960/0/gray.jpg` | for a higher-resolution panel |
-| `image_color` | `.../full/!800,480/0/default.jpg` | same size, original colour |
+| `image` | `.../full/!1872,1404/0/gray.jpg` | greyscale, sized for the largest panel |
+| `image_og` | `.../full/!800,480/0/gray.jpg` | fitted to the OG's 800x480 |
+| `image_x` | `.../full/!1872,1404/0/gray.jpg` | fitted to the larger panel's real pixels |
+| `image_color` | `.../full/!1872,1404/0/default.jpg` | same size, original colour |
+| `image_base` | `https://tile.loc.gov/image-services/iiif/service:gmd:...` | build any other size from it -- see below |
 | `thumb` | `.../full/!320,320/0/gray.jpg` | for a mashup layout |
 | `image_width`, `image_height` | `4784`, `6488` | the scan's native size |
 | `aspect`, `orientation` | `0.737`, `portrait` | pick a layout without measuring |
@@ -110,12 +112,36 @@ the setting later. Nothing else about the recipe changes either way.
 | `item_url` | `https://www.loc.gov/item/98688514/` | the record, for a QR code or footer |
 | `date`, `category`, `category_label` | `2026-09-08`, `railways`, `Railroads` | what this file is |
 | `pool_size`, `pool_generated`, `generated` | | diagnostics |
-| `image_checked`, `image_bytes` | `ok`, `61550` | what the daily check found, and how heavy the fitted JPEG is |
+| `image_checked`, `ink_bytes` | `ok`, `37276` | what the daily check found, and the ink measurement below |
 
-Images come from the Library's IIIF service. `!800,480` means "fit inside
-this box without distorting", and `gray.jpg` asks the Library's server for
-the greyscale conversion, so the panel dithers a picture that is already the
-right shape and colour space. No map is ever upscaled past its own scan.
+### Sizes, and why there is no single right one
+
+Images come from the Library's IIIF service, where a size is just part of the
+URL. `!w,h` means "fit inside this box without distorting" and `gray.jpg`
+asks the Library's server for the greyscale conversion, so the picture
+arrives already the right shape and colour space for a panel to dither.
+
+TRMNL's panels are not one size. The framework gives the OG an 800x480
+viewport and the larger, 4-bit panel a 1040x780 one -- but that second
+number is the CSS box, and the panel behind it is **1872x1404** physical
+pixels at 227 ppi. An image sized to the box renders soft on it.
+
+So the payload does not commit to a panel:
+
+- `image` is the largest of the known sizes, which is the safe default. It
+  is fetched by whatever renders your markup, not by the battery-powered
+  screen, so the extra pixels cost the device nothing and let the renderer
+  downsample -- which looks better than upscaling ever does.
+- `image_og` and `image_x` are the two panels, if you would rather be exact.
+- `image_base` is the escape hatch. Any size at all is
+  `{{ image_base }}/full/!<w>,<h>/0/gray.jpg` -- `!1040,780` for the CSS box,
+  `!1404,1872` for a portrait layout, `!2400,2400` for a zoomed detail. Ask
+  for more than the scan holds and the Library upscales rather than refusing,
+  so a template can be written without checking each map's resolution.
+
+The pool keeps only scans of at least 1400px on the short side, so the larger
+panel is fed real pixels rather than an enlargement. `image_width` and
+`image_height` are the scan's true size if you want to decide in markup.
 
 ## Running it by hand
 
@@ -149,9 +175,11 @@ look bad or be legally awkward:
 - `access_restricted` items, and anything not digitised as an image
 - anything published after **1929** -- the pool is thousands of maps deep, so
   there is no reason to make a rights judgement on any single one
-- scans under ~1100px on the short side or 2.5 megapixels: below that there
-  is not enough ink left after the screen dithers it
-- aspect ratios outside 0.55-3.6, which arrive as a stripe on a 800x480 panel
+- scans under 1400px on the short side or 2.5 megapixels: the larger panel is
+  1404px on its short side, so anything under that is being enlarged before
+  it is even dithered
+- aspect ratios outside 0.55-3.6, which arrive as a stripe on a landscape
+  panel; scoring prefers the 1.33-1.67 band the panels themselves span
 - titles that mean "one sheet of a set", "index", "photocopy", or Sanborn
   fire-insurance sheets, which are a fragment on screen with no context
 
@@ -161,7 +189,7 @@ sketches on tracing linen) and the best 1200 per category are kept. The score
 only decides what to keep when a category overflows; it does not bias which
 map comes up on which day.
 
-Today's pool is **4,452 maps**: cities 1169, military 1200, panoramas 1200,
+Today's pool is **4,451 maps**: cities 1168, military 1200, panoramas 1200,
 railways 594, exploration 199, nature 90. Nature is the shallow one -- 90
 maps is a three-month cycle before it repeats -- so it is the first category
 to widen if the setting ships.
@@ -170,11 +198,16 @@ to widen if the setting ships.
 
 Metadata cannot tell you whether a map is a dense engraved city view or four
 streets sketched on a big sheet of paper, and the sparse ones look terrible
-on a screen. The daily job settles it by measuring: it HEADs the fitted
-greyscale JPEG and reads its size. At a fixed 800x480 that number is a direct
-measure of how much ink is on the map -- hand-drawn plats come back at
+on a screen. The daily job settles it by measuring: it HEADs the map at a
+fixed 800x480 and reads the JPEG's size. Held at one size, that number is a
+direct measure of how much ink is on the map -- hand-drawn plats come back at
 16-29KB, engraved city views and railroad maps at 50-80KB. Anything under
-`MIN_IMAGE_BYTES` (32KB) is passed over for the next map in the day's order.
+`MIN_INK_BYTES` (32KB) is passed over for the next map in the day's order,
+and the reading is reported as `ink_bytes`.
+
+The 800x480 there is a yardstick, not a display size: measuring every map at
+the same size is what makes the threshold mean the same thing for all of
+them. It has nothing to do with which panel ends up showing the map.
 
 ### Tuning it
 
