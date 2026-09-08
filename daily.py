@@ -310,6 +310,31 @@ def short_description(text, limit=120):
     return text[:limit].rsplit(" ", 1)[0].rstrip(" ,;:.-") + "..."
 
 
+def label_aliases(topics, picks):
+    """
+    Every string a topic might arrive as, mapped to its key. Covers the
+    label itself, the lowercase-underscored form TRMNL derives from it,
+    that form with the apostrophe or ampersand normalised, and the key.
+    Cheap insurance: a settings panel and a feed disagreeing about a
+    string is invisible until every selection quietly means "all maps".
+    """
+    out = {}
+    for topic in topics:
+        if topic not in picks:
+            continue
+        label = TOPIC_LABELS[topic]
+        snake = label.lower().replace(" ", "_")
+        plain = snake.replace("'", "").replace("&", "and")
+        for alias in (label, label.lower(), snake, plain,
+                      snake.replace("'", ""),
+                      snake.replace("&", "and"),
+                      plain.replace("-", "_"),
+                      re.sub(r"_+", "_", re.sub(r"[^a-z0-9]+", "_", plain)),
+                      topic):
+            out[alias] = topic
+    return out
+
+
 def cell_label(topic):
     """"Bird's-Eye Views" or "Bird's-Eye Views, 1870 - 1899"."""
     if CELL_SEP in topic:
@@ -640,12 +665,12 @@ def main():
             # of their keys so markup can test one with `contains`.
             "cells": [c for c in cells if c["key"] in picks],
             "cell_keys": [c["key"] for c in cells if c["key"] in picks],
-            # TRMNL select options are plain strings, so a setting comes
-            # back as the label a person saw ("City Plans"), not the key
-            # this file uses. Ship the translation rather than making
-            # every template hardcode it.
-            "keys_by_label": {TOPIC_LABELS[t]: t for t in themes + eras
-                              if t in picks},
+            # A TRMNL select stores a value derived from the option a
+            # person picked, not the option itself: "The 1700s" arrives
+            # as "the_1700s" and "1800 - 1849" as "1800_-_1849". Ship
+            # every spelling a setting might arrive as, so markup can
+            # look one up without transforming anything.
+            "keys_by_label": label_aliases(themes + eras, picks),
             "picks": picks,
         }
         print("{} picks: {} themes, {} eras, {} cells".format(

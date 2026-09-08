@@ -149,9 +149,22 @@ plugin's form builder or import the file.
 whole reason the combined feed exists: interpolating settings into the URL
 would need a file per combination.
 
-TRMNL's `select` options are plain strings, so a setting comes back as the
-label the person saw -- `"City Plans"`, not `city-plans`. The feed ships
-`keys_by_label` to translate, so no template has to hardcode the mapping.
+Three things about how TRMNL hands settings to markup, all of which were
+established from a real instance rather than the docs:
+
+- Settings live at `trmnl.plugin_settings.custom_fields_values`, keyed by
+  keyname -- not as top-level template variables.
+- A select stores a value *derived* from the option, not the option: `The
+  1700s` arrives as `the_1700s`, `1800 - 1849` as `1800_-_1849`. The feed's
+  `keys_by_label` carries every spelling a value might arrive as, so markup
+  looks one up without transforming anything.
+- A `boolean` field arrives as the **string** `"true"` or `"false"`, so it
+  must be compared, not tested. `{% if show_description %}` is true even when
+  the reader turned it off.
+
+`trmnl.device` also carries `width`, `height` and `orientation`, which is
+what lets the markup ask the Library for an image sized to the screen it is
+actually rendering for rather than a fixed guess.
 
 `trmnl/selection.liquid` does the whole resolution -- labels to keys, both
 dimensions to cells, and the fallbacks -- and leaves you a single `pick` to

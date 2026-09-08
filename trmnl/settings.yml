@@ -5,6 +5,11 @@
 # No custom field is interpolated into the polling URL. Every choice is
 # made in the markup against one static feed, which is what lets someone
 # combine themes and eras without a file per combination.
+#
+# TRMNL stores a value derived from each option rather than the option
+# itself -- "The 1700s" is stored as "the_1700s" -- so the labels below
+# can be edited freely: the feed ships every spelling each one could
+# arrive as, and the markup looks the value up rather than matching it.
 ---
 name: Map of the Day
 strategy: polling

@@ -20,11 +20,32 @@
   which is why nothing here indexes straight into a split array.
 {% endcomment %}
 
-{% comment %} A multi-select arrives as an array, a single choice as a string. {% endcomment %}
-{% assign chosen_themes = themes %}
-{% if chosen_themes.first == nil %}{% assign chosen_themes = themes | split: "," %}{% endif %}
-{% assign chosen_eras = eras %}
-{% if chosen_eras.first == nil %}{% assign chosen_eras = eras | split: "," %}{% endif %}
+{% comment %}
+  Settings live under trmnl.plugin_settings.custom_fields_values, keyed
+  by keyname. A multi-select arrives as an array, a single choice as a
+  string, and the stored value is derived from the option rather than
+  equal to it -- "The 1700s" arrives as "the_1700s" -- which the feed's
+  keys_by_label already accounts for.
+{% endcomment %}
+{% assign settings = trmnl.plugin_settings.custom_fields_values %}
+
+{% assign chosen_themes = settings.themes %}
+{% if chosen_themes == nil %}{% assign chosen_themes = themes %}{% endif %}
+{% if chosen_themes.first == nil %}{% assign chosen_themes = chosen_themes | split: "," %}{% endif %}
+
+{% assign chosen_eras = settings.eras %}
+{% if chosen_eras == nil %}{% assign chosen_eras = eras %}{% endif %}
+{% if chosen_eras.first == nil %}{% assign chosen_eras = chosen_eras | split: "," %}{% endif %}
+
+{% comment %}
+  A boolean field arrives as the STRING "true" or "false", so it has to
+  be compared, not just tested -- {% raw %}{% if show_description %}{% endraw %} is true even
+  when the reader turned it off.
+{% endcomment %}
+{% assign want_description = false %}
+{% if settings.show_description == "true" %}{% assign want_description = true %}{% endif %}
+{% assign want_credit = false %}
+{% if settings.show_credit == "true" %}{% assign want_credit = true %}{% endif %}
 
 {% comment %} Labels the person saw -> the keys this feed uses. {% endcomment %}
 {% assign theme_keys = "" %}
@@ -97,7 +118,25 @@
 {% assign pick = picks[chosen_key] %}
 
 {% comment %}
-  From here on: pick.title_short, pick.year, pick.byline, pick.published,
-  pick.image, pick.category_label ("Railroads, 1850 - 1869"), and
-  pick.description_short when show_description is on.
+  The image, sized to the screen this is rendering for. trmnl.device
+  gives width and height in CSS pixels; the larger panel sits behind a
+  higher-density screen, so asking for twice the box keeps it sharp and
+  costs the device nothing -- the picture is fetched by the renderer,
+  not the device.
+{% endcomment %}
+{% assign img_w = trmnl.device.width | times: 2 %}
+{% assign img_h = trmnl.device.height | times: 2 %}
+{% if img_w == 0 or img_w == nil %}{% assign img_w = 1600 %}{% assign img_h = 960 %}{% endif %}
+{% capture map_image %}{{ pick.image_base }}/full/!{{ img_w }},{{ img_h }}/0/gray.jpg{% endcapture %}
+
+{% comment %}
+  From here on:
+    map_image             the map, fitted to this device
+    pick.title_short      trimmed title
+    pick.year             four digits
+    pick.byline           maker and year
+    pick.published        "New York, 1866"
+    pick.category_label   "Railroads, 1850 - 1869"
+    want_description      whether to print pick.description_short
+    want_credit           whether to print pick.credit
 {% endcomment %}
