@@ -1,7 +1,12 @@
 #!/usr/bin/env python3
 """
-Renders upcoming picks as a contact sheet, dithered the way the panel
-dithers them, so a person can judge whether the pool is interesting.
+Renders upcoming picks as a contact sheet at the panel's grey depth, so
+a person can judge whether the pool is interesting.
+
+Depth matters more than it sounds: at 1-bit everything mid-toned turns
+to noise and half the collection looks broken, while at the 2-bit and
+4-bit depths the panels actually have, the same maps read cleanly.
+Default is 2-bit, the conservative case.
 
 Nothing here measures anything. Legibility can be measured; whether a
 map is worth looking at cannot, and this is the cheapest way to put the
@@ -46,6 +51,8 @@ def main():
     parser.add_argument("--days", type=int, default=12)
     parser.add_argument("--topic", default="all")
     parser.add_argument("--out", default="preview.png")
+    parser.add_argument("--levels", type=int, default=4,
+                        help="grey levels: 2, 4 (2-bit) or 16 (4-bit)")
     args = parser.parse_args()
 
     pool = daily.load_pool()
@@ -67,13 +74,15 @@ def main():
             tile.paste(image, ((TILE_W - image.size[0]) // 2, 0))
         caption = "{}  {}".format(entry["y"], daily.title_line(entry))
         ImageDraw.Draw(tile).text((3, TILE_H + 8), caption[:62], fill=0)
-        tiles.append(tile.convert("1"))
+        tiles.append(tile.quantize(colors=args.levels,
+                                   dither=Image.Dither.FLOYDSTEINBERG))
         sys.stderr.write("  {} {}\n".format(day, entry["t"][:60]))
 
     rows = (len(tiles) + COLS - 1) // COLS
-    sheet = Image.new("1", (TILE_W * COLS, (TILE_H + 26) * rows), 1)
+    sheet = Image.new("L", (TILE_W * COLS, (TILE_H + 26) * rows), 255)
     for i, tile in enumerate(tiles):
-        sheet.paste(tile, ((i % COLS) * TILE_W, (i // COLS) * (TILE_H + 26)))
+        sheet.paste(tile.convert("L"),
+                    ((i % COLS) * TILE_W, (i // COLS) * (TILE_H + 26)))
     sheet.save(args.out)
     print("wrote {} ({} days, topic {})".format(args.out, args.days, args.topic))
     return 0

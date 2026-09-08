@@ -140,12 +140,14 @@ POOL_VERSION = 1
 #   detail mean edge magnitude. Separates a blank sheet from a map, both
 #          of which can have little mush.
 #
-# Calibrated by rendering a spread of maps at 1-bit and looking at them:
-# under 45 mush reads as line work, 45-60 goes murky, and past 70 there
-# is nothing on the screen at all. The floor here is deliberately loose
-# -- it throws out what is unreadable rather than what is imperfect,
-# because a tighter one would empty the smaller topics.
-UNREADABLE_MUSH = 70.0
+# Mush was calibrated against 1-bit renders, where mid greys dither into
+# noise. Almost every TRMNL panel is 2-bit or 4-bit, and at four grey
+# levels a tonal map is simply a tonal map: a railroad map reading 94
+# mush -- which the 1-bit test called unreadable -- is perfectly legible,
+# title and all. So mush no longer rejects anything; it is kept only as
+# a tiebreaker, and the bar is set where an image is uniform enough to
+# have nothing in it at any bit depth.
+UNREADABLE_MUSH = 99.0
 UNREADABLE_DETAIL = 22.0
 
 # Above this, the page is printed text rather than a map -- the index of
@@ -765,11 +767,15 @@ def readable(score):
 
 
 def render_rank(score):
-    """Lower is better. Unmeasured maps sort between good and bad."""
+    """
+    Lower is better, for choosing what survives a category cap. Detail
+    is what matters -- a map with more in it beats a sparse one -- with
+    mush left as a mild tiebreaker rather than a judgement.
+    """
     if score is None:
         return 50.0
     mush, detail = score[0], score[1]
-    return mush - min(detail, 60.0) * 0.5
+    return -min(detail, 60.0) + mush * 0.15
 
 
 # ============================================================
