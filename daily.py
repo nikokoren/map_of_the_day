@@ -98,6 +98,11 @@ CATEGORY_LABELS = {
 
 EPOCH = date(1970, 1, 1)
 
+# Fields that change on every run without the map having changed. If
+# only these differ, the file is left alone -- otherwise a re-run makes
+# a commit that says nothing.
+VOLATILE_FIELDS = ("generated", "image_checked", "ink_bytes")
+
 
 # ============================================================
 # selection
@@ -395,11 +400,24 @@ def load_pool():
     return pool
 
 
+def substantive(payload):
+    return {k: v for k, v in payload.items() if k not in VOLATILE_FIELDS}
+
+
 def write_json(path, payload):
+    """Write the file, unless the only thing that changed is the clock."""
+    try:
+        with open(path) as fh:
+            existing = json.load(fh)
+        if substantive(existing) == substantive(payload):
+            return False
+    except (OSError, ValueError):
+        pass
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w") as fh:
         json.dump(payload, fh, separators=(",", ":"), sort_keys=True)
         fh.write("\n")
+    return True
 
 
 def main():
@@ -450,12 +468,11 @@ def main():
                 else os.path.join(TODAY_DIR, category + ".json"))
         print("{:<12} {} ({}) [{}]".format(
             category, payload["title_short"], payload["year"], checked))
-        if not args.dry_run:
-            write_json(path, payload)
+        if not args.dry_run and write_json(path, payload):
             written.append(os.path.relpath(path, os.getcwd()))
 
-    if written:
-        print("wrote " + ", ".join(written))
+    print("wrote " + ", ".join(written) if written
+          else "same maps as the last run, nothing rewritten")
     return 0
 
 
