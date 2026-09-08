@@ -636,6 +636,12 @@ def main():
             # of their keys so markup can test one with `contains`.
             "cells": [c for c in cells if c["key"] in picks],
             "cell_keys": [c["key"] for c in cells if c["key"] in picks],
+            # TRMNL select options are plain strings, so a setting comes
+            # back as the label a person saw ("City Plans"), not the key
+            # this file uses. Ship the translation rather than making
+            # every template hardcode it.
+            "keys_by_label": {TOPIC_LABELS[t]: t for t in themes + eras
+                              if t in picks},
             "picks": picks,
         }
         print("{} picks: {} themes, {} eras, {} cells".format(

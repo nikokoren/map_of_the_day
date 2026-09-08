@@ -11,6 +11,8 @@ Railroad map of New Hampshire
 ```
 
 ```
+trmnl/settings.yml      the plugin's polling URL and settings, ready to paste
+trmnl/selection.liquid  the markup that turns those settings into one map
 harvest.py              builds the candidate pool from the Library of Congress
 daily.py                picks the day's map and writes what TRMNL polls
 pool.json               the vetted candidates (rewritten monthly)
@@ -132,6 +134,31 @@ Revolutionary War maps. A cell is offered only when it holds at least
 is the list of the ones that do exist, so markup tests membership rather than
 guessing -- and a selection that lands entirely on missing cells should fall
 back to the theme picks, which honour the theme and ignore the era.
+
+### Setting it up on the TRMNL side
+
+Two custom fields, both `select` with `multiple: true`, which is TRMNL's
+own multi-select -- the person installing it holds cmd or ctrl and picks
+several. `trmnl/settings.yml` has them written out; paste them into the
+plugin's form builder or import the file.
+
+**No custom field goes into the polling URL.** The URL stays the static
+`today.json` for everybody, and the choosing happens in markup. That is the
+whole reason the combined feed exists: interpolating settings into the URL
+would need a file per combination.
+
+TRMNL's `select` options are plain strings, so a setting comes back as the
+label the person saw -- `"City Plans"`, not `city-plans`. The feed ships
+`keys_by_label` to translate, so no template has to hardcode the mapping.
+
+`trmnl/selection.liquid` does the whole resolution -- labels to keys, both
+dimensions to cells, and the fallbacks -- and leaves you a single `pick` to
+lay out however you like. It deliberately contains no styling.
+
+The fallback chain is worth knowing: a combination that does not exist falls
+back to the chosen themes, and an empty selection falls back to the whole
+pool. Someone who picks *Railroads* and *The 1700s* has asked for something
+that never existed, and still gets a railroad map rather than a blank screen.
 
 ### The topics
 

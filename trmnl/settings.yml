@@ -1,0 +1,61 @@
+# The TRMNL side of the recipe: the polling URL and the settings a person
+# sees when they install it. Paste these fields into the private plugin's
+# form builder, or import this file directly.
+#
+# No custom field is interpolated into the polling URL. Every choice is
+# made in the markup against one static feed, which is what lets someone
+# combine themes and eras without a file per combination.
+---
+name: Map of the Day
+strategy: polling
+refresh_interval: 60
+polling_verb: get
+polling_url: https://raw.githubusercontent.com/nikokoren/map_of_the_day/main/today.json
+
+custom_fields:
+  - keyname: themes
+    name: Themes
+    field_type: select
+    multiple: true
+    description: >-
+      What kinds of map to draw from. Pick as many as you like, or none for
+      all of them. Hold cmd (or ctrl) to select more than one.
+    options:
+      - City Plans
+      - Bird's-Eye Views
+      - Civil War
+      - Railroads
+      - Roads & Travel
+      - Revolutionary War
+      - Land & Property
+      - Battles & Forts
+      - Nautical Charts
+      - Exploration
+
+  - keyname: eras
+    name: Eras
+    field_type: select
+    multiple: true
+    description: >-
+      Which centuries to draw from. Leave empty for any era. Note that not
+      every combination exists -- there are no 1700s railroad maps.
+    options:
+      - The 1700s
+      - 1800 - 1849
+      - 1850 - 1869
+      - 1870 - 1899
+      - 1900 - 1929
+
+  - keyname: show_description
+    name: Show a line of context
+    field_type: boolean
+    description: >-
+      Adds one sentence about the map under the title. About 6% of maps
+      have none, so the line is simply absent on those days.
+
+  - keyname: show_credit
+    name: Show the Library of Congress credit
+    field_type: boolean
+    description: >-
+      Prints the credit line in the footer. Worth leaving on if you share
+      pictures of the screen.
