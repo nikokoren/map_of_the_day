@@ -148,11 +148,15 @@ POOL_VERSION = 1
 UNREADABLE_MUSH = 70.0
 UNREADABLE_DETAIL = 22.0
 
+# Above this, the page is printed text rather than a map -- the index of
+# an atlas rather than one of its plates.
+TEXT_RATIO = 2.5
+
 # Measuring costs one request per map, so a run measures at most this
 # many new ones and remembers the answers in quality.json. The pool is
 # covered after a few runs and re-measured never.
 MEASURE_BUDGET = 1200
-MEASURE_SIZE = "!400,240"
+MEASURE_SIZE = "!800,480"
 
 
 # ============================================================
@@ -488,15 +492,15 @@ def evaluate(record, category, label):
     if record.get("access_restricted"):
         return None, "access restricted"
 
-    # A record whose resource holds several files is a sectioned map, a
-    # sketchbook, or a bound volume -- and the image we are handed is
-    # whichever file came first, which for a sectioned map is the
-    # engraved title sheet rather than any of the map. There is no way
-    # to tell from here which of 12 sections is worth showing, so the
-    # whole record goes.
+    # A record whose resource holds several files is a sectioned map, an
+    # atlas or a sketchbook, and the image handed back is the first file
+    # -- which is the engraved title sheet rather than any of the map.
+    # Rather than discard it (that cost most of the Atlantic Neptune and
+    # an atlas of 272 city views), the section count is carried forward
+    # and a later section is chosen further down, where measuring can
+    # say whether it is worth showing.
     resource = (record.get("resources") or [{}])[0]
-    if (resource.get("files") or 1) > 1:
-        return None, "one sheet of a set"
+    sections = int(resource.get("files") or 1)
     if not record.get("digitized", True):
         return None, "not digitized"
 
@@ -572,6 +576,8 @@ def evaluate(record, category, label):
         "w": width,
         "h": height,
     }
+    if sections > 1:
+        entry["n"] = sections
     return entry, None
 
 
@@ -695,22 +701,74 @@ def measure(entry):
     mush = (1.0 - ink - paper) * 100.0
     edges = image.filter(ImageFilter.FIND_EDGES).getdata()
     detail = sum(edges) / float(len(edges) or 1)
-    return round(mush, 1), round(detail, 1)
+
+    # Printed text rules the page into horizontal lines, so its darkness
+    # alternates far more down the page than across it. Maps sit near
+    # 1.5, an index page at 3.5 and up. This is what stops a sectioned
+    # atlas offering its index instead of a plate.
+    width, height = image.size
+    load = image.load()
+    rows = [sum(load[x, y] for x in range(0, width, 2)) / (width / 2.0)
+            for y in range(height)]
+    cols = [sum(load[x, y] for y in range(0, height, 2)) / (height / 2.0)
+            for x in range(width)]
+    row_alt = sum(abs(rows[i + 1] - rows[i])
+                  for i in range(len(rows) - 1)) / max(len(rows) - 1, 1)
+    col_alt = sum(abs(cols[i + 1] - cols[i])
+                  for i in range(len(cols) - 1)) / max(len(cols) - 1, 1)
+    texty = row_alt / max(col_alt, 0.01)
+    return round(mush, 1), round(detail, 1), round(texty, 2)
+
+
+# The section number lives at the end of the last part of the service
+# id -- ca000001, pa00001d, sb00001a -- so a sibling section is that
+# number incremented, keeping the width and any letter after it.
+SECTION_NUM = re.compile(r"(\d+)(\D*)$")
+
+
+def section_variant(service, index):
+    head, _, tail = service.rpartition(":")
+    m = SECTION_NUM.search(tail)
+    if not m:
+        return None
+    digits, suffix = m.group(1), m.group(2)
+    renumbered = str(index).zfill(len(digits))
+    if len(renumbered) != len(digits):
+        return None
+    return head + ":" + tail[:m.start(1)] + renumbered + suffix
+
+
+def section_candidates(service, sections):
+    """
+    Sections worth trying, middle first. The front of an atlas is title
+    page, dedication and index; the middle is where the plates are.
+    """
+    wanted, seen = [], set()
+    for index in (sections // 2, sections // 2 + 1, 3, 2):
+        if index < 2 or index > sections or index in seen:
+            continue
+        seen.add(index)
+        variant = section_variant(service, index)
+        if variant:
+            wanted.append(variant)
+    return wanted
 
 
 def readable(score):
     """None means not measured yet, which is not held against a map."""
     if score is None:
         return True
-    mush, detail = score
-    return mush < UNREADABLE_MUSH and detail > UNREADABLE_DETAIL
+    mush, detail = score[0], score[1]
+    texty = score[2] if len(score) > 2 else 0.0
+    return (mush < UNREADABLE_MUSH and detail > UNREADABLE_DETAIL
+            and texty < TEXT_RATIO)
 
 
 def render_rank(score):
     """Lower is better. Unmeasured maps sort between good and bad."""
     if score is None:
         return 50.0
-    mush, detail = score
+    mush, detail = score[0], score[1]
     return mush - min(detail, 60.0) * 0.5
 
 
@@ -771,18 +829,57 @@ def build_pool(max_pages):
     # the only filter that knows what the screen will show.
     quality = load_quality()
     candidates = list(by_id.values())
-    unmeasured = [e for e in candidates if e["id"] not in quality]
+    budget = [MEASURE_BUDGET]
+
+    def scored(service):
+        """Cached measurement for a service id, measuring if there is budget."""
+        if service in quality:
+            return quality[service]
+        if budget[0] <= 0:
+            return None
+        result = measure({"s": service})
+        budget[0] -= 1
+        if result:
+            quality[service] = list(result)
+        return quality.get(service)
+
+    # A sectioned record needs a section chosen before anything else can
+    # be said about it. Try the middle of the volume first -- the front
+    # is title page and index -- and take the first section that both
+    # renders and is not a page of print.
+    sectioned = [e for e in candidates if e.get("n")]
+    if sectioned:
+        sys.stderr.write("resolving {} sectioned records\n".format(len(sectioned)))
+    for entry in sectioned:
+        chosen = None
+        for service in section_candidates(entry["s"], entry["n"]):
+            if readable(scored(service)) and service in quality:
+                chosen = service
+                break
+        entry.pop("n", None)
+        if chosen:
+            entry["s"] = chosen
+        else:
+            # Either every section was front matter, or the budget ran
+            # out before we could look. Both mean "not this run".
+            stats["no usable section"] += 1
+            by_id.pop(entry["id"], None)
+    if sectioned:
+        save_quality(quality)
+
+    candidates = list(by_id.values())
+    unmeasured = [e for e in candidates if e["s"] not in quality]
     if unmeasured:
         # Measure the best-looking ones on paper first, so the maps most
         # likely to survive the cap are the ones that get judged.
         unmeasured.sort(key=score, reverse=True)
-        todo = unmeasured[:MEASURE_BUDGET]
+        todo = unmeasured[:max(budget[0], 0)]
         sys.stderr.write("measuring {} of {} unmeasured maps\n"
                          .format(len(todo), len(unmeasured)))
         for i, entry in enumerate(todo, 1):
             result = measure(entry)
             if result:
-                quality[entry["id"]] = list(result)
+                quality[entry["s"]] = list(result)
             if i % 100 == 0:
                 sys.stderr.write("  measured {}/{}\n".format(i, len(todo)))
                 save_quality(quality)
@@ -790,7 +887,7 @@ def build_pool(max_pages):
 
     readable_candidates = []
     for entry in candidates:
-        sc = quality.get(entry["id"])
+        sc = quality.get(entry["s"])
         if readable(sc):
             readable_candidates.append(entry)
         else:
@@ -801,7 +898,7 @@ def build_pool(max_pages):
     kept = []
     for category in sorted({c for c, _, _, _ in SOURCES}):
         group = [e for e in readable_candidates if e["k"] == category]
-        group.sort(key=lambda e: (render_rank(quality.get(e["id"])), -score(e)))
+        group.sort(key=lambda e: (render_rank(quality.get(e["s"])), -score(e)))
         if len(group) > PER_CATEGORY_CAP:
             stats["over category cap"] += len(group) - PER_CATEGORY_CAP
         kept.extend(group[:PER_CATEGORY_CAP])
