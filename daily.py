@@ -217,7 +217,12 @@ def image_state(url):
 # A caption box has a fixed height; a description does not. 6% of the
 # pool has none at all and 37% runs to a full paragraph, so a layout that
 # wants one predictable line needs one cut for it.
-SENTENCE_SPLIT = re.compile(r"(?<=[a-z]{4}[.!?])\s+(?=[\"'\[(A-Z])")
+# A sentence ends on a long word or on a year -- "...on July 1, 1862."
+# is a sentence end, while "no. 4." and "Wis." are not. Requiring four
+# characters of one kind or the other in front of the stop is what tells
+# them apart.
+SENTENCE_SPLIT = re.compile(
+    r"(?:(?<=[a-z]{4}[.!?])|(?<=\d{4}[.!?]))\s+(?=[\"'\[(A-Z])")
 
 
 def short_description(text, limit=120):
@@ -233,6 +238,12 @@ def short_description(text, limit=120):
     sentences = [s.strip() for s in SENTENCE_SPLIT.split(text) if s.strip()]
     fitting = [s for s in sentences if len(s) <= limit]
     if fitting:
+        # The opening sentence if it says anything -- it is the one the
+        # cataloguer led with. Otherwise the fullest one that fits, since
+        # a lead like "Relief shown pictorially." is filler and the
+        # sentence after it is the one worth reading.
+        if fitting[0] is sentences[0] and len(sentences[0]) >= 40:
+            return sentences[0]
         return max(fitting, key=len)
     return text[:limit].rsplit(" ", 1)[0].rstrip(" ,;:.-") + "..."
 
