@@ -105,6 +105,7 @@ THEMES = [
     ("battles-and-forts", "Battles & Forts"),
     ("nautical",          "Nautical Charts"),
     ("exploration",       "Exploration"),
+    ("world-and-hemispheres", "World & Hemispheres"),
 ]
 
 ERAS = [
@@ -367,17 +368,51 @@ def cell_label(topic):
     return TOPIC_LABELS.get(topic, topic.replace("-", " ").title())
 
 
+# How long a headline may run before it is cut. Titles here are
+# catalogue titles: 45% are over 64 characters and the long ones are
+# often a whole sentence of description, so the cut has to land
+# somewhere that reads as a phrase rather than mid-clause.
+TITLE_LIMIT = 88
+SUBTITLE_MARKERS = (" : ", " ; ", " -- ", " \u2014 ")
+
+
+def balance_brackets(text):
+    """A cut inside a devised title leaves "[North America from the" --
+    close it rather than leave the bracket hanging."""
+    if text.count("[") > text.count("]"):
+        text += "]"
+    if text.count("(") > text.count(")"):
+        text += ")"
+    return text
+
+
 def title_line(entry):
-    """Title trimmed to something that fits a headline without wrapping
-    off the screen. The full title stays available as `title`."""
+    """
+    The title, trimmed to something that fits a headline. The full title
+    stays available as `title`.
+
+    Cut at a subtitle marker where there is one, otherwise at the last
+    clause boundary that fits, and only as a last resort mid-phrase with
+    an ellipsis -- which is 10% of the pool rather than the 37% a plain
+    character cut produced.
+    """
     title = entry["t"]
-    if len(title) <= 64:
+    if len(title) <= TITLE_LIMIT:
         return title
-    # Prefer cutting at the subtitle marker LOC uses before chopping words.
-    for marker in (" : ", "; ", ", showing", " -- "):
-        if marker in title[:64]:
-            return title.split(marker)[0].strip(" ,:;-")
-    return title[:61].rsplit(" ", 1)[0].rstrip(" ,;:.-") + "..."
+
+    for marker in SUBTITLE_MARKERS:
+        if marker in title:
+            head = title.split(marker)[0].strip(" ,:;-")
+            if 20 <= len(head) <= TITLE_LIMIT:
+                return balance_brackets(head)
+
+    window = title[:TITLE_LIMIT + 1]
+    cut = max(window.rfind(", "), window.rfind("; "), window.rfind(" -- "))
+    if cut >= 25:
+        return balance_brackets(window[:cut].strip(" ,;:-"))
+
+    trimmed = window.rsplit(" ", 1)[0].rstrip(" ,;:.-")
+    return balance_brackets(trimmed) + "\u2026"
 
 
 def build_payload(entry, category, day, pool, checked, ink_bytes=0):

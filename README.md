@@ -218,7 +218,8 @@ at least one. Eras are read off the year, so they cannot be wrong.
 | `land-ownership` | Land & Property | ~395 | 1.1 years |
 | `battles-and-forts` | Battles & Forts | ~340 | 11 months |
 | `nautical` | Nautical Charts | ~255 | 8 months |
-| `exploration` | Exploration | ~230 | 7 months |
+| `exploration` | Exploration | ~270 | 9 months |
+| `world-and-hemispheres` | World & Hemispheres | ~710 | 1.9 years |
 | `era-1700s` | The 1700s | ~700 | 1.9 years |
 | `era-1800-1849` | 1800 - 1849 | ~360 | 1 year |
 | `era-1850-1869` | 1850 - 1869 | ~1200 | 3.3 years |
@@ -245,9 +246,10 @@ The theme-by-era matrix, for reference (the blanks are cells under 25 maps):
 | Nautical Charts | 124 | 27 | 70 | - | - |
 | Exploration | 58 | 62 | 47 | - | - |
 
-Two topics were considered and **left out** for repeating too fast to be
-worth offering: national parks (99 maps, a quarterly loop) and world maps and
-hemispheres (36, back round every five weeks). `--selftest` fails if any
+One topic is still **left out** for repeating too fast to be worth offering:
+national parks, at 99 maps and a quarterly loop. World maps and hemispheres
+was left out for the same reason at 36 maps, and earned its place when the
+World Digital Library arrived and took it to 712. `--selftest` fails if any
 offered topic drops under 200 maps, which is the line for "not twice in a
 year".
 

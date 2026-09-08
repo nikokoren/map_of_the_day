@@ -36,6 +36,7 @@ custom_fields:
       - Battles & Forts
       - Nautical Charts
       - Exploration
+      - World & Hemispheres
 
   - keyname: eras
     name: Eras

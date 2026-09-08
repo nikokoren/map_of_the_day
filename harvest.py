@@ -559,6 +559,11 @@ TOPIC_PATTERNS = {
     "battles-and-forts": r"\bbattle|fortificat|\bfort\b|siege|entrenchment|seat of war",
     "nautical":         r"nautical|harbou?r|\bchart\b|soundings|coast survey|lighthouse",
     "exploration":      r"discover|exploration|expedition|voyage",
+    # Added once the World Digital Library maps arrived: 36 maps before
+    # them, 712 after, which is the difference between a topic that
+    # loops every five weeks and one that lasts two years.
+    "world-and-hemispheres": (r"\bworld\b|hemisphere|globe|terrarum|"
+                              r"universalis|mappe.?monde|orbis"),
 }
 TOPIC_RES = {name: re.compile(pat, re.I) for name, pat in TOPIC_PATTERNS.items()}
 
