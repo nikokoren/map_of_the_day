@@ -51,16 +51,29 @@ RETRIES = 4
 # having if it has enough maps behind it to stay fresh for years.
 #
 # Slug is the loc.gov collection slug: loc.gov/collections/<slug>/.
-# Label is what we show as the collection line on screen.
+# Label is what we show as the collection line on screen. The fourth
+# item is extra query string, used where a collection holds more than
+# maps -- World Digital Library is 21,000 items of which 1,827 are maps,
+# and paging the rest to throw them away would be rude as well as slow.
 SOURCES = [
-    ("panoramas",   "panoramic-maps",                 "Panoramic Maps"),
-    ("railways",    "railroad-maps-1828-to-1900",     "Railroad Maps, 1828-1900"),
-    ("cities",      "cities-and-towns",               "Cities and Towns"),
-    ("military",    "civil-war-maps",                 "Civil War Maps"),
-    ("military",    "american-revolutionary-war-maps", "American Revolutionary War Maps"),
-    ("military",    "military-battles-and-campaigns", "Military Battles and Campaigns"),
-    ("exploration", "discovery-and-exploration",      "Discovery and Exploration"),
-    ("nature",      "national-parks-maps",            "National Parks Maps"),
+    ("panoramas",   "panoramic-maps",                 "Panoramic Maps", ""),
+    ("railways",    "railroad-maps-1828-to-1900",     "Railroad Maps, 1828-1900", ""),
+    ("cities",      "cities-and-towns",               "Cities and Towns", ""),
+    ("military",    "civil-war-maps",                 "Civil War Maps", ""),
+    ("military",    "american-revolutionary-war-maps", "American Revolutionary War Maps", ""),
+    ("military",    "military-battles-and-campaigns", "Military Battles and Campaigns", ""),
+    ("exploration", "discovery-and-exploration",      "Discovery and Exploration", ""),
+    ("nature",      "national-parks-maps",            "National Parks Maps", ""),
+    # Charts of the North American coast, engraved for the Royal Navy in
+    # the 1770s. Tiny, and among the finest line work in the pool.
+    ("nautical",    "the-atlantic-neptune-collection", "The Atlantic Neptune",
+     "&fa=original-format:map"),
+    # Russia and Siberia, and the American west that faced it.
+    ("frontiers",   "meeting-of-frontiers",           "Meeting of Frontiers",
+     "&fa=original-format:map"),
+    # The one collection here that is mostly not American.
+    ("world",       "world-digital-library",          "World Digital Library",
+     "&fa=original-format:map"),
 ]
 
 MAX_PAGES = 25          # per collection, at 100 records a page
@@ -595,13 +608,13 @@ def score(entry):
 # harvest
 # ============================================================
 
-def harvest_collection(slug, category, label, max_pages, stats):
+def harvest_collection(slug, category, label, max_pages, stats, extra=""):
     """Page through one collection, returning the entries that survive."""
     entries = []
     page = 1
     while page <= max_pages:
         url = ("https://www.loc.gov/collections/{}/?fo=json&c={}&sp={}"
-               "&at=results,pagination".format(slug, PER_PAGE, page))
+               "&at=results,pagination{}".format(slug, PER_PAGE, page, extra))
         data = fetch_json(url)
         if data is None:
             sys.stderr.write(f"  giving up on {slug} at page {page}\n")
@@ -631,8 +644,9 @@ def harvest_collection(slug, category, label, max_pages, stats):
 def build_pool(max_pages):
     stats = Counter()
     by_id = {}
-    for category, slug, label in SOURCES:
-        for entry in harvest_collection(slug, category, label, max_pages, stats):
+    for category, slug, label, extra in SOURCES:
+        for entry in harvest_collection(slug, category, label, max_pages,
+                                        stats, extra):
             # A map in two collections (a Civil War map is also a military
             # campaign map) keeps whichever entry scored higher, so the
             # better metadata wins and it can only be picked once.
@@ -644,7 +658,7 @@ def build_pool(max_pages):
     # Cap each category, best first, then sort the survivors by id so the
     # file is stable between harvests and the diff stays readable.
     kept = []
-    for category in sorted({c for c, _, _ in SOURCES}):
+    for category in sorted({c for c, _, _, _ in SOURCES}):
         group = [e for e in by_id.values() if e["k"] == category]
         group.sort(key=score, reverse=True)
         if len(group) > PER_CATEGORY_CAP:
