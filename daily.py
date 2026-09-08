@@ -19,6 +19,7 @@ import hashlib
 import http.client
 import json
 import os
+import re
 import sys
 import time
 import urllib.error
@@ -213,6 +214,29 @@ def image_state(url):
 # payload
 # ============================================================
 
+# A caption box has a fixed height; a description does not. 6% of the
+# pool has none at all and 37% runs to a full paragraph, so a layout that
+# wants one predictable line needs one cut for it.
+SENTENCE_SPLIT = re.compile(r"(?<=[a-z]{4}[.!?])\s+(?=[\"'\[(A-Z])")
+
+
+def short_description(text, limit=120):
+    """
+    One sentence that earns its place. Descriptions are a run of
+    catalogue notes and the first is often the blandest ("Relief shown
+    pictorially."), so take the longest that fits rather than the first
+    -- length is a decent proxy for which note actually says something.
+    """
+    text = (text or "").strip()
+    if not text or len(text) <= limit:
+        return text
+    sentences = [s.strip() for s in SENTENCE_SPLIT.split(text) if s.strip()]
+    fitting = [s for s in sentences if len(s) <= limit]
+    if fitting:
+        return max(fitting, key=len)
+    return text[:limit].rsplit(" ", 1)[0].rstrip(" ,;:.-") + "..."
+
+
 def title_line(entry):
     """Title trimmed to something that fits a headline without wrapping
     off the screen. The full title stays available as `title`."""
@@ -245,12 +269,21 @@ def build_payload(entry, category, day, pool, checked, ink_bytes=0):
         "place": place,
         "collection": entry.get("col", ""),
         "description": entry.get("d", ""),
+        "description_short": short_description(entry.get("d", "")),
         "medium": entry.get("m", ""),
+        "published": entry.get("pub", ""),
+        "scale": entry.get("sc", ""),
+        "subjects": entry.get("subj", []),
+        "subjects_line": ", ".join(entry.get("subj", [])),
 
         # Ready-made lines, for the common case where the layout wants one
         # string under the title rather than four fields to arrange.
         "byline": " - ".join(p for p in (creator, str(entry["y"])) if p),
         "subtitle": " - ".join(p for p in (place, entry.get("col", "")) if p),
+        # Imprint and scale, the two details that are specific to a map
+        # rather than to its subject. Either may be missing.
+        "imprint": " - ".join(p for p in (entry.get("pub", ""),
+                                          entry.get("sc", "")) if p),
 
         "image": urls["image"],
         "image_og": urls["image_og"],

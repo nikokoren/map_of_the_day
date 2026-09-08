@@ -63,7 +63,36 @@ The payload's keys arrive at the top of the template context, the same way
 `launch.json` does for the mission control plugin -- `{{ title }}`,
 `{{ image }}`, and so on.
 
-### Categories, if you want them
+## Settings
+
+Settings split in two, and the split decides where each one lives.
+
+**What map you get** has to be a URL, because the feed is a static file and
+the choice has to be made before the file is written. That is the category
+setting below.
+
+**What the screen shows** should not be a URL. The payload carries every
+field for every map, so showing or hiding the description is a decision the
+markup makes with a Liquid conditional against a TRMNL custom field -- no
+extra files, no job to re-run, and it takes effect the moment you save:
+
+```liquid
+{% if show_description and description_short != "" %}
+  <span class="description">{{ description_short }}</span>
+{% endif %}
+```
+
+That pattern covers most of what a settings panel would want: a caption
+detail level (title only / title and date / add a sentence), whether to show
+the creator, whether to show the collection, whether to credit the Library in
+a footer. All of it reads fields that are already in every payload.
+
+The fields that are **not** always there are the ones a conditional has to
+guard: `creator` (95%), `description` and `description_short` (94%), `scale`
+(~15%), `subjects` (99%). Everything else -- title, year, place, collection,
+medium, published, and the image URLs -- is on every map in the pool.
+
+### Categories
 
 The daily job writes one file per category, so a category setting is just a
 different URL rather than a different code path:
@@ -96,10 +125,16 @@ the setting later. Nothing else about the recipe changes either way.
 | `creator` | `New Hampshire. Railroad Commissioners` | may be empty |
 | `place` | `New Hampshire` | may be empty |
 | `collection` | `Railroad Maps, 1828-1900` | the LOC collection it came from |
-| `description` | `Township and county map showing relief by hachures...` | trimmed to ~220 chars, may be empty |
+| `description` | `Township and county map showing relief by hachures...` | trimmed to ~220 chars, **6% are empty** |
+| `description_short` | `Shows ward numbers and boundaries.` | one sentence, <=120 chars, for a fixed-height caption |
 | `medium` | `col. map 52 x 40 cm.` | the physical object |
+| `published` | `New York, 1866` | imprint: where and when it was *published*, often not where it depicts |
+| `scale` | `1:1,875,000` | **only ~15% of maps** carry one in their notes |
+| `subjects` | `["Railroads", "Civil War, 1861-1865"]` | up to 4, specific terms only |
+| `subjects_line` | `Railroads, Civil War, 1861-1865` | the same, pre-joined |
 | `byline` | `New Hampshire. Railroad Commissioners - 1894` | creator and year, pre-joined |
 | `subtitle` | `New Hampshire - Railroad Maps, 1828-1900` | place and collection, pre-joined |
+| `imprint` | `New York, 1866 - 1:1,875,000` | publication and scale, pre-joined, either part may be missing |
 | `image` | `.../full/!1872,1404/0/gray.jpg` | greyscale, sized for the largest panel |
 | `image_og` | `.../full/!800,480/0/gray.jpg` | fitted to the OG's 800x480 |
 | `image_x` | `.../full/!1872,1404/0/gray.jpg` | fitted to the larger panel's real pixels |

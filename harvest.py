@@ -260,6 +260,7 @@ NOTE_NOISE = re.compile(r"""^(?:
     | accompanied\ by
     | for\ sale\ by
     | vault
+    | photocopy
     | copy\ imperfect
     | printed\ area
     | separately\ published
@@ -282,6 +283,8 @@ NOTE_NOISE_ANY = re.compile(r"""
     | \d+/\d+          # MARC field bookkeeping, e.g. "100; 651/1; 710/1"
     | serial\ no\.
     | cong\.,
+    | acquisitions?\ control
+    | \bpm\d+\b
     """, re.I | re.X)
 
 
@@ -364,6 +367,67 @@ def tidy_place(text):
     return ", ".join(reversed(parts))[:60]
 
 
+# "Scale ca. 1:1,875,000." in the notes. The ratio is the part worth
+# showing; the "ca." and the sentence around it are not.
+SCALE_RE = re.compile(r"scale[^.]*?(1\s*:\s*[\d,. ]{3,})", re.I)
+
+# Subject terms so broad they say nothing on a screen next to a map.
+# Checked per subdivision, so "Railroads--United States--Maps" keeps only
+# "Railroads" and the place, which the layout already shows, goes.
+DULL_SUBJECTS = {"maps", "united states", "manuscript maps", "maps, manuscript",
+                 "early works to 1800", "history", "cartography", "america",
+                 "aerial views", "pictorial works", "description and travel"}
+
+
+# LOC brackets text it inferred or expanded -- "N[ew] Y[ork], [1858]".
+# True, but it reads as a typo on a screen, so the brackets go and the
+# text they hold stays.
+BRACKETS = re.compile(r"[\[\]]")
+
+
+def tidy_published(text):
+    text = BRACKETS.sub("", clean_text(text, 60)).strip()
+    return re.sub(r"\s{2,}", " ", text).strip(" ,.;:")
+
+
+def parse_scale(item):
+    for note in (item.get("notes") or []):
+        m = SCALE_RE.search(str(note))
+        if m:
+            return "1:" + m.group(1).split(":", 1)[1].strip().rstrip(".,")
+    return ""
+
+
+def parse_subjects(item, limit=4):
+    """
+    The specific parts of the subject headings. LCSH strings are
+    subdivided with double dashes -- "Railroads--United States--Maps" --
+    so each part is judged on its own and the boilerplate ones go.
+    Search results give these as plain strings, the item endpoint as
+    dicts; handle both.
+    """
+    out, seen = [], set()
+    for subject in (item.get("subjects") or []):
+        if isinstance(subject, dict):
+            subject = next(iter(subject), "")
+        parts = [p.strip() for p in str(subject or "").split("--")]
+        parts = [p for p in parts if p and p.lower() not in DULL_SUBJECTS]
+        if not parts:
+            continue
+        # Headings sharing a lead term ("Railroads", "Railroads--Canada")
+        # are the same subject twice as far as a caption is concerned.
+        head = parts[0].lower()
+        if head in seen:
+            continue
+        seen.add(head)
+        term = nice_case(clean_text(", ".join(parts), 52))
+        if term:
+            out.append(term)
+        if len(out) >= limit:
+            break
+    return out
+
+
 def item_id(record):
     """Stable short id, from the item URL LOC already treats as canonical."""
     url = record.get("id") or record.get("url") or ""
@@ -444,6 +508,11 @@ def evaluate(record, category, label):
         "p": place,
         "d": description,
         "m": clean_text(first(item.get("medium")), 60),
+        # Where and when it was published, which is often a different
+        # place and year from the survey the map depicts.
+        "pub": tidy_published(first(item.get("created_published"))),
+        "sc": parse_scale(item),
+        "subj": parse_subjects(item),
         "k": category,
         "col": label,
         "s": service,
