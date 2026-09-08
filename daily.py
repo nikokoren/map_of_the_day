@@ -274,7 +274,9 @@ def build_payload(entry, category, day, pool, checked, ink_bytes=0):
         "published": entry.get("pub", ""),
         "scale": entry.get("sc", ""),
         "subjects": entry.get("subj", []),
-        "subjects_line": ", ".join(entry.get("subj", [])),
+        # Separated with a dot, not a comma: a subject term can contain
+        # a comma of its own ("Civil War, 1861-1865").
+        "subjects_line": " \u00b7 ".join(entry.get("subj", [])),
 
         # Ready-made lines, for the common case where the layout wants one
         # string under the title rather than four fields to arrange.

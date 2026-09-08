@@ -414,13 +414,15 @@ def parse_subjects(item, limit=4):
         parts = [p for p in parts if p and p.lower() not in DULL_SUBJECTS]
         if not parts:
             continue
-        # Headings sharing a lead term ("Railroads", "Railroads--Canada")
-        # are the same subject twice as far as a caption is concerned.
-        head = parts[0].lower()
-        if head in seen:
+        # Only the lead term. The subdivisions after it are places the
+        # layout already shows as `place`, and keeping them produced
+        # lines like "Railroads, Iowa, Iowa, Nebraska" once several
+        # headings were joined together.
+        head = parts[0]
+        if head.lower() in seen:
             continue
-        seen.add(head)
-        term = nice_case(clean_text(", ".join(parts), 52))
+        seen.add(head.lower())
+        term = nice_case(clean_text(head, 52))
         if term:
             out.append(term)
         if len(out) >= limit:
