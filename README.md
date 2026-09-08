@@ -91,9 +91,20 @@ and the choice has to be made before the file is written. One file per
 choice works for a single choice -- but someone who likes railways *and*
 nautical charts wants a combination, and there are 2^n of those.
 
-So `today.json` carries **one map per selectable thing**, about 110KB (16KB
-gzipped, which is what actually crosses the wire), and the markup picks. One
-URL, any combination, no server.
+So `today.json` carries **one map per selectable thing** and the markup picks.
+One URL, any combination, no server.
+
+**TRMNL refuses a polling response over 100KB**, so the combined feed carries
+only what markup cannot derive: no image URLs except `image_base` (every size
+is a suffix on it), `description_short` but not the full description,
+`subjects_line` but not the array, and the credit lines once at the top level
+rather than on all 48 picks. That is 52KB instead of 109KB. `daily.py`
+refuses to publish a feed over 95KB rather than let one through and take the
+plugin into a degraded state -- if you add topics and hit that, the message
+tells you which knobs to turn.
+
+`map.json`, the single-map feed, keeps every convenience field, since one map
+is under 2KB either way.
 
 It holds three kinds of pick:
 

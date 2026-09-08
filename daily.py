@@ -335,6 +335,29 @@ def label_aliases(topics, picks):
     return out
 
 
+# TRMNL refuses a polling response over 100KB, so the combined feed
+# carries only what markup cannot derive. Every image URL is a suffix on
+# image_base, the full description is a superset of description_short,
+# and the credit lines are the same on every map -- so those ride once at
+# the top level, or not at all.
+FEED_FIELDS = (
+    "title", "title_short", "year", "creator", "place", "collection",
+    "description_short", "published", "scale", "subjects_line",
+    "byline", "subtitle", "imprint", "category", "category_label",
+    "image_base", "image_width", "image_height", "orientation",
+    "item_id", "topic_size",
+)
+
+# Refuse to publish a feed TRMNL will reject. Failing loudly leaves
+# yesterday's good file on the screen; shipping an oversized one takes
+# the plugin into a degraded state and stops it refreshing.
+MAX_FEED_BYTES = 95_000
+
+
+def slim(payload):
+    return {k: payload[k] for k in FEED_FIELDS if k in payload}
+
+
 def cell_label(topic):
     """"Bird's-Eye Views" or "Bird's-Eye Views, 1870 - 1899"."""
     if CELL_SEP in topic:
@@ -671,10 +694,26 @@ def main():
             # every spelling a setting might arrive as, so markup can
             # look one up without transforming anything.
             "keys_by_label": label_aliases(themes + eras, picks),
-            "picks": picks,
+            # Constant on every map, so said once rather than 48 times.
+            "heading": "MAP OF THE DAY",
+            "source": CREDIT,
+            "credit": "Library of Congress",
+            "rights": RIGHTS,
+            "item_url_prefix": "https://www.loc.gov/item/",
+            "picks": {k: slim(v) for k, v in picks.items()},
         }
         print("{} picks: {} themes, {} eras, {} cells".format(
             len(picks), len(themes), len(eras), len(cells)))
+        size = len(json.dumps(combined, separators=(",", ":"),
+                              sort_keys=True).encode("utf-8"))
+        print("today.json {:.1f}KB ({} picks)".format(size / 1024.0,
+                                                      len(picks)))
+        if size > MAX_FEED_BYTES:
+            sys.stderr.write(
+                "today.json is {}B, over the {}B TRMNL accepts; refusing "
+                "to publish it. Trim FEED_FIELDS or raise CELL_MIN.\n"
+                .format(size, MAX_FEED_BYTES))
+            return 1
         if write_json(TOPICS_PATH, combined):
             written.append(os.path.relpath(TOPICS_PATH, os.getcwd()))
 
