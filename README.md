@@ -89,23 +89,49 @@ and the choice has to be made before the file is written. One file per
 choice works for a single choice -- but someone who likes railways *and*
 nautical charts wants a combination, and there are 2^n of those.
 
-So `today.json` carries **today's map for every topic**, about 30KB, and the
-markup picks. One URL, any combination, no server:
+So `today.json` carries **one map per selectable thing**, about 110KB (16KB
+gzipped, which is what actually crosses the wire), and the markup picks. One
+URL, any combination, no server.
+
+It holds three kinds of pick:
+
+- **themes** -- `railroads`, `nautical`, `city-plans`...
+- **eras** -- `era-1700s`, `era-1850-1869`...
+- **cells** -- a theme *and* an era together, keyed `railroads__era-1850-1869`
+
+Cells are what make a real multi-select work. Someone choosing three themes
+and three eras is choosing among nine cells, and the markup rotates over
+whichever of them exist:
 
 ```liquid
-{% assign pick = picks[topic] %}          {% comment %} one topic {% endcomment %}
-
-{% comment %} several interests, rotating a day at a time {% endcomment %}
-{% assign chosen = interests | split: "," %}
-{% assign i = day_index | modulo: chosen.size %}
-{% assign pick = picks[chosen[i]] %}
+{% comment %} both dimensions chosen: rotate over the cells that exist {% endcomment %}
+{% assign keys = "" %}
+{% for t in chosen_themes %}
+  {% for e in chosen_eras %}
+    {% capture k %}{{ t }}__{{ e }}{% endcapture %}
+    {% if cell_keys contains k %}{% assign keys = keys | append: k | append: "," %}{% endif %}
+  {% endfor %}
+{% endfor %}
+{% assign keys = keys | split: "," %}
+{% assign i = day_index | modulo: keys.size %}
+{% assign pick = picks[keys[i]] %}
 
 <h1>{{ pick.title_short }}</h1>
+<span>{{ pick.category_label }}</span>   {% comment %} "Railroads, 1850 - 1869" {% endcomment %}
 <img src="{{ pick.image }}">
 ```
 
-`day_index` is the day number the whole schedule turns on, so the rotation is
-stable for the whole day and moves on by itself at midnight UTC.
+Themes only, or eras only, work the same way against `picks[theme]` or
+`picks[era]`. `day_index` is the number the whole schedule turns on, so a
+rotation is stable for the whole day and moves on by itself at midnight UTC.
+
+**Not every combination exists, and that is the point.** There are no 1700s
+railroad maps, because there were no railroads; there are no 1850s
+Revolutionary War maps. A cell is offered only when it holds at least
+`CELL_MIN` (25) maps, which leaves 32 of the 50 theme-era pairs. `cell_keys`
+is the list of the ones that do exist, so markup tests membership rather than
+guessing -- and a selection that lands entirely on missing cells should fall
+back to the theme picks, which honour the theme and ignore the era.
 
 ### The topics
 
@@ -134,8 +160,25 @@ at least one. Eras are read off the year, so they cannot be wrong.
 | `era-1870-1899` | 1870 - 1899 | ~1650 | 4.5 years |
 | `era-1900-1929` | 1900 - 1929 | ~485 | 1.3 years |
 
-Exact sizes ride along in the feed, as `topics[].size` and each pick's
-`topic_size`, so a settings panel can show them without hardcoding.
+Exact sizes ride along in the feed -- `themes[].size`, `eras[].size`,
+`cells[].size`, and each pick's own `topic_size` -- so a settings panel can
+show them, and grey out a combination that holds too little, without
+hardcoding a single number.
+
+The theme-by-era matrix, for reference (the blanks are cells under 25 maps):
+
+| | 1700s | 1800-49 | 1850-69 | 1870-99 | 1900-29 |
+|---|---|---|---|---|---|
+| City Plans | 166 | 205 | 249 | 506 | 246 |
+| Bird's-Eye Views | - | - | 142 | 903 | 173 |
+| Civil War | - | - | 614 | 76 | - |
+| Railroads | - | 77 | 304 | 279 | 33 |
+| Roads & Travel | - | 73 | 264 | 261 | - |
+| Revolutionary War | 466 | - | - | - | - |
+| Land & Property | 54 | 73 | 86 | 137 | 43 |
+| Battles & Forts | 57 | - | 180 | 68 | - |
+| Nautical Charts | 124 | 27 | 70 | - | - |
+| Exploration | 58 | 62 | 47 | - | - |
 
 Two topics were considered and **left out** for repeating too fast to be
 worth offering: national parks (99 maps, a quarterly loop) and world maps and

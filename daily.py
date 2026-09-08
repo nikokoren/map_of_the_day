@@ -82,7 +82,7 @@ MIN_INK_BYTES = 32_000
 # more when it has to render the derivative first, so the budget is
 # generous; past it the remaining categories are written unchecked
 # rather than letting the job hang.
-CHECK_BUDGET = 420
+CHECK_BUDGET = 600
 
 CREDIT = "Library of Congress, Geography and Map Division"
 RIGHTS = "No known restrictions on publication"
@@ -118,14 +118,40 @@ ERAS = [
 TOPIC_LABELS = dict(THEMES)
 TOPIC_LABELS.update({slug: label for slug, label, _, _ in ERAS})
 
+# A theme and an era together -- "a bird's-eye view, from the 1870s".
+# Combinations cannot be precomputed one file per selection (ten themes
+# and five eras is 2^15 selections), but the *cells* can: a reader
+# picking three themes and three eras is choosing among nine of these,
+# and the markup rotates over whichever ones exist.
+#
+# Cells below this many maps are not offered at all. Some are genuinely
+# empty and always will be -- there are no 1700s railroad maps, because
+# there were no railroads.
+CELL_MIN = 25
+CELL_SEP = "__"
+
+
+def cell_key(theme, era):
+    return theme + CELL_SEP + era
+
+
+def in_era(entry, era):
+    for slug, _, lo, hi in ERAS:
+        if slug == era:
+            return lo <= entry["y"] <= hi
+    return False
+
 
 def maps_for(entries, topic):
-    """The subset of the pool a topic selects."""
+    """The subset of the pool a topic -- theme, era, or cell -- selects."""
     if topic == "all":
         return entries
-    for slug, _, lo, hi in ERAS:
-        if slug == topic:
-            return [e for e in entries if lo <= e["y"] <= hi]
+    if CELL_SEP in topic:
+        theme, era = topic.split(CELL_SEP, 1)
+        return [e for e in entries
+                if theme in (e.get("g") or []) and in_era(e, era)]
+    if topic.startswith("era-"):
+        return [e for e in entries if in_era(e, topic)]
     return [e for e in entries if topic in (e.get("g") or [])]
 
 EPOCH = date(1970, 1, 1)
@@ -284,6 +310,15 @@ def short_description(text, limit=120):
     return text[:limit].rsplit(" ", 1)[0].rstrip(" ,;:.-") + "..."
 
 
+def cell_label(topic):
+    """"Bird's-Eye Views" or "Bird's-Eye Views, 1870 - 1899"."""
+    if CELL_SEP in topic:
+        theme, era = topic.split(CELL_SEP, 1)
+        return "{}, {}".format(TOPIC_LABELS.get(theme, theme),
+                               TOPIC_LABELS.get(era, era))
+    return TOPIC_LABELS.get(topic, topic.replace("-", " ").title())
+
+
 def title_line(entry):
     """Title trimmed to something that fits a headline without wrapping
     off the screen. The full title stays available as `title`."""
@@ -307,7 +342,7 @@ def build_payload(entry, category, day, pool, checked, ink_bytes=0):
         "date": day.isoformat(),
         "day_index": day_index(day),
         "category": category,
-        "category_label": TOPIC_LABELS.get(category, category.replace("-", " ").title()),
+        "category_label": cell_label(category),
         "heading": "MAP OF THE DAY",
 
         "title": entry["t"],
@@ -549,7 +584,22 @@ def main():
                                          title_line(entry), entry["y"]))
         return 0
 
-    topics = [slug for slug, _ in THEMES] + [slug for slug, _, _, _ in ERAS]
+    themes = [slug for slug, _ in THEMES]
+    eras = [slug for slug, _, _, _ in ERAS]
+
+    # Every cell deep enough to offer. Which ones exist is data, not a
+    # rule, so the markup reads the list rather than hardcoding it.
+    cells = []
+    for theme in themes:
+        if theme == "all":
+            continue
+        for era in eras:
+            size = len(maps_for(entries, cell_key(theme, era)))
+            if size >= CELL_MIN:
+                cells.append({"key": cell_key(theme, era), "theme": theme,
+                              "era": era, "size": size})
+
+    topics = themes + eras + [c["key"] for c in cells]
     picks, written = {}, []
     for topic in topics:
         subset = maps_for(entries, topic)
@@ -561,8 +611,9 @@ def main():
         payload = build_payload(entry, topic, day, pool, checked, size)
         payload["topic_size"] = len(subset)
         picks[topic] = payload
-        print("{:<18} {} ({}) [{}]".format(
-            topic, payload["title_short"][:52], payload["year"], checked))
+        if CELL_SEP not in topic:
+            print("{:<18} {} ({}) [{}]".format(
+                topic, payload["title_short"][:52], payload["year"], checked))
 
     if not args.dry_run:
         # map.json: one map, for a plugin that wants no settings at all.
@@ -575,11 +626,20 @@ def main():
             "day_index": day_index(day),
             "generated": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
             "pool_size": pool["count"],
-            "topics": [{"key": t, "label": TOPIC_LABELS[t],
+            "themes": [{"key": t, "label": TOPIC_LABELS[t],
                         "size": picks[t]["topic_size"]}
-                       for t in topics if t in picks],
+                       for t in themes if t in picks],
+            "eras": [{"key": t, "label": TOPIC_LABELS[t],
+                      "size": picks[t]["topic_size"]}
+                     for t in eras if t in picks],
+            # The theme-and-era combinations that exist, and a flat list
+            # of their keys so markup can test one with `contains`.
+            "cells": [c for c in cells if c["key"] in picks],
+            "cell_keys": [c["key"] for c in cells if c["key"] in picks],
             "picks": picks,
         }
+        print("{} picks: {} themes, {} eras, {} cells".format(
+            len(picks), len(themes), len(eras), len(cells)))
         if write_json(TOPICS_PATH, combined):
             written.append(os.path.relpath(TOPICS_PATH, os.getcwd()))
 
