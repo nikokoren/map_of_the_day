@@ -18,6 +18,13 @@ polling_verb: get
 polling_url: https://raw.githubusercontent.com/nikokoren/map_of_the_day/main/today.json
 
 custom_fields:
+  - keyname: about
+    name: About This Plugin
+    category: education,discovery
+    field_type: author_bio
+    description: A new historical map on your TRMNL every morning, straight from the Library of Congress.<br><br>Bird's-eye views of American towns drawn when they were still half prairie, sea charts engraved for the Royal Navy, railway lines pushing west, battle plans sketched in the field, and world maps from before anyone had seen the whole world. Over five thousand of them, the oldest from 1450, none younger than 1929.<br><br>Choose the kinds of map you like and the centuries you like &mdash; city plans from the 1700s, bird's-eye views from the 1890s, sea charts from any of them &mdash; and your screen works its way through them, one a day, without repeating for years. Or choose nothing at all and let the whole collection surprise you.<br><br>Every map arrives with its title, its maker, and where it was printed. The same one stays with you all day, so there is time to keep looking at it.<br><br>No account, no API key, nothing to maintain.<br><br>Install (don't Fork!) to receive future updates.
+    email_address: isarworks@gmail.com
+
   - keyname: themes
     name: Themes
     field_type: select
