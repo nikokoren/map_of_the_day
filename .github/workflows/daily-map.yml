@@ -18,7 +18,7 @@ concurrency:
 jobs:
   pick-map:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
@@ -34,7 +34,7 @@ jobs:
         run: |
           git config user.name "GitHub Action"
           git config user.email "action@github.com"
-          git add map.json today
+          git add map.json today.json
 
           if git diff --staged --quiet; then
             echo "Same map as the last run, nothing to commit"

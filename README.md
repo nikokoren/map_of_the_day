@@ -14,8 +14,8 @@ Railroad map of New Hampshire
 harvest.py              builds the candidate pool from the Library of Congress
 daily.py                picks the day's map and writes what TRMNL polls
 pool.json               the vetted candidates (rewritten monthly)
-map.json                today's map, all categories -- the default polling URL
-today/*.json            today's map within one category
+map.json                today's map across everything -- the simplest polling URL
+today.json              today's map for every topic -- the feed with settings
 sources.md              what was checked about the other image-of-the-day sources
 .github/workflows/      the two jobs that run the above on a schedule
 ```
@@ -27,7 +27,7 @@ Three moving parts, and only one of them touches the internet on a normal day:
 | When | What runs | What it writes |
 |---|---|---|
 | Monthly | `harvest.py` (Refresh Map Pool workflow) | `pool.json` -- a few thousand vetted maps |
-| Daily, 00:05 UTC | `daily.py` (Map of the Day workflow) | `map.json` and `today/*.json` |
+| Daily, 00:05 UTC | `daily.py` (Map of the Day workflow) | `map.json` and `today.json` |
 | Every device refresh | TRMNL polls the raw file | the screen |
 
 The daily pick is a pure function of the pool and the date, so it needs no
@@ -56,8 +56,10 @@ loc.gov serves normally. TRMNL only ever fetches a static JSON file from
    https://raw.githubusercontent.com/nikokoren/map_of_the_day/main/map.json
    ```
    No headers, no auth, no body.
-3. Write the markup against the fields below.
-4. Save. The screen updates itself from then on.
+3. Or, to offer topic settings, poll `today.json` instead -- same fields,
+   one map per topic. See Settings below.
+4. Write the markup against the fields below.
+5. Save. The screen updates itself from then on.
 
 The payload's keys arrive at the top of the template context, the same way
 `launch.json` does for the mission control plugin -- `{{ title }}`,
@@ -67,14 +69,10 @@ The payload's keys arrive at the top of the template context, the same way
 
 Settings split in two, and the split decides where each one lives.
 
-**What map you get** has to be a URL, because the feed is a static file and
-the choice has to be made before the file is written. That is the category
-setting below.
-
-**What the screen shows** should not be a URL. The payload carries every
-field for every map, so showing or hiding the description is a decision the
-markup makes with a Liquid conditional against a TRMNL custom field -- no
-extra files, no job to re-run, and it takes effect the moment you save:
+**What the screen shows** is a markup decision. Every payload carries every
+field, so showing or hiding the description is a Liquid conditional against a
+TRMNL custom field -- no extra files, no job to re-run, effective the moment
+you save:
 
 ```liquid
 {% if show_description and description_short != "" %}
@@ -82,37 +80,72 @@ extra files, no job to re-run, and it takes effect the moment you save:
 {% endif %}
 ```
 
-That pattern covers most of what a settings panel would want: a caption
-detail level (title only / title and date / add a sentence), whether to show
-the creator, whether to show the collection, whether to credit the Library in
-a footer. All of it reads fields that are already in every payload.
-
-The fields that are **not** always there are the ones a conditional has to
+The fields that are **not** always present are the ones a conditional has to
 guard: `creator` (95%), `description` and `description_short` (94%), `scale`
-(~15%), `subjects` (99%). Everything else -- title, year, place, collection,
-medium, published, and the image URLs -- is on every map in the pool.
+(~15%), `subjects` (99%). Everything else is on every map in the pool.
 
-### Categories
+**Which map you get** is the harder one, because the feed is a static file
+and the choice has to be made before the file is written. One file per
+choice works for a single choice -- but someone who likes railways *and*
+nautical charts wants a combination, and there are 2^n of those.
 
-The daily job writes one file per category, so a category setting is just a
-different URL rather than a different code path:
+So `today.json` carries **today's map for every topic**, about 30KB, and the
+markup picks. One URL, any combination, no server:
 
-| Setting value | Polling URL suffix |
-|---|---|
-| All maps | `map.json` |
-| Cities & towns | `today/cities.json` |
-| Panoramic views | `today/panoramas.json` |
-| Railroads | `today/railways.json` |
-| Battles & campaigns | `today/military.json` |
-| Discovery & exploration | `today/exploration.json` |
-| National parks | `today/nature.json` |
+```liquid
+{% assign pick = picks[topic] %}          {% comment %} one topic {% endcomment %}
 
-Every file has identical fields, so one template covers all of them. In a
-private plugin you can add a `select` custom field keyed `category` and
-interpolate it into the polling URL
-(`.../main/today/{{ category }}.json`); check the interpolation renders
-before publishing, and if it does not, ship the all-maps URL first and add
-the setting later. Nothing else about the recipe changes either way.
+{% comment %} several interests, rotating a day at a time {% endcomment %}
+{% assign chosen = interests | split: "," %}
+{% assign i = day_index | modulo: chosen.size %}
+{% assign pick = picks[chosen[i]] %}
+
+<h1>{{ pick.title_short }}</h1>
+<img src="{{ pick.image }}">
+```
+
+`day_index` is the day number the whole schedule turns on, so the rotation is
+stable for the whole day and moves on by itself at midnight UTC.
+
+### The topics
+
+Themes are matched against each map's title, subject headings and collection
+-- deliberately not its description, which is catalogue prose and would tag
+half the pool as nautical on the strength of a mention of a harbour. A map
+carries as many themes as it matches, 1.45 on average, and every map matches
+at least one. Eras are read off the year, so they cannot be wrong.
+
+| Key | Shown as | Maps | Repeats after |
+|---|---|---|---|
+| `all` | All Maps | 4451 | 12 years |
+| `city-plans` | City Plans | ~1380 | 3.8 years |
+| `birds-eye-views` | Bird's-Eye Views | ~1220 | 3.4 years |
+| `civil-war` | Civil War | ~715 | 2.0 years |
+| `railroads` | Railroads | ~690 | 1.9 years |
+| `roads-and-travel` | Roads & Travel | ~610 | 1.7 years |
+| `revolution` | Revolutionary War | ~475 | 1.3 years |
+| `land-ownership` | Land & Property | ~395 | 1.1 years |
+| `battles-and-forts` | Battles & Forts | ~340 | 11 months |
+| `nautical` | Nautical Charts | ~255 | 8 months |
+| `exploration` | Exploration | ~230 | 7 months |
+| `era-1700s` | The 1700s | ~700 | 1.9 years |
+| `era-1800-1849` | 1800 - 1849 | ~360 | 1 year |
+| `era-1850-1869` | 1850 - 1869 | ~1200 | 3.3 years |
+| `era-1870-1899` | 1870 - 1899 | ~1650 | 4.5 years |
+| `era-1900-1929` | 1900 - 1929 | ~485 | 1.3 years |
+
+Exact sizes ride along in the feed, as `topics[].size` and each pick's
+`topic_size`, so a settings panel can show them without hardcoding.
+
+Two topics were considered and **left out** for repeating too fast to be
+worth offering: national parks (99 maps, a quarterly loop) and world maps and
+hemispheres (36, back round every five weeks). `--selftest` fails if any
+offered topic drops under 200 maps, which is the line for "not twice in a
+year".
+
+Adding a topic is one line in `TOPIC_PATTERNS` in `harvest.py` plus one in
+`THEMES` in `daily.py`, then a pool refresh. An era needs only the `ERAS`
+line, since nothing has to be re-tagged.
 
 ## Fields
 
@@ -145,7 +178,8 @@ the setting later. Nothing else about the recipe changes either way.
 | `aspect`, `orientation` | `0.737`, `portrait` | pick a layout without measuring |
 | `source`, `credit`, `rights` | `Library of Congress, Geography and Map Division` | attribution line |
 | `item_url` | `https://www.loc.gov/item/98688514/` | the record, for a QR code or footer |
-| `date`, `category`, `category_label` | `2026-09-08`, `railways`, `Railroads` | what this file is |
+| `date`, `category`, `category_label` | `2026-09-08`, `railroads`, `Railroads` | which topic this pick answers |
+| `day_index`, `topic_size` | `20704`, `693` | the rotation number, and how many maps the topic holds |
 | `pool_size`, `pool_generated`, `generated` | | diagnostics |
 | `image_checked`, `ink_bytes` | `ok`, `37276` | what the daily check found, and the ink measurement below |
 

@@ -501,6 +501,7 @@ def evaluate(record, category, label):
 
     place = nice_case(tidy_place(first(item.get("location"))
                                  or first(record.get("location"))))
+    subjects = parse_subjects(item)
 
     entry = {
         "id": ident,
@@ -514,14 +515,44 @@ def evaluate(record, category, label):
         # place and year from the survey the map depicts.
         "pub": tidy_published(first(item.get("created_published"))),
         "sc": parse_scale(item),
-        "subj": parse_subjects(item),
+        "subj": subjects,
         "k": category,
         "col": label,
+        "g": topics_for(title, subjects, label),
         "s": service,
         "w": width,
         "h": height,
     }
     return entry, None
+
+
+# The topics a reader might actually want to follow, matched against the
+# title, the subject headings and the collection name -- deliberately not
+# the description, which is catalogue prose and tags half the pool as
+# nautical because a note mentions a harbour.
+#
+# A map carries as many topics as it matches (1.45 on average) and every
+# map in the pool matches at least one. Only topics with roughly a year
+# of daily use behind them are here; national parks (99 maps) and world
+# maps (36) were dropped for repeating too fast to be worth offering.
+TOPIC_PATTERNS = {
+    "city-plans":       r"cities and towns|plan of the city|street map|city of ",
+    "birds-eye-views":  r"bird'?s.?eye|perspective map|aerial view|panoramic",
+    "civil-war":        r"civil war|1861-1865|confederate|rebel",
+    "railroads":        r"rail ?road|railway",
+    "roads-and-travel": r"turnpike|stage route|tourist|road map",
+    "revolution":       r"revolutionary war|1775-1783",
+    "land-ownership":   r"landowner|real property|cadastral",
+    "battles-and-forts": r"\bbattle|fortificat|\bfort\b|siege|entrenchment|seat of war",
+    "nautical":         r"nautical|harbou?r|\bchart\b|soundings|coast survey|lighthouse",
+    "exploration":      r"discover|exploration|expedition|voyage",
+}
+TOPIC_RES = {name: re.compile(pat, re.I) for name, pat in TOPIC_PATTERNS.items()}
+
+
+def topics_for(title, subjects, collection):
+    text = " ".join([title, " ".join(subjects), collection])
+    return [name for name, rx in TOPIC_RES.items() if rx.search(text)]
 
 
 # Media that tend to mean "hand-drawn, and mostly blank paper".

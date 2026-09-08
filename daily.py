@@ -32,8 +32,8 @@ from datetime import date, datetime, timedelta, timezone
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 POOL_PATH = os.path.join(HERE, "pool.json")
-TODAY_DIR = os.path.join(HERE, "today")
-DEFAULT_PATH = os.path.join(HERE, "map.json")   # the "all categories" feed
+DEFAULT_PATH = os.path.join(HERE, "map.json")    # one map, every topic
+TOPICS_PATH = os.path.join(HERE, "today.json")   # one map per topic
 
 UA = "mission-control-trmnl/1.0 (github.com/nikokoren/mission_control)"
 
@@ -82,20 +82,51 @@ MIN_INK_BYTES = 32_000
 # more when it has to render the derivative first, so the budget is
 # generous; past it the remaining categories are written unchecked
 # rather than letting the job hang.
-CHECK_BUDGET = 240
+CHECK_BUDGET = 420
 
 CREDIT = "Library of Congress, Geography and Map Division"
 RIGHTS = "No known restrictions on publication"
 
-CATEGORY_LABELS = {
-    "all": "Maps",
-    "cities": "Cities & Towns",
-    "exploration": "Discovery & Exploration",
-    "military": "Battles & Campaigns",
-    "nature": "National Parks",
-    "panoramas": "Panoramic Views",
-    "railways": "Railroads",
-}
+# What a reader can choose to follow. Themes come from the tags the
+# harvest attached; eras are read straight off the year, so they need no
+# tagging and cannot be wrong.
+#
+# Each is a selection over the same pool, and every one of them holds
+# enough maps not to repeat inside a year.
+THEMES = [
+    ("all",               "All Maps"),
+    ("city-plans",        "City Plans"),
+    ("birds-eye-views",   "Bird's-Eye Views"),
+    ("civil-war",         "Civil War"),
+    ("railroads",         "Railroads"),
+    ("roads-and-travel",  "Roads & Travel"),
+    ("revolution",        "Revolutionary War"),
+    ("land-ownership",    "Land & Property"),
+    ("battles-and-forts", "Battles & Forts"),
+    ("nautical",          "Nautical Charts"),
+    ("exploration",       "Exploration"),
+]
+
+ERAS = [
+    ("era-1700s",     "The 1700s",   1700, 1799),
+    ("era-1800-1849", "1800 - 1849", 1800, 1849),
+    ("era-1850-1869", "1850 - 1869", 1850, 1869),
+    ("era-1870-1899", "1870 - 1899", 1870, 1899),
+    ("era-1900-1929", "1900 - 1929", 1900, 1929),
+]
+
+TOPIC_LABELS = dict(THEMES)
+TOPIC_LABELS.update({slug: label for slug, label, _, _ in ERAS})
+
+
+def maps_for(entries, topic):
+    """The subset of the pool a topic selects."""
+    if topic == "all":
+        return entries
+    for slug, _, lo, hi in ERAS:
+        if slug == topic:
+            return [e for e in entries if lo <= e["y"] <= hi]
+    return [e for e in entries if topic in (e.get("g") or [])]
 
 EPOCH = date(1970, 1, 1)
 
@@ -176,6 +207,7 @@ def image_urls(entry):
 
 
 _budget_started = [None]
+_checked = {}
 
 
 def budget_left():
@@ -193,6 +225,8 @@ def image_state(url):
     different map. A HEAD is enough -- the image service reports the
     rendered size without sending the picture.
     """
+    if url in _checked:
+        return _checked[url]
     req = urllib.request.Request(url, method="HEAD",
                                  headers={"User-Agent": UA})
     try:
@@ -202,12 +236,14 @@ def image_state(url):
             size = int(resp.headers.get("Content-Length") or 0)
             if not size:
                 return "unknown", 0
-            return ("ok" if size >= MIN_INK_BYTES else "thin"), size
+            result = ("ok" if size >= MIN_INK_BYTES else "thin"), size
     except urllib.error.HTTPError as e:
-        return ("dead" if e.code in DEAD_CODES else "unknown"), 0
+        result = ("dead" if e.code in DEAD_CODES else "unknown"), 0
     except (urllib.error.URLError, http.client.HTTPException, TimeoutError,
             ConnectionError, OSError, ValueError):
         return "unknown", 0
+    _checked[url] = result
+    return result
 
 
 # ============================================================
@@ -269,8 +305,9 @@ def build_payload(entry, category, day, pool, checked, ink_bytes=0):
 
     payload = {
         "date": day.isoformat(),
+        "day_index": day_index(day),
         "category": category,
-        "category_label": CATEGORY_LABELS.get(category, category.title()),
+        "category_label": TOPIC_LABELS.get(category, category.replace("-", " ").title()),
         "heading": "MAP OF THE DAY",
 
         "title": entry["t"],
@@ -401,12 +438,13 @@ def selftest(entries, day):
                 == candidates_for(entries, "all", d + timedelta(days=1))[0]["id"]):
             failures.append("same map two days running at " + d.isoformat())
 
-    # 6. Every category is deep enough to be worth offering as a setting.
-    for category in sorted({e["k"] for e in entries}):
-        count = sum(1 for e in entries if e["k"] == category)
-        if count < 60:
-            failures.append("category {} has only {} maps"
-                            .format(category, count))
+    # 6. Every topic offered as a setting is deep enough that a reader
+    #    does not see the same map twice inside a year.
+    for topic in [s for s, _ in THEMES] + [s for s, _, _, _ in ERAS]:
+        count = len(maps_for(entries, topic))
+        if count < 200:
+            failures.append("topic {} selects only {} maps"
+                            .format(topic, count))
 
     # 7. Every map can produce a payload a template can render.
     pool = {"count": total, "generated": ""}
@@ -423,8 +461,9 @@ def selftest(entries, day):
     for failure in failures:
         print("FAIL: " + failure)
     if not failures:
-        print("ok: {} maps, {} categories, no repeats within a cycle of "
-              "{} days".format(total, len({e["k"] for e in entries}), total))
+        print("ok: {} maps, {} topics, no repeats within a cycle of "
+              "{} days".format(total,
+                               len(THEMES) + len(ERAS), total))
     return 1 if failures else 0
 
 
@@ -447,7 +486,17 @@ def load_pool():
 
 
 def substantive(payload):
-    return {k: v for k, v in payload.items() if k not in VOLATILE_FIELDS}
+    """The payload minus the fields that move on their own. Recurses, so
+    the combined file is compared by its maps rather than its clock."""
+    out = {}
+    for k, v in payload.items():
+        if k in VOLATILE_FIELDS:
+            continue
+        if isinstance(v, dict):
+            v = {kk: substantive(vv) if isinstance(vv, dict) else vv
+                 for kk, vv in v.items()}
+        out[k] = v
+    return out
 
 
 def write_json(path, payload):
@@ -500,22 +549,39 @@ def main():
                                          title_line(entry), entry["y"]))
         return 0
 
-    categories = ["all"] + sorted({e["k"] for e in entries})
-    written = []
-    for category in categories:
-        subset = entries if category == "all" else [e for e in entries
-                                                    if e["k"] == category]
+    topics = [slug for slug, _ in THEMES] + [slug for slug, _, _, _ in ERAS]
+    picks, written = {}, []
+    for topic in topics:
+        subset = maps_for(entries, topic)
         if not subset:
+            sys.stderr.write("  {} selects no maps, skipping\n".format(topic))
             continue
-        entry, checked, size = pick(subset, category, day,
+        entry, checked, size = pick(subset, topic, day,
                                     check=not args.no_check)
-        payload = build_payload(entry, category, day, pool, checked, size)
-        path = (DEFAULT_PATH if category == "all"
-                else os.path.join(TODAY_DIR, category + ".json"))
-        print("{:<12} {} ({}) [{}]".format(
-            category, payload["title_short"], payload["year"], checked))
-        if not args.dry_run and write_json(path, payload):
-            written.append(os.path.relpath(path, os.getcwd()))
+        payload = build_payload(entry, topic, day, pool, checked, size)
+        payload["topic_size"] = len(subset)
+        picks[topic] = payload
+        print("{:<18} {} ({}) [{}]".format(
+            topic, payload["title_short"][:52], payload["year"], checked))
+
+    if not args.dry_run:
+        # map.json: one map, for a plugin that wants no settings at all.
+        if write_json(DEFAULT_PATH, picks["all"]):
+            written.append(os.path.relpath(DEFAULT_PATH, os.getcwd()))
+        # today.json: every topic's map, so a plugin can offer any
+        # combination of interests without a file per combination.
+        combined = {
+            "date": day.isoformat(),
+            "day_index": day_index(day),
+            "generated": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "pool_size": pool["count"],
+            "topics": [{"key": t, "label": TOPIC_LABELS[t],
+                        "size": picks[t]["topic_size"]}
+                       for t in topics if t in picks],
+            "picks": picks,
+        }
+        if write_json(TOPICS_PATH, combined):
+            written.append(os.path.relpath(TOPICS_PATH, os.getcwd()))
 
     print("wrote " + ", ".join(written) if written
           else "same maps as the last run, nothing rewritten")
