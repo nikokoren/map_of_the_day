@@ -2,7 +2,7 @@
   Selection logic only -- no layout, no styling. Drop this at the top of
   your markup and everything below it can use `pick`.
 
-  It resolves the user's Themes and Eras settings against today.json:
+  It resolves the Themes and Eras settings against today.json:
 
     both chosen  -> a map that is one of those themes AND from one of
                     those eras, rotating a day at a time over the
@@ -12,9 +12,15 @@
 
   `day_index` is the day number the schedule turns on, so the rotation
   holds for the whole day and moves on by itself at midnight UTC.
+
+  Two things this is careful about, both found by running it rather than
+  reading it: a settings keyname and a feed key of the same name collide
+  (hence theme_options/era_options in the feed, themes/eras from the
+  form), and `split` leaves a trailing empty string on some engines,
+  which is why nothing here indexes straight into a split array.
 {% endcomment %}
 
-{% comment %} A multi-select arrives as an array, a single one as a string. {% endcomment %}
+{% comment %} A multi-select arrives as an array, a single choice as a string. {% endcomment %}
 {% assign chosen_themes = themes %}
 {% if chosen_themes.first == nil %}{% assign chosen_themes = themes | split: "," %}{% endif %}
 {% assign chosen_eras = eras %}
@@ -23,45 +29,72 @@
 {% comment %} Labels the person saw -> the keys this feed uses. {% endcomment %}
 {% assign theme_keys = "" %}
 {% for label in chosen_themes %}
-  {% assign k = keys_by_label[label | strip] %}
+  {% assign lbl = label | strip %}
+  {% assign k = keys_by_label[lbl] %}
   {% if k %}{% assign theme_keys = theme_keys | append: k | append: "," %}{% endif %}
 {% endfor %}
 {% assign era_keys = "" %}
 {% for label in chosen_eras %}
-  {% assign k = keys_by_label[label | strip] %}
+  {% assign lbl = label | strip %}
+  {% assign k = keys_by_label[lbl] %}
   {% if k %}{% assign era_keys = era_keys | append: k | append: "," %}{% endif %}
 {% endfor %}
 {% assign theme_keys = theme_keys | split: "," %}
 {% assign era_keys = era_keys | split: "," %}
 
-{% comment %} Collect the keys that actually exist in the feed. {% endcomment %}
+{% comment %} Count what survived, ignoring anything split left behind. {% endcomment %}
+{% assign n_themes = 0 %}
+{% for k in theme_keys %}{% if k != "" %}{% assign n_themes = n_themes | plus: 1 %}{% endif %}{% endfor %}
+{% assign n_eras = 0 %}
+{% for k in era_keys %}{% if k != "" %}{% assign n_eras = n_eras | plus: 1 %}{% endif %}{% endfor %}
+
+{% comment %} The keys worth rotating over. {% endcomment %}
 {% assign wanted = "" %}
-{% if theme_keys.size > 0 and era_keys.size > 0 %}
+{% if n_themes > 0 and n_eras > 0 %}
   {% for t in theme_keys %}
-    {% for e in era_keys %}
-      {% capture cell %}{{ t }}__{{ e }}{% endcapture %}
-      {% if cell_keys contains cell %}
-        {% assign wanted = wanted | append: cell | append: "," %}
-      {% endif %}
-    {% endfor %}
+    {% if t != "" %}
+      {% for e in era_keys %}
+        {% if e != "" %}
+          {% capture cell %}{{ t }}__{{ e }}{% endcapture %}
+          {% if cell_keys contains cell %}
+            {% assign wanted = wanted | append: cell | append: "," %}
+          {% endif %}
+        {% endif %}
+      {% endfor %}
+    {% endif %}
   {% endfor %}
-{% elsif theme_keys.size > 0 %}
-  {% for t in theme_keys %}{% assign wanted = wanted | append: t | append: "," %}{% endfor %}
-{% elsif era_keys.size > 0 %}
-  {% for e in era_keys %}{% assign wanted = wanted | append: e | append: "," %}{% endfor %}
+{% elsif n_themes > 0 %}
+  {% for t in theme_keys %}{% if t != "" %}{% assign wanted = wanted | append: t | append: "," %}{% endif %}{% endfor %}
+{% elsif n_eras > 0 %}
+  {% for e in era_keys %}{% if e != "" %}{% assign wanted = wanted | append: e | append: "," %}{% endif %}{% endfor %}
 {% endif %}
-{% assign wanted = wanted | split: "," %}
 
 {% comment %}
-  Fall back a step at a time: no surviving combination -> themes alone
-  -> the whole pool. A reader who picks "Railroads" and "The 1700s" has
-  chosen something that never existed, and still gets a railroad map.
+  Fall back a step at a time: no surviving combination -> the chosen
+  themes -> the whole pool. Somebody asking for 1700s railroad maps has
+  asked for something that never existed, and still gets a railroad map.
 {% endcomment %}
-{% if wanted.size == 0 and theme_keys.size > 0 %}{% assign wanted = theme_keys %}{% endif %}
-{% if wanted.size == 0 %}{% assign wanted = "all" | split: "," %}{% endif %}
+{% assign wanted = wanted | split: "," %}
+{% assign n = 0 %}
+{% for k in wanted %}{% if k != "" %}{% assign n = n | plus: 1 %}{% endif %}{% endfor %}
+{% if n == 0 and n_themes > 0 %}
+  {% assign wanted = theme_keys %}{% assign n = n_themes %}
+{% endif %}
+{% if n == 0 %}
+  {% assign wanted = "all" | split: "," %}{% assign n = 1 %}
+{% endif %}
 
-{% assign i = day_index | modulo: wanted.size %}
-{% assign pick = picks[wanted[i]] %}
+{% comment %} Today's key: the nth non-empty entry, n rotating by day. {% endcomment %}
+{% assign i = day_index | modulo: n %}
+{% assign j = 0 %}
+{% assign chosen_key = "all" %}
+{% for k in wanted %}
+  {% if k != "" %}
+    {% if j == i %}{% assign chosen_key = k %}{% endif %}
+    {% assign j = j | plus: 1 %}
+  {% endif %}
+{% endfor %}
+{% assign pick = picks[chosen_key] %}
 
 {% comment %}
   From here on: pick.title_short, pick.year, pick.byline, pick.published,

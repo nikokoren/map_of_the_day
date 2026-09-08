@@ -626,12 +626,16 @@ def main():
             "day_index": day_index(day),
             "generated": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
             "pool_size": pool["count"],
-            "themes": [{"key": t, "label": TOPIC_LABELS[t],
-                        "size": picks[t]["topic_size"]}
-                       for t in themes if t in picks],
-            "eras": [{"key": t, "label": TOPIC_LABELS[t],
-                      "size": picks[t]["topic_size"]}
-                     for t in eras if t in picks],
+            # Named *_options, not themes/eras: a plugin's own settings
+            # land in the same template context as the feed, and a
+            # setting keyed "themes" would collide with a feed key of
+            # the same name -- silently, with the feed winning.
+            "theme_options": [{"key": t, "label": TOPIC_LABELS[t],
+                               "size": picks[t]["topic_size"]}
+                              for t in themes if t in picks],
+            "era_options": [{"key": t, "label": TOPIC_LABELS[t],
+                             "size": picks[t]["topic_size"]}
+                            for t in eras if t in picks],
             # The theme-and-era combinations that exist, and a flat list
             # of their keys so markup can test one with `contains`.
             "cells": [c for c in cells if c["key"] in picks],

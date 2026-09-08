@@ -97,8 +97,10 @@ URL, any combination, no server.
 
 It holds three kinds of pick:
 
-- **themes** -- `railroads`, `nautical`, `city-plans`...
-- **eras** -- `era-1700s`, `era-1850-1869`...
+- **themes** -- `railroads`, `nautical`, `city-plans`... (listed in
+  `theme_options`, named that way so a setting keyed `themes` cannot
+  collide with it)
+- **eras** -- `era-1700s`, `era-1850-1869`... (listed in `era_options`)
 - **cells** -- a theme *and* an era together, keyed `railroads__era-1850-1869`
 
 Cells are what make a real multi-select work. Someone choosing three themes
@@ -155,6 +157,18 @@ label the person saw -- `"City Plans"`, not `city-plans`. The feed ships
 dimensions to cells, and the fallbacks -- and leaves you a single `pick` to
 lay out however you like. It deliberately contains no styling.
 
+It has been run, not just written: every settings combination below renders
+the map named beside it.
+
+| Settings | What renders |
+|---|---|
+| nothing selected | today's map from the whole pool |
+| themes only | that theme's map for today |
+| eras only | that era's map for today |
+| themes and eras | a map in both, rotating over the combinations that exist |
+| a combination that never existed | falls back to the chosen themes |
+| a label the feed does not know | falls back to the whole pool |
+
 The fallback chain is worth knowing: a combination that does not exist falls
 back to the chosen themes, and an empty selection falls back to the whole
 pool. Someone who picks *Railroads* and *The 1700s* has asked for something
@@ -187,8 +201,8 @@ at least one. Eras are read off the year, so they cannot be wrong.
 | `era-1870-1899` | 1870 - 1899 | ~1650 | 4.5 years |
 | `era-1900-1929` | 1900 - 1929 | ~485 | 1.3 years |
 
-Exact sizes ride along in the feed -- `themes[].size`, `eras[].size`,
-`cells[].size`, and each pick's own `topic_size` -- so a settings panel can
+Exact sizes ride along in the feed -- `theme_options[].size`,
+`era_options[].size`, `cells[].size`, and each pick's own `topic_size` -- so a settings panel can
 show them, and grey out a combination that holds too little, without
 hardcoding a single number.
 
