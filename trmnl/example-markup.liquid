@@ -1,0 +1,182 @@
+{% comment %}
+  A working example, self-contained: paste the whole file into the
+  plugin's markup. The top half is trmnl/selection.liquid verbatim --
+  keep them in step if you edit one. The layout below it is yours.
+{% endcomment %}
+
+{% comment %}
+  Selection logic only -- no layout, no styling. Drop this at the top of
+  your markup and everything below it can use `pick`.
+
+  It resolves the Themes and Eras settings against today.json:
+
+    both chosen  -> a map that is one of those themes AND from one of
+                    those eras, rotating a day at a time over the
+                    combinations that exist
+    one chosen   -> that dimension only
+    none chosen  -> today's map from the whole pool
+
+  `day_index` is the day number the schedule turns on, so the rotation
+  holds for the whole day and moves on by itself at midnight UTC.
+
+  Two things this is careful about, both found by running it rather than
+  reading it: a settings keyname and a feed key of the same name collide
+  (hence theme_options/era_options in the feed, themes/eras from the
+  form), and `split` leaves a trailing empty string on some engines,
+  which is why nothing here indexes straight into a split array.
+{% endcomment %}
+
+{% comment %}
+  Settings live under trmnl.plugin_settings.custom_fields_values, keyed
+  by keyname. A multi-select arrives as an array, a single choice as a
+  string, and the stored value is derived from the option rather than
+  equal to it -- "The 1700s" arrives as "the_1700s" -- which the feed's
+  keys_by_label already accounts for.
+{% endcomment %}
+{% assign settings = trmnl.plugin_settings.custom_fields_values %}
+
+{% assign chosen_themes = settings.themes %}
+{% if chosen_themes == nil %}{% assign chosen_themes = themes %}{% endif %}
+{% if chosen_themes.first == nil %}{% assign chosen_themes = chosen_themes | split: "," %}{% endif %}
+
+{% assign chosen_eras = settings.eras %}
+{% if chosen_eras == nil %}{% assign chosen_eras = eras %}{% endif %}
+{% if chosen_eras.first == nil %}{% assign chosen_eras = chosen_eras | split: "," %}{% endif %}
+
+{% comment %}
+  A boolean field arrives as the STRING "true" or "false", so it has to
+  be compared, not just tested -- {% raw %}{% if show_description %}{% endraw %} is true even
+  when the reader turned it off.
+{% endcomment %}
+{% assign want_description = false %}
+{% if settings.show_description == "true" %}{% assign want_description = true %}{% endif %}
+{% assign want_credit = false %}
+{% if settings.show_credit == "true" %}{% assign want_credit = true %}{% endif %}
+
+{% comment %} Labels the person saw -> the keys this feed uses. {% endcomment %}
+{% assign theme_keys = "" %}
+{% for label in chosen_themes %}
+  {% assign lbl = label | strip %}
+  {% assign k = keys_by_label[lbl] %}
+  {% if k %}{% assign theme_keys = theme_keys | append: k | append: "," %}{% endif %}
+{% endfor %}
+{% assign era_keys = "" %}
+{% for label in chosen_eras %}
+  {% assign lbl = label | strip %}
+  {% assign k = keys_by_label[lbl] %}
+  {% if k %}{% assign era_keys = era_keys | append: k | append: "," %}{% endif %}
+{% endfor %}
+{% assign theme_keys = theme_keys | split: "," %}
+{% assign era_keys = era_keys | split: "," %}
+
+{% comment %} Count what survived, ignoring anything split left behind. {% endcomment %}
+{% assign n_themes = 0 %}
+{% for k in theme_keys %}{% if k != "" %}{% assign n_themes = n_themes | plus: 1 %}{% endif %}{% endfor %}
+{% assign n_eras = 0 %}
+{% for k in era_keys %}{% if k != "" %}{% assign n_eras = n_eras | plus: 1 %}{% endif %}{% endfor %}
+
+{% comment %} The keys worth rotating over. {% endcomment %}
+{% assign wanted = "" %}
+{% if n_themes > 0 and n_eras > 0 %}
+  {% for t in theme_keys %}
+    {% if t != "" %}
+      {% for e in era_keys %}
+        {% if e != "" %}
+          {% capture cell %}{{ t }}__{{ e }}{% endcapture %}
+          {% if cell_keys contains cell %}
+            {% assign wanted = wanted | append: cell | append: "," %}
+          {% endif %}
+        {% endif %}
+      {% endfor %}
+    {% endif %}
+  {% endfor %}
+{% elsif n_themes > 0 %}
+  {% for t in theme_keys %}{% if t != "" %}{% assign wanted = wanted | append: t | append: "," %}{% endif %}{% endfor %}
+{% elsif n_eras > 0 %}
+  {% for e in era_keys %}{% if e != "" %}{% assign wanted = wanted | append: e | append: "," %}{% endif %}{% endfor %}
+{% endif %}
+
+{% comment %}
+  Fall back a step at a time: no surviving combination -> the chosen
+  themes -> the whole pool. Somebody asking for 1700s railroad maps has
+  asked for something that never existed, and still gets a railroad map.
+{% endcomment %}
+{% assign wanted = wanted | split: "," %}
+{% assign n = 0 %}
+{% for k in wanted %}{% if k != "" %}{% assign n = n | plus: 1 %}{% endif %}{% endfor %}
+{% if n == 0 and n_themes > 0 %}
+  {% assign wanted = theme_keys %}{% assign n = n_themes %}
+{% endif %}
+{% if n == 0 %}
+  {% assign wanted = "all" | split: "," %}{% assign n = 1 %}
+{% endif %}
+
+{% comment %} Today's key: the nth non-empty entry, n rotating by day. {% endcomment %}
+{% assign i = day_index | modulo: n %}
+{% assign j = 0 %}
+{% assign chosen_key = "all" %}
+{% for k in wanted %}
+  {% if k != "" %}
+    {% if j == i %}{% assign chosen_key = k %}{% endif %}
+    {% assign j = j | plus: 1 %}
+  {% endif %}
+{% endfor %}
+{% assign pick = picks[chosen_key] %}
+
+{% comment %}
+  The image, sized to the screen this is rendering for. trmnl.device
+  gives width and height in CSS pixels; the larger panel sits behind a
+  higher-density screen, so asking for twice the box keeps it sharp and
+  costs the device nothing -- the picture is fetched by the renderer,
+  not the device.
+{% endcomment %}
+{% assign img_w = trmnl.device.width | times: 2 %}
+{% assign img_h = trmnl.device.height | times: 2 %}
+{% if img_w == 0 or img_w == nil %}{% assign img_w = 1600 %}{% assign img_h = 960 %}{% endif %}
+{% capture map_image %}{{ pick.image_base }}/full/!{{ img_w }},{{ img_h }}/0/gray.jpg{% endcapture %}
+
+{% comment %}
+  From here on:
+    map_image             the map, fitted to this device
+    pick.title_short      trimmed title
+    pick.year             four digits
+    pick.byline           maker and year
+    pick.published        "New York, 1866"
+    pick.category_label   "Railroads, 1850 - 1869"
+    want_description      whether to print pick.description_short
+    want_credit           whether to print pick.credit
+{% endcomment %}
+
+{% comment %} ---------- layout ---------- {% endcomment %}
+
+<div class="layout">
+  <img class="image image-dither image--contain w--max-full h--max-full"
+       src="{{ map_image }}">
+
+  <div class="absolute bottom--2 left--2 z--2 p--2 w--max-[80cqw] lg:w--max-[75cqw] bg--canvas outline outline--strong">
+    <div class="flex flex--col gap--xsmall">
+      <div class="content">
+        <span class="title title--small">{{ pick.title_short }}</span>
+
+        {% comment %}
+          creator is missing on 5% of maps and published on none, so the
+          line is built from whichever parts exist rather than printing
+          "Published by  in ".
+        {% endcomment %}
+        {% if pick.creator != "" and pick.published != "" %}
+          <span class="label label--small">Published by {{ pick.creator }} in {{ pick.published }}</span>
+        {% elsif pick.published != "" %}
+          <span class="label label--small">Published {{ pick.published }}</span>
+        {% elsif pick.creator != "" %}
+          <span class="label label--small">{{ pick.creator }}, {{ pick.year }}</span>
+        {% else %}
+          <span class="label label--small">{{ pick.year }}</span>
+        {% endif %}
+
+        {% if want_description and pick.description_short != "" %}
+          <span class="label label--small">{{ pick.description_short }}</span>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
