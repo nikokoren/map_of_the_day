@@ -1,0 +1,57 @@
+name: Map of the Day
+
+on:
+  schedule:
+    # 00:05 UTC. The map changes at this moment for every device; the
+    # picks themselves are computed offline from the committed pool, so this
+    # job does not depend on loc.gov being up.
+    - cron: "5 0 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: daily-map
+  cancel-in-progress: false
+
+jobs:
+  pick-map:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          # Enough history to rebase onto a push that landed while this
+          # job was running, without cloning the whole daily history.
+          fetch-depth: 20
+
+      - name: Pick today's map
+        run: python3 daily.py
+
+      - name: Commit and push
+        run: |
+          git config user.name "GitHub Action"
+          git config user.email "action@github.com"
+          git add map.json today
+
+          if git diff --staged --quiet; then
+            echo "Same map as the last run, nothing to commit"
+          else
+            git commit -m "Update map of the day [$(date -u +'%Y-%m-%d')]"
+            # A rejected push means the other workflow committed while
+            # this job was running, not that anything is wrong. Rebase
+            # and retry rather than failing the run.
+            for attempt in 1 2 3; do
+              if git push; then
+                echo "Pushed."
+                exit 0
+              fi
+              echo "Push rejected, rebasing on origin (attempt $attempt)"
+              git pull --rebase origin "$GITHUB_REF_NAME" || exit 1
+              sleep $((attempt * 5))
+            done
+            echo "Could not push after 3 attempts"
+            exit 1
+          fi

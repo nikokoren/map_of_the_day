@@ -1,0 +1,61 @@
+name: Refresh Map Pool
+
+on:
+  schedule:
+    # 03:20 UTC on the 1st. The pool is a cache of LOC metadata; it only
+    # needs refreshing when the collections grow or an item is withdrawn.
+    - cron: "20 3 1 * *"
+  workflow_dispatch:
+    inputs:
+      pages:
+        description: "Max pages per collection (100 records each)"
+        required: false
+        default: "25"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: refresh-map-pool
+  cancel-in-progress: false
+
+jobs:
+  harvest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          # Enough history to rebase onto a push that landed while this
+          # job was running, without cloning the whole daily history.
+          fetch-depth: 20
+
+      - name: Harvest map pool from the Library of Congress
+        run: python3 harvest.py --pages "${{ github.event.inputs.pages || 25 }}"
+
+      - name: Commit and push
+        run: |
+          git config user.name "GitHub Action"
+          git config user.email "action@github.com"
+          git add pool.json
+
+          if git diff --staged --quiet; then
+            echo "Pool unchanged, nothing to commit"
+          else
+            git commit -m "Refresh map pool [$(date -u +'%Y-%m-%d')]"
+            # A rejected push means the other workflow committed while
+            # this job was running, not that anything is wrong. Rebase
+            # and retry rather than failing the run.
+            for attempt in 1 2 3; do
+              if git push; then
+                echo "Pushed."
+                exit 0
+              fi
+              echo "Push rejected, rebasing on origin (attempt $attempt)"
+              git pull --rebase origin "$GITHUB_REF_NAME" || exit 1
+              sleep $((attempt * 5))
+            done
+            echo "Could not push after 3 attempts"
+            exit 1
+          fi
