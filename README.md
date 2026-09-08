@@ -295,10 +295,19 @@ line, since nothing has to be re-tagged.
 
 ### Sizes, and why there is no single right one
 
-Images come from the Library's IIIF service, where a size is just part of the
-URL. `!w,h` means "fit inside this box without distorting" and `gray.jpg`
-asks the Library's server for the greyscale conversion, so the picture
-arrives already the right shape and colour space for a panel to dither.
+Images come from the Library's IIIF service, where both the size and the
+colour space are just part of the URL. `!w,h` means "fit inside this box
+without distorting"; `default.jpg` is the colour scan and `gray.jpg` the
+Library's greyscale conversion of it.
+
+**The markup asks for colour**, which is not the obvious choice for e-ink and
+is worth the explanation. The OG panel comes in monochrome and in a
+black/white/red/yellow variant, and nothing in `trmnl.device` says which one
+is rendering -- there is no bit-depth field. Serving colour resolves it
+without needing to know: a colour panel shows the colour, and a monochrome
+one converts the file itself, landing within **1/255** of the Library's own
+greyscale version measured across a whole map. It costs about 5% more bytes,
+paid by the renderer rather than the device.
 
 TRMNL's panels are not one size. The framework gives the OG an 800x480
 viewport and the larger, 4-bit panel a 1040x780 one -- but that second

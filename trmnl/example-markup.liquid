@@ -138,11 +138,18 @@
   higher-density screen, so asking for twice the box keeps it sharp and
   costs the device nothing -- the picture is fetched by the renderer,
   not the device.
+
+  It asks for the colour scan (default.jpg) rather than the Library's
+  greyscale one, because a colour panel can then show the colour and a
+  monochrome one loses nothing: converting the colour file to luminance
+  lands within 1/255 of the Library's own greyscale version, measured
+  across a whole map. It costs 5% more bytes, which the renderer pays.
+  Swap default.jpg for gray.jpg here to go back.
 {% endcomment %}
 {% assign img_w = trmnl.device.width | times: 2 %}
 {% assign img_h = trmnl.device.height | times: 2 %}
 {% if img_w == 0 or img_w == nil %}{% assign img_w = 1600 %}{% assign img_h = 960 %}{% endif %}
-{% capture map_image %}{{ pick.image_base }}/full/!{{ img_w }},{{ img_h }}/0/gray.jpg{% endcapture %}
+{% capture map_image %}{{ pick.image_base }}/full/!{{ img_w }},{{ img_h }}/0/default.jpg{% endcapture %}
 
 {% comment %}
   From here on:
