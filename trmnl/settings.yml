@@ -52,6 +52,13 @@ custom_fields:
       - 1870 - 1899
       - 1900 - 1929
 
+  - keyname: show_caption
+    name: Show the caption
+    field_type: boolean
+    description: >-
+      The title block over the map. Switch it off for the map alone,
+      edge to edge, with nothing written on it.
+
   - keyname: show_description
     name: Show a line of context
     field_type: boolean

@@ -41,9 +41,18 @@
   A boolean field arrives as the STRING "true" or "false", so it has to
   be compared, not just tested -- {% raw %}{% if show_description %}{% endraw %} is true even
   when the reader turned it off.
+
+  An untouched field may also arrive as nothing at all, so the default
+  matters: the caption and its context line are on unless switched off,
+  and the credit is off unless switched on. A fresh install with nothing
+  configured therefore shows a captioned map rather than a bare one.
 {% endcomment %}
-{% assign want_description = false %}
-{% if settings.show_description == "true" %}{% assign want_description = true %}{% endif %}
+{% assign want_caption = true %}
+{% if settings.show_caption == "false" %}{% assign want_caption = false %}{% endif %}
+
+{% assign want_description = true %}
+{% if settings.show_description == "false" %}{% assign want_description = false %}{% endif %}
+
 {% assign want_credit = false %}
 {% if settings.show_credit == "true" %}{% assign want_credit = true %}{% endif %}
 
@@ -137,6 +146,7 @@
     pick.byline           maker and year
     pick.published        "New York, 1866"
     pick.category_label   "Railroads, 1850 - 1869"
-    want_description      whether to print pick.description_short
-    want_credit           whether to print pick.credit
+    want_caption          whether to draw the caption block at all
+    want_description      whether that block includes a line of context
+    want_credit           whether to print the Library credit
 {% endcomment %}
