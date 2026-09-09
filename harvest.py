@@ -517,7 +517,12 @@ def evaluate(record, category, label):
     if not ident:
         return None, "no id"
 
-    title = clean_text(record.get("title"), 200)
+    # Stored whole. LOC's own titles are never truncated -- one in this
+    # collection runs to 431 characters -- so any ellipsis a reader sees
+    # would be ours, and `title` is the field for people who want the
+    # catalogue's words rather than a headline. title_short does the
+    # trimming, deliberately and in one place.
+    title = re.sub(r"\s+", " ", str(record.get("title") or "")).strip()
     if not title:
         return None, "no title"
     low = title.lower()
