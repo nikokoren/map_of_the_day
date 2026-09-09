@@ -373,12 +373,13 @@ def cell_label(topic):
 # often a whole sentence of description, so the cut has to land
 # somewhere that reads as a phrase rather than mid-clause.
 #
-# 111 rather than something smaller because the titles that get cut are
+# 120 rather than something smaller because the titles that get cut are
 # not marginal -- their median full length is 134 characters. Measured
-# over the pool, 88 truncates 10% and 111 truncates 5%, while the median
-# caption grows only from 51 to 54 characters: raising the limit does
-# not lengthen most captions, it just stops chopping the long ones.
-TITLE_LIMIT = 111
+# over the pool, 88 truncates 10% and 120 truncates 4%, while the median
+# caption grows only from 51 to 55 characters: raising the limit does
+# not lengthen most captions, it just stops chopping the long ones. The
+# longest caption anyone sees is 122 characters.
+TITLE_LIMIT = 120
 SUBTITLE_MARKERS = (" : ", " ; ", " -- ", " \u2014 ")
 
 
