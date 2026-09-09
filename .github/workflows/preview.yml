@@ -1,0 +1,46 @@
+name: Preview Upcoming Maps
+
+# Renders the maps the recipe will show, at the panel's grey depth, and
+# leaves the sheet as a downloadable artifact. Whether the pool is
+# interesting is not something a filter can decide, so this exists to
+# put the question in front of a person without needing anything
+# installed locally.
+on:
+  workflow_dispatch:
+    inputs:
+      days:
+        description: "How many days to render"
+        required: false
+        default: "12"
+      topic:
+        description: "all, city-plans, birds-eye-views, civil-war, railroads, roads-and-travel, revolution, land-ownership, battles-and-forts, nautical, exploration, world-and-hemispheres, era-1700s, era-1800-1849, era-1850-1869, era-1870-1899, era-1900-1929"
+        required: false
+        default: "all"
+      levels:
+        description: "Grey levels: 4 for a 2-bit panel, 16 for 4-bit, 2 for 1-bit"
+        required: false
+        default: "4"
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Pillow
+        run: pip install --quiet pillow
+
+      - name: Render the contact sheet
+        run: |
+          python3 preview.py \
+            --days "${{ github.event.inputs.days || 12 }}" \
+            --topic "${{ github.event.inputs.topic || 'all' }}" \
+            --levels "${{ github.event.inputs.levels || 4 }}" \
+            --out preview.png
+
+      - name: Upload it
+        uses: actions/upload-artifact@v4
+        with:
+          name: preview-${{ github.event.inputs.topic || 'all' }}
+          path: preview.png

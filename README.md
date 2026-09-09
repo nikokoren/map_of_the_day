@@ -331,6 +331,27 @@ The pool keeps only scans of at least 1400px on the short side, so the larger
 panel is fed real pixels rather than an enlargement. `image_width` and
 `image_height` are the scan's true size if you want to decide in markup.
 
+## Seeing what it will show
+
+Whether the pool is *interesting* is not something a filter can decide, so
+there is a tool for putting the question in front of a person:
+
+```bash
+python3 preview.py --days 24 --topic nautical
+```
+
+It renders the upcoming picks as a contact sheet at the panel's grey depth
+and writes `preview.png`. Needs Pillow (`pip install pillow`).
+
+Or run it without installing anything: **Actions -> Preview Upcoming Maps ->
+Run workflow**, pick a topic and a number of days, and download the sheet
+from the run's artifacts.
+
+Grey depth is the setting that matters most. At 1-bit everything mid-toned
+dithers into noise and half the collection looks broken; at the 2-bit and
+4-bit depths the panels actually have, the same maps read cleanly. The
+default is 4 levels, the conservative case.
+
 ## Running it by hand
 
 ```bash
