@@ -24,6 +24,7 @@ import sys
 import time
 import urllib.error
 import urllib.request
+from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime, timedelta, timezone
 
 # ============================================================
@@ -66,6 +67,22 @@ PROBE_BOX = (800, 480)
 # worth a day of screen time -- is skipped and the next one in the day's
 # order takes its place. Anything less certain than that is not allowed
 # to change the pick.
+# The size the markup asks for, and the one the daily job warms. It has
+# to be a single fixed size, and daily.py has to have asked for it
+# first: LOC renders a IIIF derivative on demand from a master that can
+# be 11,000 pixels across, and the *first* request for a given size on a
+# large map takes 12 to 18 seconds. Measured on the 1862 Little Falls
+# view (11016x7176): !1872,1404 cold was 15.2s to first byte, and 0.43s
+# once cached. TRMNL's renderer gives up long before 15 seconds, which
+# is a blank panel with the caption still on it.
+#
+# So the markup must never compose a size of its own -- a device-derived
+# box is a size nobody has warmed, every time the map changes.
+WARM_BOX = (1872, 1404)
+WARM_QUALITY = "default"
+WARM_WORKERS = 6
+WARM_TIMEOUT = 75
+
 MAX_SKIPS = 4
 DEAD_CODES = (403, 404, 410, 451)
 CHECK_TIMEOUT = 12
@@ -223,7 +240,10 @@ def image_urls(entry):
     base is in the payload too.
     """
     return {
-        "image": iiif(entry["s"], DEFAULT_BOX),
+        # The one the markup uses, and the one warm() warms. Same box,
+        # same quality, same string -- a mismatch in any of the three
+        # and the device is back to waiting for a cold render.
+        "image": iiif(entry["s"], WARM_BOX, WARM_QUALITY),
         "image_og": iiif(entry["s"], OG_BOX),
         "image_x": iiif(entry["s"], X_BOX),
         "image_color": iiif(entry["s"], DEFAULT_BOX, "default"),
@@ -271,6 +291,50 @@ def image_state(url):
         return "unknown", 0
     _checked[url] = result
     return result
+
+
+def warm(services):
+    """
+    Ask LOC for every derivative the recipe is about to point devices
+    at, so the first device to ask gets a cached file instead of a
+    render. A HEAD is enough -- the service still has to produce the
+    image to report its length, and a HEAD on a cold size measured 3.0s
+    against 0.41s for the GET that followed it.
+
+    Failures are not fatal and not even reported per map: a derivative
+    that would not warm is a derivative the device will wait for, which
+    is the situation this is improving on, not one it has to guarantee.
+    """
+    urls = sorted({iiif(service, WARM_BOX, WARM_QUALITY)
+                   for service in services})
+    if not urls:
+        return 0
+
+    def touch(url):
+        req = urllib.request.Request(url, method="HEAD",
+                                     headers={"User-Agent": UA})
+        try:
+            with urllib.request.urlopen(req, timeout=WARM_TIMEOUT) as resp:
+                return resp.status == 200
+        except Exception:
+            return False
+
+    started = time.monotonic()
+    total, warmed = len(urls), 0
+    # Two passes. A render that ran past the timeout on the first pass
+    # has usually finished by the second, and the file is then sitting in
+    # the cache waiting to be acknowledged rather than made again.
+    for attempt in (1, 2):
+        with ThreadPoolExecutor(max_workers=WARM_WORKERS) as pool:
+            results = list(pool.map(touch, urls))
+        warmed += sum(1 for ok in results if ok)
+        urls = [url for url, ok in zip(urls, results) if not ok]
+        if not urls:
+            break
+    print("warmed {}/{} images in {:.0f}s{}".format(
+        warmed, total, time.monotonic() - started,
+        ", {} still cold".format(len(urls)) if urls else ""))
+    return warmed
 
 
 # ============================================================
@@ -345,7 +409,7 @@ FEED_FIELDS = (
     "title", "title_short", "year", "creator", "place", "collection",
     "description_short", "published", "scale", "subjects_line",
     "byline", "subtitle", "imprint", "category", "category_label",
-    "image_base", "image_width", "image_height", "orientation",
+    "image", "image_base", "image_width", "image_height", "orientation",
     "item_id", "topic_size",
 )
 
@@ -690,7 +754,7 @@ def main():
                               "era": era, "size": size})
 
     topics = themes + eras + [c["key"] for c in cells]
-    picks, written = {}, []
+    picks, written, chosen_services = {}, [], []
     for topic in topics:
         subset = maps_for(entries, topic)
         if not subset:
@@ -701,11 +765,16 @@ def main():
         payload = build_payload(entry, topic, day, pool, checked, size)
         payload["topic_size"] = len(subset)
         picks[topic] = payload
+        chosen_services.append(entry["s"])
         if CELL_SEP not in topic:
             print("{:<18} {} ({}) [{}]".format(
                 topic, payload["title_short"][:52], payload["year"], checked))
 
     if not args.dry_run:
+        # Warm every derivative before publishing the file that points
+        # at it, so no device is ever the one that triggers the render.
+        if not args.no_check:
+            warm(chosen_services)
         # map.json: one map, for a plugin that wants no settings at all.
         if write_json(DEFAULT_PATH, picks["all"]):
             written.append(os.path.relpath(DEFAULT_PATH, os.getcwd()))

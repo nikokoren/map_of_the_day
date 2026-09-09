@@ -127,27 +127,34 @@
 {% assign pick = picks[chosen_key] %}
 
 {% comment %}
-  The image, sized to the screen this is rendering for. trmnl.device
-  gives width and height in CSS pixels; the larger panel sits behind a
-  higher-density screen, so asking for twice the box keeps it sharp and
-  costs the device nothing -- the picture is fetched by the renderer,
-  not the device.
+  The image. Use pick.image as it stands -- do NOT compose a size from
+  trmnl.device here, however tempting it looks.
+
+  LOC renders a IIIF derivative on demand from a master that can be
+  11,000 pixels across, and the first request for a given size on a
+  large map takes 12 to 18 seconds. Measured on the 1862 Little Falls
+  view: !1872,1404 cold was 15.2s to first byte and 0.43s once cached.
+  TRMNL's renderer gives up long before that, and the panel comes up
+  blank with the caption still on it.
+
+  pick.image is a single fixed size that the daily job has already
+  asked LOC for, so it is warm before any device sees the feed. A
+  device-derived box would be a size nobody has warmed -- a fresh one
+  every time the map changes, and a blank panel each time. It is
+  1872x1404, the largest panel there is; every smaller screen scales it
+  down for free.
 
   It asks for the colour scan (default.jpg) rather than the Library's
   greyscale one, because a colour panel can then show the colour and a
   monochrome one loses nothing: converting the colour file to luminance
   lands within 1/255 of the Library's own greyscale version, measured
-  across a whole map. It costs 5% more bytes, which the renderer pays.
-  Swap default.jpg for gray.jpg here to go back.
+  across a whole map.
 {% endcomment %}
-{% assign img_w = trmnl.device.width | times: 2 %}
-{% assign img_h = trmnl.device.height | times: 2 %}
-{% if img_w == 0 or img_w == nil %}{% assign img_w = 1600 %}{% assign img_h = 960 %}{% endif %}
-{% capture map_image %}{{ pick.image_base }}/full/!{{ img_w }},{{ img_h }}/0/default.jpg{% endcapture %}
+{% assign map_image = pick.image %}
 
 {% comment %}
   From here on:
-    map_image             the map, fitted to this device
+    map_image             the map, at a size LOC has already cached
     pick.title_short      trimmed title
     pick.year             four digits
     pick.byline           maker and year
