@@ -508,3 +508,44 @@ and asks for 100 records per request instead of one record per request. A full
 run is roughly 120 requests and takes about ten minutes. The daily job makes
 at most a handful of HEAD requests to the image service -- and none at all to
 the search API -- with a total time budget of four minutes.
+
+## Whose day is it?
+
+The map changes at **the viewer's local midnight**, not at a fixed UTC
+moment.
+
+An earlier version chose the pick in Python against the UTC date and
+baked it into the file, so the map changed at the same instant
+worldwide: 02:05 in Berlin, which reads as a new day, but **17:05 the
+previous afternoon** in Los Angeles and **midday** in Auckland, where it
+swaps while somebody is looking at it.
+
+TRMNL gives the markup both halves it needs:
+
+```liquid
+{% assign local_seconds = trmnl.system.timestamp_utc | plus: trmnl.user.utc_offset %}
+{% assign local_day = local_seconds | divided_by: 86400 %}
+```
+
+`timestamp_utc` is unix seconds, `utc_offset` is that viewer's offset in
+seconds, and the two together produce the same integer `daily.py` counts
+in — for that device, in its own timezone.
+
+So `today.json` carries **three days**: yesterday, today and tomorrow.
+Three is measured, not guessed — offsets run from −12 to +14, so the 24
+hours one file is live span about 50 hours of local time, which always
+crosses two or three midnights, and it comes to three for *any* publish
+hour. A device with no usable clock falls back to the day the file was
+built for.
+
+That is why a pick is a **list rather than an object**: at 55 cells
+across three days, field names alone would have cost about 20KB of the
+95KB budget. `selection.liquid` unpacks one into `map_image`,
+`map_title`, `map_year`, `map_creator`, `map_published`,
+`map_description`, `map_place`, `map_category` and `map_item_id`, so the
+layout stays readable.
+
+The daily job publishes all three days at once, so a device never waits
+on the cron to reach its own midnight — tomorrow's map is already in the
+file it fetched today.
+

@@ -1,7 +1,8 @@
 {% comment %}
   A working example, self-contained: paste the whole file into the
-  plugin's markup. The top half is trmnl/selection.liquid verbatim --
-  keep them in step if you edit one. The layout below it is yours.
+  plugin's markup. A private plugin has no loader for {% raw %}{% include %}{% endraw %}, so the
+  top half is trmnl/selection.liquid verbatim -- keep them in step if you
+  edit one. The layout below it is yours.
 {% endcomment %}
 
 {% comment %}
@@ -130,10 +131,53 @@
     {% assign j = j | plus: 1 %}
   {% endif %}
 {% endfor %}
-{% assign pick = picks[chosen_key] %}
+{% comment %}
+  Which day is it *here*? Not in UTC -- here, on this device.
+
+  The feed used to carry one day, chosen against the UTC date, so the
+  map changed at the same instant everywhere. In Berlin that is 02:05,
+  which reads as a new day. In Los Angeles it is 17:05 the previous
+  afternoon; in Auckland it lands at midday and changes the map while
+  somebody is looking at it.
+
+  TRMNL hands us everything needed to do better: system.timestamp_utc is
+  unix seconds, user.utc_offset is that viewer's offset in seconds, and
+  the two added together and divided by 86400 is their own local day
+  number -- the same integer daily.py counts in.
+
+  The feed carries yesterday, today and tomorrow, which is all three
+  values a device anywhere can land on while one file is live (offsets
+  run -12 to +14, so 24 hours of file life spans 50 hours of local
+  time). A missing or odd clock falls back to the day the feed was
+  built for, which is the old behaviour.
+{% endcomment %}
+{% assign local_seconds = trmnl.system.timestamp_utc | plus: trmnl.user.utc_offset %}
+{% assign local_day = local_seconds | divided_by: 86400 %}
+{% assign day_key = local_day | append: "" %}
+{% assign day_picks = days[day_key] %}
+{% if day_picks == nil %}{% assign day_picks = days[default_day] %}{% endif %}
+
+{% assign pick = day_picks[chosen_key] %}
+{% if pick == nil %}{% assign pick = day_picks["all"] %}{% endif %}
 
 {% comment %}
-  The image. Use pick.image as it stands -- do NOT compose a size from
+  A pick is a list, not an object -- at 55 cells across three days,
+  field names alone would cost about 20KB of the 95KB TRMNL allows.
+  Unpack it once here so the layout below stays readable. The order is
+  the feed's pick_fields.
+{% endcomment %}
+{% assign map_image = pick[0] %}
+{% assign map_title = pick[1] %}
+{% assign map_year = pick[2] %}
+{% assign map_creator = pick[3] %}
+{% assign map_published = pick[4] %}
+{% assign map_description = pick[5] %}
+{% assign map_place = pick[6] %}
+{% assign map_category = pick[7] %}
+{% assign map_item_id = pick[8] %}
+
+{% comment %}
+  The image. Use map_image as it stands -- do NOT compose a size from
   trmnl.device here, however tempting it looks.
 
   LOC renders a IIIF derivative on demand from a master that can be
@@ -143,12 +187,12 @@
   TRMNL's renderer gives up long before that, and the panel comes up
   blank with the caption still on it.
 
-  pick.image is a single fixed size that the daily job has already
-  asked LOC for, so it is warm before any device sees the feed. A
-  device-derived box would be a size nobody has warmed -- a fresh one
-  every time the map changes, and a blank panel each time. It is
-  1872x1404, the largest panel there is; every smaller screen scales it
-  down for free.
+  map_image is a single fixed size that the daily job has already asked
+  LOC for -- across all three days -- so it is warm before any device
+  sees the feed. A device-derived box would be a size nobody has warmed:
+  a fresh one every time the map changes, and a blank panel each time.
+  It is 1872x1404, the largest panel there is; every smaller screen
+  scales it down for free.
 
   It asks for the colour scan (default.jpg) rather than the Library's
   greyscale one, because a colour panel can then show the colour and a
@@ -156,19 +200,20 @@
   lands within 1/255 of the Library's own greyscale version, measured
   across a whole map.
 {% endcomment %}
-{% assign map_image = pick.image %}
-
 {% comment %}
   From here on:
-    map_image             the map, at a size LOC has already cached
-    pick.title_short      trimmed title
-    pick.year             four digits
-    pick.byline           maker and year
-    pick.published        "New York, 1866"
-    pick.category_label   "Railroads, 1850 - 1869"
-    want_caption          whether to draw the caption block at all
-    want_description      whether that block includes a line of context
-    want_credit           whether to print the Library credit
+    map_image         the map, at a size LOC has already cached
+    map_title         trimmed title
+    map_year          four digits
+    map_creator       the cartographer or publisher, when known
+    map_published     "New York, 1866"
+    map_description   a line of context, when the catalogue has one
+    map_place         where it depicts
+    map_category      "Railroads, 1850 - 1869"
+    map_item_id       the LOC item number; append to item_url_prefix
+    want_caption      whether to draw the caption block at all
+    want_description  whether that block includes a line of context
+    want_credit       whether to print the Library credit
 {% endcomment %}
 
 {% comment %} ---------- layout ---------- {% endcomment %}
@@ -185,20 +230,20 @@
     <div class="absolute bottom--2 left--2 z--2 p--2 w--max-[80cqw] lg:w--max-[75cqw] bg--canvas outline outline--strong">
       <div class="flex flex--col gap--xsmall">
         <div class="content">
-          <span class="title title--small">{{ pick.title_short }}</span>
+          <span class="title title--small">{{ map_title }}</span>
 
-          {% if pick.creator != "" and pick.published != "" %}
-            <span class="label label--small">Published by {{ pick.creator }} in {{ pick.published }}</span>
-          {% elsif pick.published != "" %}
-            <span class="label label--small">Published {{ pick.published }}</span>
-          {% elsif pick.creator != "" %}
-            <span class="label label--small">{{ pick.creator }}, {{ pick.year }}</span>
+          {% if map_creator != "" and map_published != "" %}
+            <span class="label label--small">Published by {{ map_creator }} in {{ map_published }}</span>
+          {% elsif map_published != "" %}
+            <span class="label label--small">Published {{ map_published }}</span>
+          {% elsif map_creator != "" %}
+            <span class="label label--small">{{ map_creator }}, {{ map_year }}</span>
           {% else %}
-            <span class="label label--small">{{ pick.year }}</span>
+            <span class="label label--small">{{ map_year }}</span>
           {% endif %}
 
-          {% if want_description and pick.description_short != "" %}
-            <span class="label label--small">{{ pick.description_short }}</span>
+          {% if want_description and map_description != "" %}
+            <span class="label label--small">{{ map_description }}</span>
           {% endif %}
 
           {% if want_credit %}

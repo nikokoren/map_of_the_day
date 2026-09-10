@@ -405,12 +405,30 @@ def label_aliases(topics, picks):
 # image_base, the full description is a superset of description_short,
 # and the credit lines are the same on every map -- so those ride once at
 # the top level, or not at all.
-FEED_FIELDS = (
-    "title", "title_short", "year", "creator", "place", "collection",
-    "description_short", "published", "scale", "subjects_line",
-    "byline", "subtitle", "imprint", "category", "category_label",
-    "image", "image_base", "image_width", "image_height", "orientation",
-    "item_id", "topic_size",
+# The feed carries three days, not one, and this is why.
+#
+# The pick used to be chosen here against the UTC date and baked into
+# the file, so the map changed at the same instant worldwide. In Berlin
+# that is 02:05, which reads as a new day. In Los Angeles it is 17:05
+# the *previous* afternoon, and in Auckland it lands at midday and
+# swaps the map while somebody is looking at it.
+#
+# The device knows better: trmnl.system.timestamp_utc plus
+# trmnl.user.utc_offset is the viewer's own local time, so the markup
+# works out its own local day and asks for that day's map.
+#
+# Three days, because offsets run -12 to +14: the 24 hours one file is
+# live span about 50 hours of local time, which always crosses two or
+# three midnights, and it comes to three for any publish hour.
+DAY_SPAN = (-1, 0, 1)
+
+# A pick is a list, not an object. At 55 cells across 3 days, field
+# names alone would cost about 20KB of the 95KB TRMNL allows. The order
+# is the contract with the markup, and selection.liquid unpacks it into
+# named variables so the layout stays readable.
+PICK_FIELDS = (
+    "image", "title_short", "year", "creator", "published",
+    "description_short", "place", "category_label", "item_id",
 )
 
 # Refuse to publish a feed TRMNL will reject. Failing loudly leaves
@@ -420,7 +438,7 @@ MAX_FEED_BYTES = 95_000
 
 
 def slim(payload):
-    return {k: payload[k] for k in FEED_FIELDS if k in payload}
+    return [payload.get(k, "") for k in PICK_FIELDS]
 
 
 def cell_label(topic):
@@ -754,21 +772,37 @@ def main():
                               "era": era, "size": size})
 
     topics = themes + eras + [c["key"] for c in cells]
-    picks, written, chosen_services = {}, [], []
-    for topic in topics:
-        subset = maps_for(entries, topic)
-        if not subset:
-            sys.stderr.write("  {} selects no maps, skipping\n".format(topic))
-            continue
-        entry, checked, size = pick(subset, topic, day,
-                                    check=not args.no_check)
-        payload = build_payload(entry, topic, day, pool, checked, size)
-        payload["topic_size"] = len(subset)
-        picks[topic] = payload
-        chosen_services.append(entry["s"])
-        if CELL_SEP not in topic:
-            print("{:<18} {} ({}) [{}]".format(
-                topic, payload["title_short"][:52], payload["year"], checked))
+    # Every topic, for every day a device might be on. A map that is
+    # tomorrow's here is today's for somebody fourteen hours ahead.
+    days, written, chosen_services, sizes = {}, [], [], {}
+    picks = {}
+    for shift in DAY_SPAN:
+        that_day = day + timedelta(days=shift)
+        day_picks = {}
+        for topic in topics:
+            subset = maps_for(entries, topic)
+            if not subset:
+                if shift == 0:
+                    sys.stderr.write(
+                        "  {} selects no maps, skipping\n".format(topic))
+                continue
+            # Only probe images for the middle day. The other two are
+            # the same maps a day either side of their own turn, and get
+            # probed when it comes.
+            entry, checked, size = pick(subset, topic, that_day,
+                                        check=not args.no_check and shift == 0)
+            payload = build_payload(entry, topic, that_day, pool, checked, size)
+            payload["topic_size"] = len(subset)
+            day_picks[topic] = payload
+            sizes[topic] = len(subset)
+            chosen_services.append(entry["s"])
+            if shift == 0:
+                picks[topic] = payload
+                if CELL_SEP not in topic:
+                    print("{:<18} {} ({}) [{}]".format(
+                        topic, payload["title_short"][:52],
+                        payload["year"], checked))
+        days[str(day_index(that_day))] = day_picks
 
     if not args.dry_run:
         # Warm every derivative before publishing the file that points
@@ -789,11 +823,13 @@ def main():
             # land in the same template context as the feed, and a
             # setting keyed "themes" would collide with a feed key of
             # the same name -- silently, with the feed winning.
+            "default_day": str(day_index(day)),
+            "pick_fields": list(PICK_FIELDS),
             "theme_options": [{"key": t, "label": TOPIC_LABELS[t],
-                               "size": picks[t]["topic_size"]}
+                               "size": sizes[t]}
                               for t in themes if t in picks],
             "era_options": [{"key": t, "label": TOPIC_LABELS[t],
-                             "size": picks[t]["topic_size"]}
+                             "size": sizes[t]}
                             for t in eras if t in picks],
             # The theme-and-era combinations that exist, and a flat list
             # of their keys so markup can test one with `contains`.
@@ -811,10 +847,11 @@ def main():
             "credit": "Library of Congress",
             "rights": RIGHTS,
             "item_url_prefix": "https://www.loc.gov/item/",
-            "picks": {k: slim(v) for k, v in picks.items()},
+            "days": {d: {k: slim(v) for k, v in p.items()}
+                     for d, p in days.items()},
         }
-        print("{} picks: {} themes, {} eras, {} cells".format(
-            len(picks), len(themes), len(eras), len(cells)))
+        print("{} days x {} picks: {} themes, {} eras, {} cells".format(
+            len(days), len(picks), len(themes), len(eras), len(cells)))
         size = len(json.dumps(combined, separators=(",", ":"),
                               sort_keys=True).encode("utf-8"))
         print("today.json {:.1f}KB ({} picks)".format(size / 1024.0,
@@ -822,7 +859,7 @@ def main():
         if size > MAX_FEED_BYTES:
             sys.stderr.write(
                 "today.json is {}B, over the {}B TRMNL accepts; refusing "
-                "to publish it. Trim FEED_FIELDS or raise CELL_MIN.\n"
+                "to publish it. Trim PICK_FIELDS or raise CELL_MIN.\n"
                 .format(size, MAX_FEED_BYTES))
             return 1
         if write_json(TOPICS_PATH, combined):
