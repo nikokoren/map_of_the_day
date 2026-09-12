@@ -1,0 +1,106 @@
+{
+ "cell_keys": [],
+ "cells": [],
+ "credit": "Library of Congress",
+ "date": "2026-09-12",
+ "day_index": 20708,
+ "days": {
+  "20707": {
+   "all": [
+    "https://tile.loc.gov/image-services/iiif/service:gdc:gdcwdl:wd:l_:17:57:2:wdl_17572:253/full/!1872,1404/0/default.jpg",
+    "View of Algiers, Seat of Power of the Saracens",
+    "1575",
+    "Braun, Georg, 1540 or 1541-1622",
+    "Cologne : Philippe Galle, 1575",
+    "Shown here is one of the earliest printed maps of the city of Algiers.",
+    "Algeria",
+    "All Maps",
+    "2021668695"
+   ]
+  },
+  "20708": {
+   "all": [
+    "https://tile.loc.gov/image-services/iiif/service:gdc:gdcwdl:wd:l_:17:57:2:wdl_17572:253/full/!1872,1404/0/default.jpg",
+    "View of Algiers, Seat of Power of the Saracens",
+    "1575",
+    "Braun, Georg, 1540 or 1541-1622",
+    "Cologne : Philippe Galle, 1575",
+    "Shown here is one of the earliest printed maps of the city of Algiers.",
+    "Algeria",
+    "All Maps",
+    "2021668695"
+   ]
+  },
+  "20709": {
+   "all": [
+    "https://tile.loc.gov/image-services/iiif/service:gdc:gdcwdl:wd:l_:17:57:2:wdl_17572:253/full/!1872,1404/0/default.jpg",
+    "View of Algiers, Seat of Power of the Saracens",
+    "1575",
+    "Braun, Georg, 1540 or 1541-1622",
+    "Cologne : Philippe Galle, 1575",
+    "Shown here is one of the earliest printed maps of the city of Algiers.",
+    "Algeria",
+    "All Maps",
+    "2021668695"
+   ]
+  }
+ },
+ "default_day": "20708",
+ "era_options": [
+  {
+   "key": "era-1700s",
+   "label": "The 1700s",
+   "size": 4971
+  },
+  {
+   "key": "era-1800-1849",
+   "label": "1800 - 1849",
+   "size": 4971
+  },
+  {
+   "key": "era-1850-1869",
+   "label": "1850 - 1869",
+   "size": 4971
+  },
+  {
+   "key": "era-1870-1899",
+   "label": "1870 - 1899",
+   "size": 4971
+  },
+  {
+   "key": "era-1900-1929",
+   "label": "1900 - 1929",
+   "size": 4971
+  }
+ ],
+ "generated": "2026-09-12T22:48:10Z",
+ "heading": "MAP OF THE DAY",
+ "item_url_prefix": "https://www.loc.gov/item/",
+ "keys_by_label": {
+  "All Maps": "all",
+  "all": "all",
+  "all maps": "all",
+  "all_maps": "all"
+ },
+ "pick_fields": [
+  "image",
+  "title_short",
+  "year",
+  "creator",
+  "published",
+  "description_short",
+  "place",
+  "category_label",
+  "item_id"
+ ],
+ "pool_size": 4971,
+ "rights": "No known restrictions on publication",
+ "source": "Library of Congress, Geography and Map Division",
+ "theme_options": [
+  {
+   "key": "all",
+   "label": "All Maps",
+   "size": 4971
+  }
+ ]
+}

@@ -348,6 +348,11 @@ def warm(services):
 # is a sentence end, while "no. 4." and "Wis." are not. Requiring four
 # characters of one kind or the other in front of the stop is what tells
 # them apart.
+ROLE_SUFFIX = re.compile(
+    r"[\s,]*\b(?:Creator|Author|Artist|Cartographer|Engraver|Editor|"
+    r"Publisher|Contributor|Compiler|Surveyor|Lithographer|Draftsman|"
+    r"Printer|Illustrator|Translator)\.?\s*$", re.I)
+
 SENTENCE_SPLIT = re.compile(
     r"(?:(?<=[a-z]{4}[.!?])|(?<=\d{4}[.!?]))\s+(?=[\"'\[(A-Z])")
 
@@ -507,7 +512,11 @@ def title_line(entry):
 def build_payload(entry, category, day, pool, checked, ink_bytes=0):
     aspect = round(entry["w"] / float(entry["h"]), 3)
     urls = image_urls(entry)
-    creator = entry.get("c") or ""
+    # "Braun, Georg, 1540 or 1541-1622 Creator." -- the catalogue's role
+    # term, which belongs in a record and not in a byline. 283 of 4,971
+    # maps carry one. Stripped here rather than in harvest.py so the
+    # committed pool is fixed without waiting for a re-crawl.
+    creator = ROLE_SUFFIX.sub("", entry.get("c") or "").strip(" ,;")
     place = entry.get("p") or ""
 
     payload = {
