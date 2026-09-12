@@ -480,6 +480,20 @@ def balance_brackets(text):
     return text
 
 
+TRANSLATIONS_PATH = os.path.join(HERE, "translations.json")
+_english = {}
+
+
+def load_translations():
+    global _english
+    try:
+        with open(TRANSLATIONS_PATH) as fh:
+            _english = json.load(fh).get("titles") or {}
+    except (OSError, ValueError):
+        _english = {}
+    return _english
+
+
 def title_line(entry):
     """
     The title, trimmed to something that fits a headline. The full title
@@ -490,7 +504,11 @@ def title_line(entry):
     an ellipsis -- which is 10% of the pool rather than the 37% a plain
     character cut produced.
     """
-    title = entry["t"]
+    rendered = _english.get(entry["t"]) or {}
+    # English replaces the original rather than joining it: the panel has
+    # room for one caption, and a reader who cannot read Latin is not
+    # helped by being shown the Latin as well. The pool keeps both.
+    title = rendered.get("en") or entry["t"]
     if len(title) <= TITLE_LIMIT:
         return title
 
@@ -744,6 +762,7 @@ def main():
                         help="check the schedule's properties and exit")
     args = parser.parse_args()
 
+    load_translations()
     pool = load_pool()
     if pool is None:
         # Whatever is already committed stays on screen. A missing pool is

@@ -31,17 +31,24 @@ jobs:
           # job was running, without cloning the whole daily history.
           fetch-depth: 20
 
-      - name: Install Pillow
-        run: pip install --quiet pillow
+      - name: Install Pillow, and the offline translator
+        run: pip install --quiet pillow argostranslate langdetect
 
       - name: Harvest map pool from the Library of Congress
         run: python3 harvest.py --pages "${{ github.event.inputs.pages || 25 }}"
+
+      - name: Put more captions into English
+        # Offline, no key. Budgeted and cached forever, so each refresh
+        # covers more of the pool; a failure here must not cost the
+        # harvest, which is the expensive part.
+        continue-on-error: true
+        run: python3 translate.py --budget 5000
 
       - name: Commit and push
         run: |
           git config user.name "GitHub Action"
           git config user.email "action@github.com"
-          git add pool.json quality.json
+          git add pool.json quality.json translations.json
 
           if git diff --staged --quiet; then
             echo "Pool unchanged, nothing to commit"
