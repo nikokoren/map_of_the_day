@@ -22,7 +22,23 @@ custom_fields:
     name: About This Plugin
     category: education,discovery
     field_type: author_bio
-    description: A new historical map on your TRMNL every morning, straight from the Library of Congress.<br><br>Bird's-eye views of American towns drawn when they were still half prairie, sea charts engraved for the Royal Navy, railway lines pushing west, battle plans sketched in the field, and world maps from before anyone had seen the whole world. Over five thousand of them, the oldest from 1450, none younger than 1929.<br><br>Choose the kinds of map you like and the centuries you like &mdash; city plans from the 1700s, bird's-eye views from the 1890s, sea charts from any of them &mdash; and your screen works its way through them, one a day, without repeating for years. Or choose nothing at all and let the whole collection surprise you.<br><br>Every map arrives with its title, its maker, and where it was printed. The same one stays with you all day, so there is time to keep looking at it.<br><br>No account, no API key, nothing to maintain.<br><br>Install (don't Fork!) to receive future updates.
+    description: >-
+      You were born a few centuries too late to be an explorer. This is the
+      next best thing. <br><br> A historical map on your TRMNL every morning,
+      straight from the Library of Congress. Bird's-eye views of American
+      towns drawn when they were still half prairie, sea charts engraved for
+      the Royal Navy, railway lines pushing west, battle plans sketched in the
+      field, and world maps from before anyone had seen the whole world.
+      Nearly five thousand of them &mdash; the oldest from 1450, none younger
+      than 1929. <br><br> Choose your own territory &mdash; city plans from
+      the 1700s, bird's-eye views from the 1890s, sea charts from any century
+      at all &mdash; or choose nothing, and let the collection decide where
+      you are going today. It will not repeat itself for years. <br><br> Every
+      map arrives with its title, its maker, and where it was printed, and the
+      same one stays with you all day, which is long enough to find the street
+      you live on, or a coastline nobody had finished charting. <br><br> No
+      account, no API key, nothing to maintain. <br><br> Install (don't Fork!)
+      to receive future updates.
     email_address: isarworks@gmail.com
 
   - keyname: themes
