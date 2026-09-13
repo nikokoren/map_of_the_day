@@ -10,8 +10,8 @@
     one chosen   -> that dimension only
     none chosen  -> today's map from the whole pool
 
-  `day_index` is the day number the schedule turns on, so the rotation
-  holds for the whole day and moves on by itself at midnight UTC.
+  The rotation and the picks both turn on the viewer's own local day, so
+  both hold for their whole day and move on together at their midnight.
 
   Two things this is careful about, both found by running it rather than
   reading it: a settings keyname and a feed key of the same name collide
@@ -114,8 +114,24 @@
   {% assign wanted = "all" | split: "," %}{% assign n = 1 %}
 {% endif %}
 
-{% comment %} Today's key: the nth non-empty entry, n rotating by day. {% endcomment %}
-{% assign i = day_index | modulo: n %}
+{% comment %}
+  Which day is it *here*? The long note further down explains why this is
+  not the UTC day; it has to be worked out up here because the rotation
+  over cells must turn over on the same tick the day's picks do. When they
+  disagree -- and they did -- a viewer east of UTC spends the hours between
+  their own midnight and midnight UTC on tomorrow's picks but yesterday's
+  cell, which shows them a map they have already seen.
+
+  A device with no usable clock gets `default_day`, the day the feed was
+  built for, which is the old behaviour. Any real local day is a
+  five-figure number, so that one comparison catches nil, 0 and garbage.
+{% endcomment %}
+{% assign local_seconds = trmnl.system.timestamp_utc | plus: trmnl.user.utc_offset %}
+{% assign local_day = local_seconds | divided_by: 86400 %}
+{% if local_day < 10000 %}{% assign local_day = default_day | plus: 0 %}{% endif %}
+
+{% comment %} Today's key: the nth non-empty entry, n rotating by local day. {% endcomment %}
+{% assign i = local_day | modulo: n %}
 {% assign j = 0 %}
 {% assign chosen_key = "all" %}
 {% for k in wanted %}
@@ -144,8 +160,6 @@
   time). A missing or odd clock falls back to the day the feed was
   built for, which is the old behaviour.
 {% endcomment %}
-{% assign local_seconds = trmnl.system.timestamp_utc | plus: trmnl.user.utc_offset %}
-{% assign local_day = local_seconds | divided_by: 86400 %}
 {% assign day_key = local_day | append: "" %}
 {% assign day_picks = days[day_key] %}
 {% if day_picks == nil %}{% assign day_picks = days[default_day] %}{% endif %}

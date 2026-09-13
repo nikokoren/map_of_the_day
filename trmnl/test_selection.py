@@ -74,18 +74,31 @@ feed = {
 # actually straddles a midnight somewhere.
 #   EVENING 20:00 UTC on DAY -- Auckland (+12) is already on DAY+1.
 #   EARLY   02:00 UTC on DAY -- Los Angeles (-7) is still on DAY-1.
+#   LATE    23:00 UTC on DAY -- Berlin (+2) is on DAY+1 while UTC is not.
+#           That last one is the gap the rotation used to fall into: the
+#           day's picks moved on at local midnight and the cell chosen
+#           out of them did not, so a viewer with more than one cell in
+#           rotation got last night's map again for two hours.
 EVENING = DAY * 86400 + 20 * 3600
 EARLY = DAY * 86400 + 2 * 3600
+LATE = DAY * 86400 + 23 * 3600
 
 OFFSETS = {"Auckland, evening UTC": 12 * 3600, "Berlin, evening UTC": 7200,
            "Los Angeles, early UTC": -7 * 3600, "Berlin, early UTC": 7200,
-           "device clock missing": 7200}
+           "device clock missing": 7200,
+           "Berlin, past local midnight": 7200}
 CLOCKS = {"Auckland, evening UTC": EVENING, "Berlin, evening UTC": EVENING,
           "Los Angeles, early UTC": EARLY, "Berlin, early UTC": EARLY,
-          "device clock missing": None}
+          "device clock missing": None,
+          "Berlin, past local midnight": LATE}
 EXPECT = {"Auckland, evening UTC": "TOMORROW", "Berlin, evening UTC": "",
           "Los Angeles, early UTC": "YESTERDAY", "Berlin, early UTC": "",
-          "device clock missing": ""}
+          "device clock missing": "",
+          "Berlin, past local midnight": "TOMORROW"}
+
+# Where a case pins the cell as well as the day. city-plans and railroads
+# rotate two-wide: DAY lands on the first, DAY+1 on the second.
+EXPECT_KEY = {"Berlin, past local midnight": "railroads"}
 
 CASES = [
     ("Auckland, evening UTC", {}),
@@ -93,6 +106,8 @@ CASES = [
     ("Los Angeles, early UTC", {}),
     ("Berlin, early UTC", {}),
     ("device clock missing", {}),
+    ("Berlin, past local midnight", {"themes": ["city_plans",
+                                                "railroads"]}),
     ("nothing selected", {}),
     ("themes only", {"themes": ["railroads"]}),
     ("eras only", {"eras": ["1850_-_1869"]}),
@@ -127,6 +142,9 @@ for name, settings in CASES:
         title = tail.split("|")[1]
         ok = title.startswith(want) if want else not (
             title.startswith("YESTERDAY") or title.startswith("TOMORROW"))
+    want_key = EXPECT_KEY.get(name)
+    if ok and want_key is not None:
+        ok = tail.split("|")[0] == want_key
     bad += 0 if ok else 1
     print(f"  {'ok  ' if ok else 'FAIL'} {name:26s} {tail}")
 
