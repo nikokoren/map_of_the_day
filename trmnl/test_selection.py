@@ -13,6 +13,7 @@ string "false".
 """
 
 import os
+import re
 import sys
 from liquid import Environment
 
@@ -147,5 +148,33 @@ for name, settings in CASES:
         ok = tail.split("|")[0] == want_key
     bad += 0 if ok else 1
     print(f"  {'ok  ' if ok else 'FAIL'} {name:26s} {tail}")
+
+# ---------------------------------------------------------------
+# The plugin runs example-markup.liquid, not this file. They hold the
+# same selection logic because a private plugin has no {% include %},
+# and for three days in September they did not: the local-midnight
+# rotation was fixed here and nowhere else, so the fix never reached a
+# device. Everything above tests the wrong file if these two drift.
+# ---------------------------------------------------------------
+
+def logic_lines(text):
+    text = re.sub(r"\{%-?\s*comment\s*-?%\}.*?\{%-?\s*endcomment\s*-?%\}",
+                  "", text, flags=re.S)
+    return [line.strip() for line in text.splitlines() if line.strip()]
+
+
+mine = logic_lines(src)
+theirs = logic_lines(open(os.path.join(HERE, "example-markup.liquid")).read())
+if theirs[:len(mine)] == mine:
+    print("  ok   example-markup.liquid carries this exact logic")
+else:
+    bad += 1
+    print("  FAIL example-markup.liquid has drifted from selection.liquid")
+    for n, (a, b) in enumerate(zip(mine, theirs)):
+        if a != b:
+            print(f"       first difference at logic line {n}")
+            print(f"         selection.liquid     {a[:76]}")
+            print(f"         example-markup.liquid {b[:76]}")
+            break
 
 sys.exit(1 if bad else 0)
