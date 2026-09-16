@@ -183,12 +183,11 @@
 {% assign map_image = pick[0] %}
 {% assign map_title = pick[1] %}
 {% assign map_year = pick[2] %}
-{% assign map_creator = pick[3] %}
-{% assign map_published = pick[4] %}
-{% assign map_description = pick[5] %}
-{% assign map_place = pick[6] %}
-{% assign map_category = pick[7] %}
-{% assign map_item_id = pick[8] %}
+{% assign map_byline = pick[3] %}
+{% assign map_description = pick[4] %}
+{% assign map_place = pick[5] %}
+{% assign map_category = pick[6] %}
+{% assign map_item_id = pick[7] %}
 
 {% comment %}
   The image. Use map_image as it stands -- do NOT compose a size from
@@ -219,8 +218,7 @@
     map_image         the map, at a size LOC has already cached
     map_title         trimmed title
     map_year          four digits
-    map_creator       the cartographer or publisher, when known
-    map_published     "New York, 1866"
+    map_byline        "by Seward Porter in Bath, Me., 1837"
     map_description   a line of context, when the catalogue has one
     map_place         where it depicts
     map_category      "Railroads, 1850 - 1869"
@@ -246,15 +244,7 @@
         <div class="content">
           <span class="title title--small">{{ map_title }}</span>
 
-          {% if map_creator != "" and map_published != "" %}
-            <span class="label label--small">Published by {{ map_creator }} in {{ map_published }}</span>
-          {% elsif map_published != "" %}
-            <span class="label label--small">Published {{ map_published }}</span>
-          {% elsif map_creator != "" %}
-            <span class="label label--small">{{ map_creator }}, {{ map_year }}</span>
-          {% else %}
-            <span class="label label--small">{{ map_year }}</span>
-          {% endif %}
+          <span class="label label--small">{{ map_byline }}</span>
 
           {% if want_description and map_description != "" %}
             <span class="label label--small">{{ map_description }}</span>

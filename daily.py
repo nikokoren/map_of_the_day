@@ -351,10 +351,156 @@ def warm(services):
 ROLE_SUFFIX = re.compile(
     r"[\s,]*\b(?:Creator|Author|Artist|Cartographer|Engraver|Editor|"
     r"Publisher|Contributor|Compiler|Surveyor|Lithographer|Draftsman|"
-    r"Printer|Illustrator|Translator)\.?\s*$", re.I)
+    r"Printer|Illustrator|Translator|Associated Name|Former Owner|"
+    r"Donor|Engraver|Owner|Etcher|Collaborator|Annotator|Recipient|"
+    r"Signer|Bookseller|Dedicatee|Patron|Binder|Papermaker|Draughtsman|"
+    r"Attributed Name|cartr?ographer|engraver)"
+    r"\.?\s*$", re.I)
 
 SENTENCE_SPLIT = re.compile(
     r"(?:(?<=[a-z]{4}[.!?])|(?<=\d{4}[.!?]))\s+(?=[\"'\[(A-Z])")
+
+
+# ============================================================
+# byline
+# ============================================================
+#
+# The caption was reading:
+#
+#   Published by Porter, Seward, 1784-1838 in Bath, Me.? : Seward Porter, 1837
+#
+# which is three faults in one line. The creator is a catalogue heading,
+# surname first with life dates attached -- 73% of the pool is inverted
+# and 33% carries dates. The published string is a MARC 260 imprint,
+# "Place : Publisher, Date", so the "in" was followed by a publisher and
+# a colon rather than a place. And in 932 cases that publisher is the
+# creator, printed twice in one breath.
+#
+# What a reader wants is who made it, where it was published and when.
+# For a postcard the place of printing is a trap -- German lithographers
+# printed views of everywhere -- but a map is different: Paris in 1790
+# against London in 1776 is the provenance, and what the map depicts is
+# in the title already.
+
+# "1784-1838", "1625?-", "approximately 1600-", "active 1750-1776" and
+# "17th century" -- the question mark sits on either side of the dash.
+LIFE_DATES = re.compile(
+    r"[\s,]*\(?(?:active\s+|fl\.?\s*|b\.?\s*|d\.?\s*|ca\.?\s*|circa\s+|approximately\s+)?"
+    r"(?:[-\u2013]\s*(?:\d{3,4}\??|cir\w*)"
+    r"|\d{3,4}\??(?:\s*or\s*\d+)?\s*(?:[-\u2013]\s*(?:\d{0,4}\??|cir\w*))?"
+    r"|\d{1,2}(?:st|nd|rd|th)\s+century)\)?\.?\s*$", re.I)
+# A rank or role trailing a second comma. Jr and Sr are kept: they belong
+# to the name, where "Sir" and "surveyor general" belong to the record.
+HONORIFIC = re.compile(
+    r",\s*(?:Sir|Dame|Lord|Lady|Mrs|Mr|Dr|Rev|Hon|Capt|Captain|Lt|Lieut|"
+    r"Lieutenant|Col|Colonel|Gen|General|Maj|Major|Sgt|surveyor general|"
+    r"surveyor|engineer|cartographer|delineator)\.?\s*$", re.I)
+NAME_SUFFIX = re.compile(r",\s*(Jr|Sr|II|III)\.?\s*$", re.I)
+PARENTHETICAL = re.compile(r"\s*\([^)]*\)")
+PARTICLE = re.compile(
+    r"^(?:d'|de|del|della|van|von|der|den|le|la|du|des|di|da|af|zu|ten|ter)$", re.I)
+# A firm is not a person and must never be turned around: "G.W. & C.B.
+# Colton & Co" is the name of the house, not Colton's surname.
+FIRM = re.compile(r"&|\b(?:Co|Inc|Ltd|Bros|Sons|Company|Firm)\b\.?", re.I)
+NAME_PART = re.compile(r"^[^\W\d_][\w'.\u0301\u0306\ufe20\ufe21-]*\.?$", re.UNICODE)
+
+
+def person(name):
+    """'Porter, Seward, 1784-1838' -> 'Seward Porter'. Bodies left alone."""
+    n = (name or "").strip().strip("[]").strip()
+    if not n:
+        return ""
+    for _ in range(3):                    # role and dates stack, either order
+        n = ROLE_SUFFIX.sub("", n)
+        n = LIFE_DATES.sub("", n)
+    n = PARENTHETICAL.sub("", n).strip().strip(" ,;")
+    n = re.sub(r"[\s,]*[-\u2013]\s*$", "", n).strip(" ,;")   # a dash with no date behind it
+    for _ in range(2):
+        n = HONORIFIC.sub("", n).strip().strip(" ,;")
+    suffix = ""
+    found = NAME_SUFFIX.search(n)
+    if found:
+        suffix, n = ", " + found.group(1) + ".", n[:found.start()].strip()
+    if n.count(",") != 1 or FIRM.search(n):
+        return n + suffix                 # a body, a firm, or too tangled
+    surname, rest = (part.strip() for part in n.split(","))
+    parts = rest.split()
+    if not parts or len(parts) > 5 or not all(
+            NAME_PART.match(part) or PARTICLE.match(part) for part in parts):
+        return n + suffix
+    lead = []
+    while parts and PARTICLE.match(parts[-1].rstrip(".")):
+        lead.insert(0, parts.pop())
+    given, particle = " ".join(parts), " ".join(lead)
+    joined = (particle + surname) if particle.endswith("'") else \
+        " ".join(part for part in (particle, surname) if part)
+    return (" ".join(part for part in (given, joined) if part) + suffix).strip()
+
+
+PLACE_UNKNOWN = re.compile(
+    r"^\[?(?:s\.?\s*l\.?|s\.?\s*n\.?|n\.?\s*p\.?|"
+    r"(?:place of publication|publisher) not identified)[\]\s.,]*"
+    r"(?:s\.?\s*n\.?|s\.?\s*l\.?)?[\]\s.,]*$", re.I)
+# A qualifier belonging to the place: "Bath, Me.", "Washington, D.C."
+PLACE_QUALIFIER = re.compile(r"^(?:[A-Z]{1,2}\.?[A-Z]?\.?|[A-Z][a-z]{1,10}\.?)$")
+# Anything from the printing trade means the publisher has crept in.
+TRADE = re.compile(r"&|\b(?:lith|litho|lithograph\w*|engr\w*|print\w*|pub\w*|"
+                   r"drawn|sc|del|Co|Inc|Ltd|Bros|Sons)\b\.?", re.I)
+
+
+def published_in(imprint):
+    """
+    The place of publication, when the imprint is structured enough to say.
+
+    Only half these imprints keep to the shape MARC 260 describes. A
+    colon separates place from publisher and can be trusted; a bare comma
+    cannot, because "New York, Hughes & Bailey, c1916" puts the firm in
+    the middle. So: everything before the colon, or before the first
+    comma, plus one short qualifier -- and nothing at all when the string
+    is free text. 62% of the pool yields a place that way, and the rest
+    says nothing rather than saying "S.l." to somebody's wall.
+    """
+    text = (imprint or "").strip()
+    if not text:
+        return ""
+    text = re.split(r"\s*:\s*", text, 1)[0]
+    parts = [part.strip() for part in text.split(",")]
+    place = parts[0]
+    if len(parts) > 1 and PLACE_QUALIFIER.match(parts[1].rstrip("?")):
+        place = place + ", " + parts[1]
+    place = re.sub(r"\s*\?", "", place).strip().strip("[]").strip(" ,;:")
+    if not place or PLACE_UNKNOWN.match(place) or TRADE.search(place):
+        return ""
+    if re.search(r"\d", place) or len(place.split()) > 4:
+        return ""
+    return place
+
+
+def byline(entry):
+    """
+    Who made it, where it came out, and when -- as one readable clause.
+
+    The caption sits beside the title rather than under it, so this has
+    to read on from the title in smaller type: "Chart of the coast of
+    Maine" then "by Seward Porter in Bath, Me., 1837". Every branch is
+    prose, because a branch that starts mid-sentence reads as a bug.
+    """
+    who = person(entry.get("c"))
+    # A body's trailing stop reads badly before our comma -- "Railway
+    # Company., 1898" -- but an initial and a generational suffix keep
+    # theirs: "A. J." and "Lucas, Jr." are not sentences ending.
+    last = who.rsplit(" ", 1)[-1]
+    if who.endswith(".") and len(last) > 2 and not NAME_SUFFIX.search(who):
+        who = who[:-1]
+    where = published_in(entry.get("pub"))
+    year = str(entry.get("y") or "")
+    if who and where:
+        return "by {} in {}, {}".format(who, where, year).rstrip(", ")
+    if who:
+        return "by {}, {}".format(who, year).rstrip(", ")
+    if where:
+        return "Published in {}, {}".format(where, year).rstrip(", ")
+    return year
 
 
 def short_description(text, limit=120):
@@ -432,7 +578,7 @@ DAY_SPAN = (-1, 0, 1)
 # is the contract with the markup, and selection.liquid unpacks it into
 # named variables so the layout stays readable.
 PICK_FIELDS = (
-    "image", "title_short", "year", "creator", "published",
+    "image", "title_short", "year", "byline",
     "description_short", "place", "category_label", "item_id",
 )
 
@@ -562,7 +708,7 @@ def build_payload(entry, category, day, pool, checked, ink_bytes=0):
 
         # Ready-made lines, for the common case where the layout wants one
         # string under the title rather than four fields to arrange.
-        "byline": " - ".join(p for p in (creator, str(entry["y"])) if p),
+        "byline": byline(entry),
         "subtitle": " - ".join(p for p in (place, entry.get("col", "")) if p),
         # Imprint and scale, the two details that are specific to a map
         # rather than to its subject. Either may be missing.
@@ -635,6 +781,51 @@ def selftest(entries, day):
     if (candidates_for(entries, "all", day)[0]["id"]
             != candidates_for(entries, "all", day)[0]["id"]):
         failures.append("selection is not deterministic")
+
+    # 1b. The byline, at the strings that taught it each rule. A
+    #     catalogue heading is not a byline: surname-first with life
+    #     dates, a MARC imprint with the publisher in the middle, and a
+    #     cataloguer's "S.l." for a place nobody recorded.
+    for want, creator, imprint, year in (
+            ("by Seward Porter in Bath, Me., 1837",
+             "Porter, Seward, 1784-1838", "Bath, Me.? : Seward Porter, 1837", 1837),
+            ("by Jean Baptiste Bourguignon d'Anville in Paris, 1790",
+             "Anville, Jean Baptiste Bourguignon d', 1697-1782",
+             "Paris : Dezauche, 1790?", 1790),
+            # a body and a firm are never turned around
+            # s.n. means the publisher is unrecorded, not the place --
+            # Washington is known and belongs in the line
+            ("by United States. Corps of Topographical Engineers in "
+             "Washington, D.C., 1862",
+             "United States. Corps of Topographical Engineers",
+             "Washington, D.C.? : s.n., 1862", 1862),
+            ("by G.W. & C.B. Colton & Co in New York, 1872",
+             "G.W. & C.B. Colton & Co", "New York, 1872", 1872),
+            # the firm in the middle of an imprint is not the place
+            ("by T. M. Fowler in New York, 1916",
+             "Fowler, T. M. (Thaddeus Mortimer), 1842-1922",
+             "New York, Hughes & Bailey, c1916", 1916),
+            # a rank belongs to the record, a generational suffix to the name
+            ("by J. H. Baker in Saint Paul, 1874",
+             "Baker, J. H., surveyor general", "Saint Paul : s.n., 1874", 1874),
+            ("by Fielding Lucas, Jr. in Baltimore, 1823",
+             "Lucas, Fielding, Jr.", "Baltimore : F. Lucas, 1823", 1823),
+            # nothing recorded beats printing the abbreviation for nothing
+            ("by N. Michler, 1867",
+             "Michler, N. (Nathaniel), 1827-1881", "S.l. : s.n., 1867", 1867),
+            ("1863", "", "", 1863),
+    ):
+        got = byline({"c": creator, "pub": imprint, "y": year})
+        if got != want:
+            failures.append("byline: {!r} not {!r}".format(got, want))
+
+    # 1c. And no catalogue shorthand reaches a screen, anywhere in the pool.
+    junk = re.compile(r"\bS\.l\.|\bs\.n\.|18--|\?|not identified", re.I)
+    leaked = [e["id"] for e in entries if junk.search(byline(e))]
+    if leaked:
+        failures.append("{} bylines still carry catalogue shorthand, e.g. {}"
+                        .format(len(leaked), byline(
+                            [e for e in entries if e["id"] == leaked[0]][0])))
 
     # 2. Ids are unique, which is what makes one pass through the pool
     #    show every map exactly once with no repeats.

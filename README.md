@@ -266,6 +266,7 @@ line, since nothing has to be re-tagged.
 | `title_short` | `Railroad map of New Hampshire` | trimmed at the subtitle, for a headline |
 | `year` | `1894` | four digits, always present |
 | `creator` | `New Hampshire. Railroad Commissioners` | may be empty |
+
 | `place` | `New Hampshire` | may be empty |
 | `collection` | `Railroad Maps, 1828-1900` | the LOC collection it came from |
 | `description` | `Township and county map showing relief by hachures...` | trimmed to ~220 chars, **6% are empty** |
@@ -275,7 +276,7 @@ line, since nothing has to be re-tagged.
 | `scale` | `1:1,875,000` | **only ~15% of maps** carry one in their notes |
 | `subjects` | `["Railroads", "Civil War, 1861-1865"]` | up to 4, specific terms only |
 | `subjects_line` | `Railroads, Civil War, 1861-1865` | the same, pre-joined |
-| `byline` | `New Hampshire. Railroad Commissioners - 1894` | creator and year, pre-joined |
+| `byline` | `by Seward Porter in Bath, Me., 1837` | who made it, where it came out, and when |
 | `subtitle` | `New Hampshire - Railroad Maps, 1828-1900` | place and collection, pre-joined |
 | `imprint` | `New York, 1866 - 1:1,875,000` | publication and scale, pre-joined, either part may be missing |
 | `image` | `.../full/!1872,1404/0/gray.jpg` | greyscale, sized for the largest panel |
@@ -330,6 +331,52 @@ So the payload does not commit to a panel:
 The pool keeps only scans of at least 1400px on the short side, so the larger
 panel is fed real pixels rather than an enlargement. `image_width` and
 `image_height` are the scan's true size if you want to decide in markup.
+
+### The byline
+
+The caption used to read:
+
+    Published by Porter, Seward, 1784-1838 in Bath, Me.? : Seward Porter, 1837
+
+which is three faults in one line. `creator` is a catalogue heading --
+surname first, life dates attached; **73%** of the pool is inverted and
+**33%** carries dates. `published` is a MARC 260 imprint, `Place :
+Publisher, Date`, so the "in" was followed by a publisher and a colon
+rather than a place. And in **932** cases that publisher *is* the
+creator, printed twice in one breath.
+
+It now reads:
+
+    by Seward Porter in Bath, Me., 1837
+
+The redundancy goes away on its own: reduce the imprint to a place and
+the publisher who was also the creator is no longer there twice.
+
+For a postcard the place of printing is a trap -- German lithographers
+printed views of everywhere -- but a map is different. Paris in 1790
+against London in 1776 *is* the provenance, and what the map depicts is
+in the title already.
+
+The imprint parser is deliberately conservative. It trusts a colon
+(`Paris : Dezauche, 1790` becomes Paris) and a place-then-year comma
+(`Chicago, 1891` becomes Chicago), and allows one short qualifier so
+`Morrisville, Pa.` survives -- but it refuses free text rather than
+guessing, because `New York, Hughes & Bailey, c1916` would otherwise
+turn the firm into the place. **62%** of the pool yields a place that
+way; the rest gets name and year, which still beats what was there.
+
+`S.l.`, `n.p.` and "place of publication not identified" yield nothing
+at all. Printing the cataloguer's abbreviation for *no place* onto
+somebody's wall is worse than saying nothing.
+
+Names: bodies and firms are never turned around -- `United States. Corps
+of Topographical Engineers` and `G.W. & C.B. Colton & Co` are the names
+of the things, not somebody's surname. Ranks come off (`Baker, J. H.,
+surveyor general` becomes `J. H. Baker`) and generational suffixes stay
+(`Fielding Lucas, Jr.`). Of 4,971 maps, **one** still carries catalogue
+shorthand, and `daily.py --selftest` holds nine of these as a truth
+table plus a sweep asserting nothing else leaks.
+
 
 ## Seeing what it will show
 
@@ -541,7 +588,7 @@ built for.
 That is why a pick is a **list rather than an object**: at 55 cells
 across three days, field names alone would have cost about 20KB of the
 95KB budget. `selection.liquid` unpacks one into `map_image`,
-`map_title`, `map_year`, `map_creator`, `map_published`,
+`map_title`, `map_year`, `map_byline`,
 `map_description`, `map_place`, `map_category` and `map_item_id`, so the
 layout stays readable.
 

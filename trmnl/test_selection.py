@@ -31,10 +31,11 @@ print("parse ok")
 DAY = 20706
 TS = 1789031899          # a timestamp from a real device dump
 
-# image, title_short, year, creator, published, description_short,
-# place, category_label, item_id
+# image, title_short, year, byline, description_short, place,
+# category_label, item_id -- the same order daily.PICK_FIELDS names, and
+# the assertion below keeps it that way.
 def card(title, image):
-    return [image, title, "1866", "Fox, Stanley", "New York, 1866",
+    return [image, title, "1866", "by Stanley Fox in New York, 1866",
             "A line of context.", "New York", "Railroads", "12345"]
 
 _cells = {
@@ -66,7 +67,7 @@ feed = {
         "the_1700s": "era-1700s",
     },
     "themes": [], "eras": [],
-    "pick_fields": ["image", "title_short", "year", "creator", "published",
+    "pick_fields": ["image", "title_short", "year", "byline",
                     "description_short", "place", "category_label", "item_id"],
     "days": days,
 }
@@ -176,5 +177,18 @@ else:
             print(f"         selection.liquid     {a[:76]}")
             print(f"         example-markup.liquid {b[:76]}")
             break
+
+
+# The fixture's pick shape has to be the real one, or every test above is
+# rehearsing a payload that daily.py does not produce.
+sys.path.insert(0, os.path.dirname(HERE))
+import daily  # noqa: E402
+if list(daily.PICK_FIELDS) == feed["pick_fields"]:
+    print("  ok   the stand-in feed uses daily.PICK_FIELDS")
+else:
+    bad += 1
+    print("  FAIL the stand-in feed's pick_fields have drifted from daily.py")
+    print(f"       daily.py {list(daily.PICK_FIELDS)}")
+    print(f"       fixture  {feed['pick_fields']}")
 
 sys.exit(1 if bad else 0)
