@@ -518,8 +518,9 @@ recomputed from whatever the pool holds at the time.
 | loc.gov is down or blocks the runner | harvest fails, pool stays as it is, screen unaffected |
 | Harvest returns far fewer maps than the current pool | it refuses to write and exits non-zero, rather than shrinking the pool |
 | The daily workflow fails or is skipped | yesterday's `map.json` stays committed and keeps rendering |
-| A map's image 404s | the daily job HEAD-checks it and deterministically moves to the next candidate |
-| A map turns out to be mostly blank paper | same skip, on the measured size of the fitted JPEG |
+| A map's image 404s | the daily job HEAD-checks it and deterministically stands in a map from half a cycle away |
+| A map turns out to be mostly blank paper | same stand-in, on the measured size of the fitted JPEG |
+| Two stand-ins are needed on nearby days | they stay half a cycle out, so covering a dead image never shows the same map twice in the days around it |
 | tile.loc.gov is slow or 500s | the pick is *not* changed -- only a definitive 404/403/410 or a measured size skips a map |
 | The pool file is missing or empty | the job exits non-zero without writing, leaving the last good files |
 

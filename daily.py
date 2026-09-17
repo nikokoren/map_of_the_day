@@ -84,6 +84,13 @@ WARM_WORKERS = 6
 WARM_TIMEOUT = 75
 
 MAX_SKIPS = 4
+
+# How far either side of a day a stand-in has to stay clear of that
+# day's scheduled map, so covering a dead image never reads as a repeat.
+# The feed itself is three days wide; this is wider than the window a
+# reader can compare.
+NEAR_DAYS = 3
+
 DEAD_CODES = (403, 404, 410, 451)
 CHECK_TIMEOUT = 12
 
@@ -207,13 +214,33 @@ def candidates_for(entries, category, day):
     """
     The day's pick first, then the maps that stand in for it if its image
     turns out to be gone.
+
+    The stand-ins are drawn from half a cycle away, not from the days
+    that follow. `ordered` *is* the schedule, so ordered[position + 1] is
+    not a spare map, it is tomorrow's map: stepping into it to dodge a
+    dead image hands the reader the same map two days running, and the
+    repair for a missing image becomes the thing they actually notice.
+    (It is what put the same chart of the coast of Maine on screen on
+    both 2026-09-16 and 2026-09-17.)
+
+    Half a cycle is the furthest point from the day being covered, in
+    either direction -- twelve days for the smallest topic the plugin
+    offers, years for the pool as a whole. A stand-in still comes round
+    again on its own day, once, that far away.
     """
     index = day_index(day)
     total = len(entries)
     cycle, position = divmod(index, total)
     ordered = order_for(entries, category, cycle)
-    return [ordered[(position + offset) % total]
-            for offset in range(min(MAX_SKIPS + 1, total))]
+    picks = [ordered[position]]
+    gap = max(1, total // 2)
+    for offset in range(MAX_SKIPS):
+        stand_in = (position + gap + offset) % total
+        # Only reachable on a pool far smaller than any topic offered,
+        # where half a cycle wraps back onto the day itself.
+        if stand_in != position:
+            picks.append(ordered[stand_in])
+    return picks
 
 
 # ============================================================
@@ -862,6 +889,31 @@ def selftest(entries, day):
         if (candidates_for(entries, "all", d)[0]["id"]
                 == candidates_for(entries, "all", d + timedelta(days=1))[0]["id"]):
             failures.append("same map two days running at " + d.isoformat())
+
+    # 5b. And a stand-in is never a nearby day's map. Check 5 only ever
+    #     looked at candidates_for(...)[0], the scheduled pick, so it saw
+    #     a clean schedule while the skip path quietly served tomorrow's
+    #     map to cover today's dead image -- a repeat the reader sees and
+    #     the test did not. The whole candidate list has to be clear of
+    #     the days around it, not just the first entry.
+    for offset in (0, 1, 2, total // 3):
+        d = day + timedelta(days=offset)
+        if day_index(d) // total != cycle:
+            continue
+        stand_ins = {e["id"] for e in candidates_for(entries, "all", d)[1:]}
+        if not stand_ins:
+            failures.append("no stand-in at all on " + d.isoformat())
+            break
+        for near in range(-NEAR_DAYS, NEAR_DAYS + 1):
+            n = d + timedelta(days=near)
+            if day_index(n) // total != cycle:
+                continue
+            clash = candidates_for(entries, "all", n)[0]["id"]
+            if clash in stand_ins:
+                failures.append(
+                    "a stand-in on {} is the map scheduled for {}"
+                    .format(d.isoformat(), n.isoformat()))
+                break
 
     # 6. Every topic offered as a setting is deep enough that a reader
     #    does not see the same map twice inside a year.
