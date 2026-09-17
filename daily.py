@@ -896,24 +896,34 @@ def selftest(entries, day):
     #     map to cover today's dead image -- a repeat the reader sees and
     #     the test did not. The whole candidate list has to be clear of
     #     the days around it, not just the first entry.
-    for offset in (0, 1, 2, total // 3):
-        d = day + timedelta(days=offset)
-        if day_index(d) // total != cycle:
-            continue
-        stand_ins = {e["id"] for e in candidates_for(entries, "all", d)[1:]}
-        if not stand_ins:
-            failures.append("no stand-in at all on " + d.isoformat())
-            break
-        for near in range(-NEAR_DAYS, NEAR_DAYS + 1):
-            n = d + timedelta(days=near)
-            if day_index(n) // total != cycle:
+    #     The smallest topic rides along, because a topic is a much
+    #     shorter cycle than the pool and is the only place the wrap
+    #     guard in candidates_for can fire. It is also where the reader
+    #     met this bug: Nautical Charts, not the whole collection.
+    topics = [s for s, _ in THEMES] + [s for s, _, _, _ in ERAS]
+    smallest = min(topics, key=lambda s: len(maps_for(entries, s)))
+    for topic in ("all", smallest):
+        sub = maps_for(entries, topic)
+        span = len(sub)
+        for offset in (0, 1, 2, span // 3):
+            d = day + timedelta(days=offset)
+            if day_index(d) // span != day_index(day) // span:
                 continue
-            clash = candidates_for(entries, "all", n)[0]["id"]
-            if clash in stand_ins:
-                failures.append(
-                    "a stand-in on {} is the map scheduled for {}"
-                    .format(d.isoformat(), n.isoformat()))
+            stand_ins = {e["id"] for e in candidates_for(sub, topic, d)[1:]}
+            if not stand_ins:
+                failures.append("{}: no stand-in at all on {}"
+                                .format(topic, d.isoformat()))
                 break
+            for near in range(-NEAR_DAYS, NEAR_DAYS + 1):
+                n = d + timedelta(days=near)
+                if day_index(n) // span != day_index(d) // span:
+                    continue
+                clash = candidates_for(sub, topic, n)[0]["id"]
+                if clash in stand_ins:
+                    failures.append(
+                        "{}: a stand-in on {} is the map scheduled for {}"
+                        .format(topic, d.isoformat(), n.isoformat()))
+                    break
 
     # 6. Every topic offered as a setting is deep enough that a reader
     #    does not see the same map twice inside a year.

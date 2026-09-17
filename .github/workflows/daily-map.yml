@@ -2,9 +2,14 @@ name: Map of the Day
 
 on:
   schedule:
-    # 00:05 UTC. The map changes at this moment for every device; the
-    # picks themselves are computed offline from the committed pool, so this
-    # job does not depend on loc.gov being up.
+    # Nominally 00:05 UTC, but GitHub runs scheduled jobs when it has
+    # room and in practice this one lands between 04:15 and 04:40. That
+    # is fine and the schedule does not need defending: the file carries
+    # yesterday, today and tomorrow, and each device reads the row for
+    # its own local day, so the map turns over at the reader's midnight
+    # whenever the job happened to run. The picks are computed offline
+    # from the committed pool, so this job does not depend on loc.gov
+    # being up either.
     - cron: "5 0 * * *"
   workflow_dispatch:
 
