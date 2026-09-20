@@ -651,6 +651,68 @@ def slim(payload):
     return [payload.get(k, "") for k in PICK_FIELDS]
 
 
+def published_days(feed):
+    """{day: {topic: pick}} out of a feed file, or nothing usable."""
+    days = feed.get("days")
+    if not isinstance(days, dict):
+        return {}
+    # A feed written against a different PICK_FIELDS cannot be carried
+    # forward pick by pick, because the markup unpacks by position.
+    if list(feed.get("pick_fields") or []) != list(PICK_FIELDS):
+        return {}
+    return {day: picks for day, picks in days.items()
+            if isinstance(picks, dict)}
+
+
+def load_published(path=TOPICS_PATH):
+    """The live feed, or nothing if there isn't one to read."""
+    try:
+        with open(path) as fh:
+            return published_days(json.load(fh))
+    except (OSError, ValueError):
+        return {}
+
+
+def image_alive(url):
+    """
+    False only when the image is definitively gone. A timeout or a 500 is
+    not evidence of anything, and must not unseat a map that is already
+    on screens.
+    """
+    req = urllib.request.Request(url, method="HEAD",
+                                 headers={"User-Agent": UA})
+    try:
+        with urllib.request.urlopen(req, timeout=CHECK_TIMEOUT) as resp:
+            return resp.status < 400
+    except urllib.error.HTTPError as e:
+        return e.code not in DEAD_CODES
+    except (urllib.error.URLError, http.client.HTTPException, TimeoutError,
+            ConnectionError, OSError, ValueError):
+        return True
+
+
+def still_stands(standing, probe):
+    """
+    Whether a pick that has already gone out can stay. Shape first --
+    anything the markup could not unpack is not a pick -- and then, on
+    the day it matters, whether the image is still there.
+
+    Thinness is deliberately not rechecked. Whether the map carried
+    enough ink was settled when it was chosen; asking again would let a
+    changed threshold move a day somebody is already looking at, which
+    is the thing this is here to prevent.
+    """
+    if not isinstance(standing, list) or len(standing) != len(PICK_FIELDS):
+        return False
+    if not all(isinstance(field, str) for field in standing):
+        return False
+    if not standing[0]:
+        return False
+    if not probe or budget_left() <= 0:
+        return True
+    return image_alive(standing[0])
+
+
 def cell_label(topic):
     """"Bird's-Eye Views" or "Bird's-Eye Views, 1870 - 1899"."""
     if CELL_SEP in topic:
@@ -958,6 +1020,31 @@ def selftest(entries, day):
                         .format(topic, d.isoformat(), n.isoformat()))
                     break
 
+    # 5c. The carry-forward contract. A published day is only safe to
+    #     copy across if the row still means what the markup will unpack,
+    #     so the shape rules are what keep a bad feed from propagating.
+    good = slim(build_payload(entries[0], "all", day, {"count": total}, "ok"))
+    for ok_expected, row, why in (
+            (True,  good,                        "a well-formed row stands"),
+            (False, good[:-1],                   "a short row is not a pick"),
+            (False, good + [""],                 "a long row is not a pick"),
+            (False, [""] + good[1:],             "a row with no image is not a pick"),
+            (False, dict(enumerate(good)),       "a dict is not a row"),
+            (False, [None] + good[1:],           "a non-string field is not a pick"),
+    ):
+        if still_stands(row, probe=False) is not ok_expected:
+            failures.append("carry-forward: " + why)
+    # And a feed written against different fields cannot be carried at
+    # all, because the markup unpacks a row by position.
+    live = {"pick_fields": list(PICK_FIELDS), "days": {"1": {"all": good}}}
+    if not published_days(live):
+        failures.append("carry-forward: a matching feed was not read back")
+    for bad in ({"pick_fields": list(PICK_FIELDS)[:-1], "days": {"1": {}}},
+                {"days": {"1": {}}},
+                {"pick_fields": list(PICK_FIELDS), "days": []}):
+        if published_days(bad):
+            failures.append("carry-forward: a mismatched feed was carried")
+
     # 6. Every topic offered as a setting is deep enough that a reader
     #    does not see the same map twice inside a year.
     for topic in [s for s, _ in THEMES] + [s for s, _, _, _ in ERAS]:
@@ -1046,6 +1133,9 @@ def main():
                         help="skip the image availability check")
     parser.add_argument("--selftest", action="store_true",
                         help="check the schedule's properties and exit")
+    parser.add_argument("--recompute", action="store_true",
+                        help="choose every day afresh, ignoring what is "
+                             "already published")
     args = parser.parse_args()
 
     load_translations()
@@ -1086,12 +1176,38 @@ def main():
                               "era": era, "size": size})
 
     topics = themes + eras + [c["key"] for c in cells]
+
+    # What the last run put out. A day it already published is a day
+    # somebody is already looking at: offsets run to +14, so a viewer can
+    # be on tomorrow's map eighteen hours before the next run replaces
+    # the file, and a viewer at -12 is still on yesterday's when it
+    # lands. Choosing those days again would move the map under them --
+    # once at their own midnight, which is the point of the three-day
+    # feed, and again when the new file arrives, which is not.
+    #
+    # And it would, because the schedule turns on the pool: divmod by its
+    # size and a hash ordering over its membership, so anything that
+    # moves the pool moves every topic's calendar with it. The monthly
+    # harvest does that wholesale, and the image probe does it piecemeal,
+    # since only the middle day is probed and a stand-in there disagrees
+    # with the unprobed copy published yesterday.
+    #
+    # So a published pick stands. The one thing that unseats it is its
+    # image having gone, which is worse than the change.
+    by_id = {e["id"]: e for e in entries}
+    published = {} if args.recompute else load_published()
+    item_at = PICK_FIELDS.index("item_id")
+    title_at = PICK_FIELDS.index("title_short")
+    year_at = PICK_FIELDS.index("year")
+
     # Every topic, for every day a device might be on. A map that is
     # tomorrow's here is today's for somebody fourteen hours ahead.
     days, written, chosen_services, sizes = {}, [], [], {}
     picks = {}
+    carried = unresolved = 0
     for shift in DAY_SPAN:
         that_day = day + timedelta(days=shift)
+        standing_day = published.get(str(day_index(that_day))) or {}
         day_picks = {}
         for topic in topics:
             subset = maps_for(entries, topic)
@@ -1103,12 +1219,45 @@ def main():
             # Only probe images for the middle day. The other two are
             # the same maps a day either side of their own turn, and get
             # probed when it comes.
-            entry, checked, size = pick(subset, topic, that_day,
-                                        check=not args.no_check and shift == 0)
+            probe = not args.no_check and shift == 0
+            sizes[topic] = len(subset)
+
+            standing = standing_day.get(topic)
+            if still_stands(standing, probe):
+                day_picks[topic] = standing
+                carried += 1
+                if shift != 0:
+                    continue
+                # map.json and the log want the map, not just the row the
+                # device reads, so resolve it back through the item id
+                # the row carries.
+                held = by_id.get(standing[item_at])
+                if held is not None:
+                    chosen_services.append(held["s"])
+                    picks[topic] = build_payload(held, topic, that_day,
+                                                 pool, "carried")
+                    picks[topic]["topic_size"] = len(subset)
+                    # Not re-probed, so there is no reading to report.
+                    # Absent says that; 0 would claim a blank sheet.
+                    picks[topic].pop("ink_bytes", None)
+                    if CELL_SEP not in topic:
+                        print("{:<18} {} ({}) [carried]".format(
+                            topic, standing[title_at][:52], standing[year_at]))
+                    continue
+                # The map left the pool since it was published. The row
+                # still stands for the device -- that is the promise --
+                # but map.json and the options list need a map that is
+                # still here, so those fall through to a fresh pick.
+                unresolved += 1
+                sys.stderr.write(
+                    "  {} holds {}, no longer in the pool; the feed keeps "
+                    "it, map.json does not\n".format(topic, standing[item_at]))
+
+            entry, checked, size = pick(subset, topic, that_day, check=probe)
             payload = build_payload(entry, topic, that_day, pool, checked, size)
             payload["topic_size"] = len(subset)
-            day_picks[topic] = payload
-            sizes[topic] = len(subset)
+            if topic not in day_picks:
+                day_picks[topic] = payload
             chosen_services.append(entry["s"])
             if shift == 0:
                 picks[topic] = payload
@@ -1161,11 +1310,16 @@ def main():
             "credit": "Library of Congress",
             "rights": RIGHTS,
             "item_url_prefix": "https://www.loc.gov/item/",
-            "days": {d: {k: slim(v) for k, v in p.items()}
+            # A fresh pick is a payload and gets slimmed to a row; a
+            # carried one was read back as a row already.
+            "days": {d: {k: (v if isinstance(v, list) else slim(v))
+                         for k, v in p.items()}
                      for d, p in days.items()},
         }
-        print("{} days x {} picks: {} themes, {} eras, {} cells".format(
-            len(days), len(picks), len(themes), len(eras), len(cells)))
+        print("{} days x {} picks: {} themes, {} eras, {} cells, "
+              "{} carried forward".format(
+                  len(days), len(picks), len(themes), len(eras), len(cells),
+                  carried))
         size = len(json.dumps(combined, separators=(",", ":"),
                               sort_keys=True).encode("utf-8"))
         print("today.json {:.1f}KB ({} picks)".format(size / 1024.0,

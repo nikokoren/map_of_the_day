@@ -605,3 +605,23 @@ The daily job publishes all three days at once, so a device never waits
 on the cron to reach its own midnight — tomorrow's map is already in the
 file it fetched today.
 
+And a day, once published, **does not move**. That is a second
+requirement and not the same one: three days only help if a day still
+means tomorrow what it meant when it went out. It did not, at first.
+Every run chose all three afresh from the pool as it stood that morning,
+and the schedule turns on the pool — `divmod` by its size, and a hash
+ordering over its membership — so anything that moves the pool moves
+every topic's calendar with it. Dropping six maps out of 4,971 moved 66
+of 165 published picks. A viewer east of UTC would see the map turn over
+at their own midnight, correctly, and then turn over again when the next
+file landed.
+
+So `daily.py` reads the live `today.json` before writing one, and copies
+across any day that file already carries. The only thing that unseats a
+published pick is its image having gone, which is worse than the change,
+and that is checked on the middle day alone. `--recompute` chooses every
+day afresh, for when something wrong has been published.
+
+A map dropped from the pool between runs therefore keeps the day it
+already holds and loses every day after it.
+

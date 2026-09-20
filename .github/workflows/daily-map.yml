@@ -10,6 +10,10 @@ on:
     # whenever the job happened to run. The picks are computed offline
     # from the committed pool, so this job does not depend on loc.gov
     # being up either.
+    #
+    # The job needs the committed today.json to be present, which the
+    # checkout below provides: days it already carries are copied across
+    # rather than chosen again, so a map already on screens cannot move.
     - cron: "5 0 * * *"
   workflow_dispatch:
 
