@@ -488,15 +488,23 @@ runs and re-measured never.
 Metadata cannot tell you whether a map is a dense engraved city view or four
 streets sketched on a big sheet of paper, and the sparse ones look terrible
 on a screen. The daily job settles it by measuring: it HEADs the map at a
-fixed 800x480 and reads the JPEG's size. Held at one size, that number is a
-direct measure of how much ink is on the map -- hand-drawn plats come back at
-16-29KB, engraved city views and railroad maps at 50-80KB. Anything under
-`MIN_INK_BYTES` (32KB) is passed over for the next map in the day's order,
-and the reading is reported as `ink_bytes`.
+fixed 800x480 box and reads the JPEG's size. Anything under
+`MIN_INK_DENSITY` (90 bytes per thousand pixels) is passed over for a
+stand-in from half a cycle away, and the reading is reported as `ink_bytes`.
 
-The 800x480 there is a yardstick, not a display size: measuring every map at
-the same size is what makes the threshold mean the same thing for all of
-them. It has nothing to do with which panel ends up showing the map.
+Per thousand pixels rather than in total, because 800x480 is a *box* and
+IIIF fits the sheet inside it: a tall map comes back about 0.17 megapixels,
+a wide one 0.38. A flat byte threshold therefore demanded twice the ink
+density of a tall map as of a wide one, and over 400 maps it rejected 36% of
+the tall ones against 3% of the wide -- a filter on shape dressed up as a
+filter on content, which is also what drove most of the stand-ins. Dividing
+by the render's own pixel count rejects 2-3% at every shape, and what it
+still rejects are the land records the measurement was aimed at: plats,
+street profiles and deed surveys at around 70 bytes per thousand pixels,
+where an engraved city view runs past 200.
+
+The 800x480 there is a yardstick, not a display size. It has nothing to do
+with which panel ends up showing the map.
 
 ### Tuning it
 

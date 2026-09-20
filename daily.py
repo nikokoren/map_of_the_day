@@ -94,12 +94,20 @@ NEAR_DAYS = 3
 DEAD_CODES = (403, 404, 410, 451)
 CHECK_TIMEOUT = 12
 
-# How many bytes the map has to weigh at PROBE_BOX. At a fixed size the
-# file size is a direct measure of how much ink is on the map: hand-drawn
-# plats of four blocks come back at 16-29KB, engraved city views and
-# railroad maps at 50-80KB. Cheaper and more honest than any metadata
-# field, because it measures the picture itself.
-MIN_INK_BYTES = 32_000
+# How much ink the map has to carry, as bytes per thousand pixels of the
+# probe render. Cheaper and more honest than any metadata field, because
+# it measures the picture itself: a hand-drawn plat of four blocks comes
+# back around 70, an engraved city view or railroad map at 200 or more.
+#
+# Per thousand pixels, not in total, and that distinction is the whole
+# point. PROBE_BOX is a box, and IIIF fits the sheet inside it, so how
+# many pixels come back depends on the sheet's shape: a tall map renders
+# about 0.17 megapixels, a wide one 0.38. A flat byte count therefore
+# asked a tall map for twice the ink density of a wide one to clear the
+# same bar, and rejected 36% of tall maps against 3% of wide ones -- a
+# filter on shape wearing a filter on content's clothes. Measured over
+# 400 maps, this rejects 2-3% at every shape.
+MIN_INK_DENSITY = 90
 
 # Total seconds all the image checks together may spend. The image
 # service usually answers a HEAD in under a second but can take six or
@@ -291,13 +299,33 @@ def budget_left():
     return CHECK_BUDGET - (time.monotonic() - _budget_started[0])
 
 
-def image_state(url):
+def probe_kilopixels(entry):
+    """
+    How many thousand pixels the probe render comes back as. The master
+    dimensions are in the pool, so this costs nothing and needs no
+    download: IIIF fits the sheet inside PROBE_BOX without cropping or
+    stretching it, which is the same arithmetic.
+
+    None when the pool does not record the size, which leaves the ink
+    check with nothing to normalise against and so no opinion.
+    """
+    width, height = entry.get("w") or 0, entry.get("h") or 0
+    if not width or not height:
+        return None
+    scale = min(PROBE_BOX[0] / width, PROBE_BOX[1] / height, 1.0)
+    return (width * scale) * (height * scale) / 1000
+
+
+def image_state(url, kilopixels=None):
     """
     ('ok' | 'thin' | 'dead' | 'unknown', bytes). Only 'dead' and 'thin'
     move the pick; a timeout or a 500 leaves the day's map exactly where
     it was, which is the difference between a bad minute at LOC and a
     different map. A HEAD is enough -- the image service reports the
     rendered size without sending the picture.
+
+    Without kilopixels there is nothing to measure density against, so
+    the map is taken as it is rather than judged on its byte count.
     """
     if url in _checked:
         return _checked[url]
@@ -310,7 +338,11 @@ def image_state(url):
             size = int(resp.headers.get("Content-Length") or 0)
             if not size:
                 return "unknown", 0
-            result = ("ok" if size >= MIN_INK_BYTES else "thin"), size
+            if kilopixels:
+                thin = size / kilopixels < MIN_INK_DENSITY
+            else:
+                thin = False
+            result = ("thin" if thin else "ok"), size
     except urllib.error.HTTPError as e:
         result = ("dead" if e.code in DEAD_CODES else "unknown"), 0
     except (urllib.error.URLError, http.client.HTTPException, TimeoutError,
@@ -777,7 +809,8 @@ def pick(entries, category, day, check):
     for entry in candidates:
         if budget_left() <= 0:
             return entry, "skipped", 0
-        state, size = image_state(image_urls(entry)["probe"])
+        state, size = image_state(image_urls(entry)["probe"],
+                                  probe_kilopixels(entry))
         if state in ("ok", "unknown"):
             return entry, state, size
         sys.stderr.write("  {} is {}, trying the next one\n"
