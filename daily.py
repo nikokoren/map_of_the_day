@@ -352,7 +352,7 @@ def image_state(url, kilopixels=None):
     return result
 
 
-def warm(services):
+def warm(urls):
     """
     Ask LOC for every derivative the recipe is about to point devices
     at, so the first device to ask gets a cached file instead of a
@@ -360,12 +360,15 @@ def warm(services):
     image to report its length, and a HEAD on a cold size measured 3.0s
     against 0.41s for the GET that followed it.
 
+    Takes the URLs the feed will carry rather than the services behind
+    them, so what is warmed is the exact string a device will ask for. A
+    derivative warmed at a size no row names is not warmed at all.
+
     Failures are not fatal and not even reported per map: a derivative
     that would not warm is a derivative the device will wait for, which
     is the situation this is improving on, not one it has to guarantee.
     """
-    urls = sorted({iiif(service, WARM_BOX, WARM_QUALITY)
-                   for service in services})
+    urls = sorted(set(urls))
     if not urls:
         return 0
 
@@ -1202,7 +1205,7 @@ def main():
 
     # Every topic, for every day a device might be on. A map that is
     # tomorrow's here is today's for somebody fourteen hours ahead.
-    days, written, chosen_services, sizes = {}, [], [], {}
+    days, written, chosen_images, sizes = {}, [], [], {}
     picks = {}
     carried = unresolved = 0
     for shift in DAY_SPAN:
@@ -1226,6 +1229,11 @@ def main():
             if still_stands(standing, probe):
                 day_picks[topic] = standing
                 carried += 1
+                # Warm it whichever day it is on. Every row the file
+                # carries is a row some device is about to ask for, and a
+                # carried row is not re-derived from the pool, so this is
+                # the only place its image is known.
+                chosen_images.append(standing[0])
                 if shift != 0:
                     continue
                 # map.json and the log want the map, not just the row the
@@ -1233,7 +1241,6 @@ def main():
                 # the row carries.
                 held = by_id.get(standing[item_at])
                 if held is not None:
-                    chosen_services.append(held["s"])
                     picks[topic] = build_payload(held, topic, that_day,
                                                  pool, "carried")
                     picks[topic]["topic_size"] = len(subset)
@@ -1258,7 +1265,7 @@ def main():
             payload["topic_size"] = len(subset)
             if topic not in day_picks:
                 day_picks[topic] = payload
-            chosen_services.append(entry["s"])
+            chosen_images.append(payload["image"])
             if shift == 0:
                 picks[topic] = payload
                 if CELL_SEP not in topic:
@@ -1271,7 +1278,7 @@ def main():
         # Warm every derivative before publishing the file that points
         # at it, so no device is ever the one that triggers the render.
         if not args.no_check:
-            warm(chosen_services)
+            warm(chosen_images)
         # map.json: one map, for a plugin that wants no settings at all.
         if write_json(DEFAULT_PATH, picks["all"]):
             written.append(os.path.relpath(DEFAULT_PATH, os.getcwd()))
@@ -1330,6 +1337,22 @@ def main():
                 "to publish it. Trim PICK_FIELDS or raise CELL_MIN.\n"
                 .format(size, MAX_FEED_BYTES))
             return 1
+        # Every row the file carries must be a row that was warmed. This
+        # is the invariant the cold-render fix rests on, and carrying
+        # days forward broke it once already: carried rows were skipped
+        # on two of the three days, so 55 of 165 images were warmed and
+        # the rest were left for a device to trigger the render.
+        shipped = {pick[0] for day_row in combined["days"].values()
+                   for pick in day_row.values() if pick and pick[0]}
+        cold = shipped - set(chosen_images)
+        if cold and not args.no_check:
+            sys.stderr.write(
+                "{} of the {} images this feed points at were never warmed, "
+                "so a device would trigger the render and show a blank "
+                "panel; refusing to publish it.\n"
+                .format(len(cold), len(shipped)))
+            return 1
+
         if write_json(TOPICS_PATH, combined):
             written.append(os.path.relpath(TOPICS_PATH, os.getcwd()))
 
