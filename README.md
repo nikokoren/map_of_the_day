@@ -279,7 +279,7 @@ line, since nothing has to be re-tagged.
 | `byline` | `by Seward Porter in Bath, Me., 1837` | who made it, where it came out, and when |
 | `subtitle` | `New Hampshire - Railroad Maps, 1828-1900` | place and collection, pre-joined |
 | `imprint` | `New York, 1866 - 1:1,875,000` | publication and scale, pre-joined, either part may be missing |
-| `image` | `.../full/!1872,1404/0/gray.jpg` | greyscale, sized for the largest panel |
+| `image` | `.../full/!1872,1404/0/gray.jpg` | greyscale at the largest box (`map.json` only; the feed ships `image_base`) |
 | `image_og` | `.../full/!800,480/0/gray.jpg` | fitted to the OG's 800x480 |
 | `image_x` | `.../full/!1872,1404/0/gray.jpg` | fitted to the larger panel's real pixels |
 | `image_color` | `.../full/!1872,1404/0/default.jpg` | same size, original colour |
@@ -596,10 +596,38 @@ built for.
 
 That is why a pick is a **list rather than an object**: at 55 cells
 across three days, field names alone would have cost about 20KB of the
-95KB budget. `selection.liquid` unpacks one into `map_image`,
+95KB budget. `selection.liquid` unpacks one into `map_base`,
 `map_title`, `map_year`, `map_byline`,
 `map_description`, `map_place`, `map_category` and `map_item_id`, so the
 layout stays readable.
+
+### The panel gets the size it actually has
+
+Column 0 is the IIIF **base**, not a finished URL, and the markup appends
+the box its own panel needs from `image_boxes`. Every box in that list is
+warmed by the daily job, so a device composes a size that is already
+cached — the one narrow case where building a URL on the device is safe.
+
+It used to ship one size, 1872x1404, on the reasoning that the largest
+panel needs it and smaller ones scale down for free. They do not. The
+panel is **1-bit**: dithering discards everything finer than the panel's
+own grid, so pixels past it cannot sharpen anything — they are fetched,
+decoded and dithered, then thrown away. An OG shows 0.38 megapixels and
+was being sent 2.10, which is 5.5x the work for a picture identical to
+the one it would have drawn from the right size. Measured over ten maps,
+the OG box averages 63KB against 404KB.
+
+There is no multiplier between the panels, which is why `image_boxes` is
+a table rather than arithmetic: the OG's CSS box is 800x480 over an
+800x480 panel, and the X's is 1040x780 over a physical 1872x1404. A
+width matching neither takes `image_box_default`, the largest, which is
+never wrong — only heavy. A device that reports no width takes it too.
+
+Changing column 0 this way would normally make the previous feed
+unreadable and re-choose every day it carried — the one thing carrying
+forward exists to prevent. It does not, because the old row holds the new
+value as its prefix: `published_days` strips at `/full/` and carries the
+day. 0 of 110 published picks moved across the change.
 
 The daily job publishes all three days at once, so a device never waits
 on the cron to reach its own midnight — tomorrow's map is already in the

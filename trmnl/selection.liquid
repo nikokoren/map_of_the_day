@@ -173,7 +173,7 @@
   Unpack it once here so the layout below stays readable. The order is
   the feed's pick_fields.
 {% endcomment %}
-{% assign map_image = pick[0] %}
+{% assign map_base = pick[0] %}
 {% assign map_title = pick[1] %}
 {% assign map_year = pick[2] %}
 {% assign map_byline = pick[3] %}
@@ -183,22 +183,31 @@
 {% assign map_item_id = pick[7] %}
 
 {% comment %}
-  The image. Use map_image as it stands -- do NOT compose a size from
-  trmnl.device here, however tempting it looks.
+  The image, at the size this panel actually has.
 
-  LOC renders a IIIF derivative on demand from a master that can be
-  11,000 pixels across, and the first request for a given size on a
-  large map takes 12 to 18 seconds. Measured on the 1862 Little Falls
-  view: !1872,1404 cold was 15.2s to first byte and 0.43s once cached.
-  TRMNL's renderer gives up long before that, and the panel comes up
-  blank with the caption still on it.
+  Compose ONLY from image_boxes. LOC renders a IIIF derivative on demand
+  from a master that can be 11,000 pixels across, and the first request
+  for a given size takes 12 to 18 seconds -- measured on the 1862 Little
+  Falls view, !1872,1404 cold was 15.2s to first byte against 0.43s once
+  cached. TRMNL's renderer gives up long before that and the panel comes
+  up blank with the caption still on it. Every box in image_boxes has
+  been warmed by the daily job, across all three days; any other box is
+  one nobody has asked for, and a blank panel.
 
-  map_image is a single fixed size that the daily job has already asked
-  LOC for -- across all three days -- so it is warm before any device
-  sees the feed. A device-derived box would be a size nobody has warmed:
-  a fresh one every time the map changes, and a blank panel each time.
-  It is 1872x1404, the largest panel there is; every smaller screen
-  scales it down for free.
+  Why not simply ship the largest and let small panels scale it down,
+  which is what this did until the OG started coming up blank: the panel
+  is 1-bit. Dithering discards everything finer than the panel's own
+  grid, so pixels past it cannot sharpen anything -- they are decoded
+  and dithered and thrown away. An OG shows 0.38 megapixels; the X-sized
+  image is 2.10. That was 5.5x the work for an identical picture, and it
+  was the difference between a render that fit the budget and one that
+  did not.
+
+  There is no multiplier between the two panels, which is why this reads
+  from a table rather than doing arithmetic. The OG's CSS box is 800x480
+  over an 800x480 panel; the X's is 1040x780 over a physical 1872x1404.
+  A width matching neither takes image_box_default, the largest, which
+  is never wrong -- only heavy.
 
   It asks for the colour scan (default.jpg) rather than the Library's
   greyscale one, because a colour panel can then show the colour and a
@@ -206,9 +215,16 @@
   lands within 1/255 of the Library's own greyscale version, measured
   across a whole map.
 {% endcomment %}
+{% assign map_box = image_box_default %}
+{% for panel in image_boxes %}
+  {% if trmnl.device.width and trmnl.device.width <= panel.width %}
+    {% assign map_box = panel.box %}
+  {% endif %}
+{% endfor %}
+{% assign map_image = map_base | append: "/full/!" | append: map_box | append: image_suffix %}
 {% comment %}
   From here on:
-    map_image         the map, at a size LOC has already cached
+    map_image         the map, at the size this panel has
     map_title         trimmed title
     map_year          four digits
     map_byline        "by Seward Porter in Bath, Me., 1837"

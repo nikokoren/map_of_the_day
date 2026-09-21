@@ -58,6 +58,18 @@ OG_BOX = (800, 480)
 X_BOX = (1872, 1404)
 DEFAULT_BOX = X_BOX
 
+# Every box the feed lets markup ask for, and therefore every box the
+# daily job has to warm. Composing a size on the device is only unsafe
+# when the size might be cold; once a box is on this list and warmed,
+# asking for it is as safe as asking for the default.
+#
+# Two, because there are two panels and no multiplier between them: the
+# OG's CSS box is 800x480 over an 800x480 panel, and the X's is 1040x780
+# over a physical 1872x1404. A device whose width matches neither gets
+# the larger box, which is never wrong, only heavy.
+PANEL_BOXES = ((800, OG_BOX), (1040, X_BOX))
+WARM_BOXES = (OG_BOX, X_BOX)
+
 # The size the ink measurement is taken at. Not a display size: a fixed
 # yardstick, so the byte threshold below means the same thing for every
 # map regardless of which panel ends up showing it.
@@ -352,6 +364,11 @@ def image_state(url, kilopixels=None):
     return result
 
 
+def boxed(base, box):
+    """The URL for one IIIF base at one box, exactly as markup builds it."""
+    return "{}/full/!{},{}/0/{}.jpg".format(base, box[0], box[1], WARM_QUALITY)
+
+
 def warm(urls):
     """
     Ask LOC for every derivative the recipe is about to point devices
@@ -639,8 +656,13 @@ DAY_SPAN = (-1, 0, 1)
 # names alone would cost about 20KB of the 95KB TRMNL allows. The order
 # is the contract with the markup, and selection.liquid unpacks it into
 # named variables so the layout stays readable.
+# The row ships the IIIF *base*, not a finished URL. Markup appends the
+# box its own panel needs, from PANEL_BOXES, every one of which the
+# daily job has warmed -- so the device composes a size that is already
+# cached rather than one nobody has asked for. It is also shorter than a
+# finished URL, so the feed shrinks.
 PICK_FIELDS = (
-    "image", "title_short", "year", "byline",
+    "image_base", "title_short", "year", "byline",
     "description_short", "place", "category_label", "item_id",
 )
 
@@ -659,12 +681,33 @@ def published_days(feed):
     days = feed.get("days")
     if not isinstance(days, dict):
         return {}
-    # A feed written against a different PICK_FIELDS cannot be carried
-    # forward pick by pick, because the markup unpacks by position.
-    if list(feed.get("pick_fields") or []) != list(PICK_FIELDS):
-        return {}
-    return {day: picks for day, picks in days.items()
-            if isinstance(picks, dict)}
+    stored = list(feed.get("pick_fields") or [])
+    fields = list(PICK_FIELDS)
+    convert = None
+    if stored != fields:
+        # A feed written against different fields cannot be carried pick
+        # by pick, because the markup unpacks by position -- with one
+        # exception. When the only difference is that column 0 used to
+        # hold a finished image URL and now holds the IIIF base, the old
+        # row already contains the new value as its prefix, so the day
+        # can be carried rather than re-chosen. Dropping it instead
+        # would move a day that is already on screens, which is the one
+        # thing carrying forward exists to prevent.
+        if (stored[:1] == ["image"] and fields[:1] == ["image_base"]
+                and stored[1:] == fields[1:]):
+            convert = lambda row: ([row[0].split("/full/")[0]] + list(row[1:])
+                                   if isinstance(row, list) and row
+                                   and isinstance(row[0], str) else row)
+        else:
+            return {}
+
+    out = {}
+    for day, picks in days.items():
+        if not isinstance(picks, dict):
+            continue
+        out[day] = ({key: convert(row) for key, row in picks.items()}
+                    if convert else picks)
+    return out
 
 
 def load_published(path=TOPICS_PATH):
@@ -1233,7 +1276,7 @@ def main():
                 # carries is a row some device is about to ask for, and a
                 # carried row is not re-derived from the pool, so this is
                 # the only place its image is known.
-                chosen_images.append(standing[0])
+                chosen_images.extend(boxed(standing[0], b) for b in WARM_BOXES)
                 if shift != 0:
                     continue
                 # map.json and the log want the map, not just the row the
@@ -1265,7 +1308,8 @@ def main():
             payload["topic_size"] = len(subset)
             if topic not in day_picks:
                 day_picks[topic] = payload
-            chosen_images.append(payload["image"])
+            chosen_images.extend(boxed(payload["image_base"], b)
+                                 for b in WARM_BOXES)
             if shift == 0:
                 picks[topic] = payload
                 if CELL_SEP not in topic:
@@ -1295,6 +1339,15 @@ def main():
             # the same name -- silently, with the feed winning.
             "default_day": str(day_index(day)),
             "pick_fields": list(PICK_FIELDS),
+            # Panel CSS width -> the box whose pixels that panel really
+            # has, widest first so markup can take the first match. Every
+            # one of these is warmed; a width matching none of them falls
+            # back to image_box_default, which is the largest.
+            "image_boxes": [{"width": width, "box": "{},{}".format(*box)}
+                            for width, box in
+                            sorted(PANEL_BOXES, reverse=True)],
+            "image_box_default": "{},{}".format(*DEFAULT_BOX),
+            "image_suffix": "/0/{}.jpg".format(WARM_QUALITY),
             "theme_options": [{"key": t, "label": TOPIC_LABELS[t],
                                "size": sizes[t]}
                               for t in themes if t in picks],
@@ -1342,8 +1395,10 @@ def main():
         # days forward broke it once already: carried rows were skipped
         # on two of the three days, so 55 of 165 images were warmed and
         # the rest were left for a device to trigger the render.
-        shipped = {pick[0] for day_row in combined["days"].values()
-                   for pick in day_row.values() if pick and pick[0]}
+        shipped = {boxed(pick[0], box)
+                   for day_row in combined["days"].values()
+                   for pick in day_row.values() if pick and pick[0]
+                   for box in WARM_BOXES}
         cold = shipped - set(chosen_images)
         if cold and not args.no_check:
             sys.stderr.write(

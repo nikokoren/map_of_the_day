@@ -67,8 +67,12 @@ feed = {
         "the_1700s": "era-1700s",
     },
     "themes": [], "eras": [],
-    "pick_fields": ["image", "title_short", "year", "byline",
+    "pick_fields": ["image_base", "title_short", "year", "byline",
                     "description_short", "place", "category_label", "item_id"],
+    "image_boxes": [{"width": 1040, "box": "1872,1404"},
+                    {"width": 800, "box": "800,480"}],
+    "image_box_default": "1872,1404",
+    "image_suffix": "/0/default.jpg",
     "days": days,
 }
 
@@ -183,6 +187,36 @@ else:
 # rehearsing a payload that daily.py does not produce.
 sys.path.insert(0, os.path.dirname(HERE))
 import daily  # noqa: E402
+# The box each panel asks for. This is the one place markup is allowed
+# to build a URL, and it may only build one the daily job has warmed --
+# so every answer here has to be a box in image_boxes, or the default.
+# An OG asking for the X box is 5.5x the dither work for a picture it
+# cannot show, and asking for anything off the list is a blank panel.
+BOXES = [
+    ("an OG",               800,  "800,480"),
+    ("an X",               1040,  "1872,1404"),
+    ("a panel smaller than either", 600, "800,480"),
+    ("a panel wider than either",  1400, "1872,1404"),
+    ("no width at all",    None,  "1872,1404"),
+]
+warmed = {b["box"] for b in feed["image_boxes"]} | {feed["image_box_default"]}
+for name, width, want in BOXES:
+    ctx = dict(feed)
+    ctx["trmnl"] = {
+        "plugin_settings": {"custom_fields_values": {}},
+        "device": ({"width": width, "height": 480} if width else {}),
+        "system": {"timestamp_utc": TS},
+        "user": {"utc_offset": 7200},
+    }
+    tail = checked.render(**ctx)
+    tail = tail[tail.rfind("<<") + 2:tail.rfind(">>")]
+    got = tail.split("|")[2]
+    box = got.split("/full/!")[-1].rsplit("/0/", 1)[0]
+    ok = box == want and box in warmed
+    print(("  ok   " if ok else "  FAIL ") + f"{name} asks for !{box}"
+          + ("" if ok else f", wanted !{want}"))
+    bad += 0 if ok else 1
+
 if list(daily.PICK_FIELDS) == feed["pick_fields"]:
     print("  ok   the stand-in feed uses daily.PICK_FIELDS")
 else:
