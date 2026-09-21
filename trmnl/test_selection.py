@@ -35,7 +35,7 @@ TS = 1789031899          # a timestamp from a real device dump
 # category_label, item_id -- the same order daily.PICK_FIELDS names, and
 # the assertion below keeps it that way.
 def card(title, image):
-    return [image, title, "1866", "by Stanley Fox in New York, 1866",
+    return [image + "/full/!1872,1404/0/default.jpg", title, "1866", "by Stanley Fox in New York, 1866",
             "A line of context.", "New York", "Railroads", "12345"]
 
 _cells = {
@@ -49,10 +49,12 @@ _cells = {
 # One file, three days. Yesterday and tomorrow carry marker titles so a
 # test can tell which day the markup actually landed on.
 days = {
-    str(DAY - 1): {k: ["IMG-y", "YESTERDAY " + v[1]] + v[2:]
+    str(DAY - 1): {k: ["IMG-y/full/!1872,1404/0/default.jpg",
+                             "YESTERDAY " + v[1]] + v[2:]
                    for k, v in _cells.items()},
     str(DAY):     dict(_cells),
-    str(DAY + 1): {k: ["IMG-t", "TOMORROW " + v[1]] + v[2:]
+    str(DAY + 1): {k: ["IMG-t/full/!1872,1404/0/default.jpg",
+                             "TOMORROW " + v[1]] + v[2:]
                    for k, v in _cells.items()},
 }
 
@@ -67,7 +69,7 @@ feed = {
         "the_1700s": "era-1700s",
     },
     "themes": [], "eras": [],
-    "pick_fields": ["image_base", "title_short", "year", "byline",
+    "pick_fields": ["image", "title_short", "year", "byline",
                     "description_short", "place", "category_label", "item_id"],
     "image_boxes": [{"width": 1040, "box": "1872,1404"},
                     {"width": 800, "box": "800,480"}],
@@ -187,6 +189,27 @@ else:
 # rehearsing a payload that daily.py does not produce.
 sys.path.insert(0, os.path.dirname(HERE))
 import daily  # noqa: E402
+# Markup already installed on a device reads column 0 straight into src.
+# It has no image_boxes, no split, none of the logic below -- it just
+# uses the cell. So whatever column 0 holds has to be a URL that renders
+# an image on its own, or every panel still running the published
+# version goes blank the moment a new feed lands. It did, for half an
+# hour: column 0 briefly held a bare IIIF base, which is a 302 to HTML.
+for day, picks in feed["days"].items():
+    for cell, row in picks.items():
+        cell0 = row[0]
+        ok = "/full/!" in cell0 and cell0.endswith(".jpg")
+        if not ok:
+            print(f"  FAIL column 0 of {cell} on {day} is not a usable src: "
+                  f"{cell0!r}")
+            bad += 1
+            break
+    else:
+        continue
+    break
+else:
+    print("  ok   column 0 renders on its own, for markup already installed")
+
 # The box each panel asks for. This is the one place markup is allowed
 # to build a URL, and it may only build one the daily job has warmed --
 # so every answer here has to be a box in image_boxes, or the default.

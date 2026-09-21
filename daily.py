@@ -364,6 +364,11 @@ def image_state(url, kilopixels=None):
     return result
 
 
+def base_of(url):
+    """The IIIF base inside a finished URL -- what markup recovers."""
+    return (url or "").split("/full/")[0]
+
+
 def boxed(base, box):
     """The URL for one IIIF base at one box, exactly as markup builds it."""
     return "{}/full/!{},{}/0/{}.jpg".format(base, box[0], box[1], WARM_QUALITY)
@@ -656,13 +661,15 @@ DAY_SPAN = (-1, 0, 1)
 # names alone would cost about 20KB of the 95KB TRMNL allows. The order
 # is the contract with the markup, and selection.liquid unpacks it into
 # named variables so the layout stays readable.
-# The row ships the IIIF *base*, not a finished URL. Markup appends the
-# box its own panel needs, from PANEL_BOXES, every one of which the
-# daily job has warmed -- so the device composes a size that is already
-# cached rather than one nobody has asked for. It is also shorter than a
-# finished URL, so the feed shrinks.
+# Column 0 is a finished URL at DEFAULT_BOX, and markup that wants a
+# different box splits it at "/full/" to recover the base and appends
+# its own. It could have shipped the base directly and saved 5KB -- but
+# every device already running the published markup reads this column as
+# a src, and a base is a 302 to HTML, not an image. A feed is a contract
+# with markup that is already installed: it may gain meaning, never
+# change it.
 PICK_FIELDS = (
-    "image_base", "title_short", "year", "byline",
+    "image", "title_short", "year", "byline",
     "description_short", "place", "category_label", "item_id",
 )
 
@@ -693,9 +700,17 @@ def published_days(feed):
         # can be carried rather than re-chosen. Dropping it instead
         # would move a day that is already on screens, which is the one
         # thing carrying forward exists to prevent.
-        if (stored[:1] == ["image"] and fields[:1] == ["image_base"]
-                and stored[1:] == fields[1:]):
-            convert = lambda row: ([row[0].split("/full/")[0]] + list(row[1:])
+        if (stored[1:] == fields[1:]
+                and {stored[:1][0] if stored else "",
+                     fields[0]} <= {"image", "image_base"}):
+            # Column 0 has held both a finished URL and a bare base. Each
+            # is recoverable from the other, so a feed written either way
+            # is carried rather than re-chosen.
+            if fields[0] == "image":
+                fix = lambda cell: boxed(base_of(cell), DEFAULT_BOX)
+            else:
+                fix = base_of
+            convert = lambda row: ([fix(row[0])] + list(row[1:])
                                    if isinstance(row, list) and row
                                    and isinstance(row[0], str) else row)
         else:
@@ -1276,7 +1291,8 @@ def main():
                 # carries is a row some device is about to ask for, and a
                 # carried row is not re-derived from the pool, so this is
                 # the only place its image is known.
-                chosen_images.extend(boxed(standing[0], b) for b in WARM_BOXES)
+                chosen_images.extend(boxed(base_of(standing[0]), b)
+                                     for b in WARM_BOXES)
                 if shift != 0:
                     continue
                 # map.json and the log want the map, not just the row the
@@ -1308,7 +1324,7 @@ def main():
             payload["topic_size"] = len(subset)
             if topic not in day_picks:
                 day_picks[topic] = payload
-            chosen_images.extend(boxed(payload["image_base"], b)
+            chosen_images.extend(boxed(base_of(payload["image"]), b)
                                  for b in WARM_BOXES)
             if shift == 0:
                 picks[topic] = payload
@@ -1395,7 +1411,7 @@ def main():
         # days forward broke it once already: carried rows were skipped
         # on two of the three days, so 55 of 165 images were warmed and
         # the rest were left for a device to trigger the render.
-        shipped = {boxed(pick[0], box)
+        shipped = {boxed(base_of(pick[0]), box)
                    for day_row in combined["days"].values()
                    for pick in day_row.values() if pick and pick[0]
                    for box in WARM_BOXES}

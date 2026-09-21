@@ -180,7 +180,7 @@
   Unpack it once here so the layout below stays readable. The order is
   the feed's pick_fields.
 {% endcomment %}
-{% assign map_base = pick[0] %}
+{% assign map_image_default = pick[0] %}
 {% assign map_title = pick[1] %}
 {% assign map_year = pick[2] %}
 {% assign map_byline = pick[3] %}
@@ -210,6 +210,13 @@
   was the difference between a render that fit the budget and one that
   did not.
 
+  Column 0 is a finished URL, not a base, and this splits it at "/full/"
+  to recover one. That is deliberate: markup already installed on a
+  device reads column 0 straight into src, so shipping a bare base there
+  would have pointed every one of them at a 302 to HTML -- a blank panel
+  on every screen running the previous version. A feed may gain meaning;
+  it may not change what a column already means.
+
   There is no multiplier between the two panels, which is why this reads
   from a table rather than doing arithmetic. The OG's CSS box is 800x480
   over an 800x480 panel; the X's is 1040x780 over a physical 1872x1404.
@@ -222,6 +229,7 @@
   lands within 1/255 of the Library's own greyscale version, measured
   across a whole map.
 {% endcomment %}
+{% assign map_base = map_image_default | split: "/full/" | first %}
 {% assign map_box = image_box_default %}
 {% for panel in image_boxes %}
   {% if trmnl.device.width and trmnl.device.width <= panel.width %}
