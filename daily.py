@@ -859,7 +859,7 @@ def title_line(entry):
     # one rule, and a caption refused today must not ship because it was
     # stored before the rule existed.
     import translate
-    english = rendered.get("en")
+    english = translate.tidy(entry["t"], rendered.get("en"))
     if entry["id"] in untranslated():
         english = None
     title = english if english and translate.usable(entry["t"], english) \

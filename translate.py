@@ -104,7 +104,15 @@ def usable(source, english):
         return False
     if is_one_word(source):
         return False
-    return not invents_slur(source, english)
+    if invents_slur(source, english):
+        return False
+    if loses_content(source, english):
+        return False
+    if only_recased(source, english):
+        return False
+    if mangles_numbers(source, english):
+        return False
+    return True
 
 
 def upcoming_titles(pool, days):
@@ -338,3 +346,60 @@ def usable_failures():
     """Empty when every guard case holds."""
     return ["usable({!r}, {!r}) = {}, want {}".format(s, e, usable(s, e), w)
             for w, s, e in USABLE_CASES if usable(s, e) is not w]
+
+
+# ------------------------------------------------------------
+# What a diagnostic pass over the cache turned up
+# ------------------------------------------------------------
+# Four failure classes, each with its own right answer. None of them was
+# reported: they came out of comparing every translation with its source
+# after a single caption was flagged, which is the argument for looking
+# at flags rather than only acting on them.
+
+def loses_content(source, english):
+    """
+    Half the words gone is not a translation.
+
+    "Boschi DI Cocchi A Genale" came back as "Woodworking"; "Baikal.
+    Skala Malaia Kolokolnia" as "Baikal. scale". The translator reached
+    the end of what it could parse and stopped, and the caption that
+    survives describes a different thing.
+    """
+    src, out = source.split(), english.split()
+    return len(src) >= 4 and len(out) <= len(src) / 2
+
+
+def only_recased(source, english):
+    """
+    Identical but for capitals: the detector was wrong and there was
+    nothing to translate. "A Cactus garden" to "A Cactus Garden" costs a
+    cache entry and gains a reader nothing.
+    """
+    return source.strip().lower() == english.strip().lower()
+
+
+def mangles_numbers(source, english):
+    """
+    "1RE Compagnie DU 1ER North Nigerien" came back as "1st 1st Company
+    of the 1st North Nigerian" -- a numeral duplicated across the line.
+    Dates, regiments and street numbers are the part of a caption a
+    reader is most likely to take at face value.
+    """
+    return re.findall(r"\d+", source) != re.findall(r"\d+", english)
+
+
+TRAILING_JUNK = re.compile(r"[\u2018\u2019'\"]+$")
+
+
+def tidy(source, english):
+    """
+    Strip a trailing quote mark the translator added. "Bismarckplatz"
+    came back as "Bismarckplatz'". Repaired rather than refused: the
+    rest of the line is a good translation and only the last character
+    is wrong.
+    """
+    if not english:
+        return english
+    if TRAILING_JUNK.search(english) and not TRAILING_JUNK.search(source or ""):
+        return TRAILING_JUNK.sub("", english).rstrip()
+    return english
