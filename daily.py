@@ -971,7 +971,10 @@ def review_manifest(entries, day, days, path):
             subset = maps_for(entries, topic)
             if not subset:
                 continue
-            entry = candidates_for(subset, topic, that_day)[0]
+            # What will actually ship, which means past anything already
+            # vetoed -- otherwise a second pass re-asks about every map
+            # refused in the first.
+            entry = pick(subset, topic, that_day, check=False)[0]
             row = found.setdefault(entry["id"], {
                 "id": entry["id"],
                 "title": title_line(entry),
