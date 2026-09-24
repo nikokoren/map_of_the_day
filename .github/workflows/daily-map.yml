@@ -39,11 +39,21 @@ jobs:
       - name: Pick today's map
         run: python3 daily.py
 
+      # The queue a person reviews, kept a fortnight ahead on its own.
+      # Built here rather than on demand because it walks every cell for
+      # fourteen days and measures the ink on each pick, which is a
+      # minute of HEADs -- and because a queue only useful when someone
+      # remembers to ask for it is a queue that goes stale. It never
+      # fails the run: a stale queue is worth less than today's map.
+      - name: Write the review queue
+        continue-on-error: true
+        run: python3 daily.py --review 14
+
       - name: Commit and push
         run: |
           git config user.name "GitHub Action"
           git config user.email "action@github.com"
-          git add map.json today.json
+          git add map.json today.json review.json
 
           if git diff --staged --quiet; then
             echo "Same map as the last run, nothing to commit"

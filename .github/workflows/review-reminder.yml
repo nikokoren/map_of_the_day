@@ -1,0 +1,76 @@
+name: Review Reminder
+
+# The queue only helps if somebody looks at it, and nothing in the
+# system asks them to. This does: once a week it works out how many days
+# of reviewed schedule are left and opens an issue when that runs short.
+#
+# It closes its own issue when the runway recovers, so an untouched
+# inbox means there is nothing to do rather than that the check stopped
+# running.
+on:
+  schedule:
+    # Thursday morning, which leaves the weekend before the runway in
+    # RUNWAY_WARN days actually runs out.
+    - cron: "0 8 * * 4"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  remind:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Work out the runway
+        id: runway
+        run: python3 runway.py >> "$GITHUB_OUTPUT"
+
+      - name: Open or close the reminder
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DUE: ${{ steps.runway.outputs.due }}
+          RUNWAY: ${{ steps.runway.outputs.runway }}
+          REVIEWED_TO: ${{ steps.runway.outputs.reviewed_to }}
+          QUEUE_TO: ${{ steps.runway.outputs.queue_to }}
+          WAITING: ${{ steps.runway.outputs.waiting }}
+        run: |
+          set -euo pipefail
+          existing="$(gh issue list --label review-queue --state open \
+                        --json number --jq '.[0].number // empty')"
+
+          if [ "$DUE" != "yes" ]; then
+            if [ -n "$existing" ]; then
+              gh issue close "$existing" \
+                --comment "Reviewed through $REVIEWED_TO, ${RUNWAY} days of runway left. Nothing to do."
+              echo "Closed #$existing -- runway recovered."
+            else
+              echo "Runway is ${RUNWAY} days. Nothing to say."
+            fi
+            exit 0
+          fi
+
+          body="$(printf '%s\n' \
+            "The review queue needs a pass." \
+            "" \
+            "- Reviewed through **${REVIEWED_TO:-nothing yet}**" \
+            "- That is **${RUNWAY:-unknown} days** of runway" \
+            "- The queue now reaches **${QUEUE_TO}**, with ${WAITING} items in it" \
+            "" \
+            "Past the reviewed date, whatever the rotation picks reaches a" \
+            "screen without anyone having looked at it first." \
+            "" \
+            "This issue closes itself once the runway recovers.")"
+
+          if [ -n "$existing" ]; then
+            gh issue edit "$existing" --body "$body"
+            echo "Updated #$existing."
+          else
+            gh label create review-queue --color FBCA04 \
+              --description "The curation queue needs a pass" 2>/dev/null || true
+            gh issue create --title "Review queue: ${RUNWAY:-0} days of runway left" \
+              --label review-queue --body "$body"
+          fi
