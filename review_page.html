@@ -168,7 +168,9 @@ textarea{width:100%;min-height:210px;font-family:"IBM Plex Mono",monospace;
       + "and the slot falls to a stand-in half a cycle away. A text flag "
       + "keeps the picture and drops only the translation, so the archive's "
       + "own words come back — and queues the caption for a proper look, "
-      + "since one wrong caption is usually a class of them.");
+      + "since one wrong caption is usually a class of them. Only items "
+      + "whose caption was translated carry a Flag text button, and those "
+      + "show the original underneath.");
 
   function near(it){ return it.d != null && it.d < 30; }
 
@@ -197,7 +199,8 @@ textarea{width:100%;min-height:210px;font-family:"IBM Plex Mono",monospace;
       '<span class="meta"><span class="t"></span><span class="by"></span>' +
       '<span class="foot"><span class="den"></span><span class="when"></span></span>' +
       '</span><span class="acts"><button type="button" class="veto">Veto</button>' +
-      '<button type="button" class="flag">Flag text</button></span>';
+      (it.src ? '<button type="button" class="flag">Flag text</button>' : '') +
+      '</span>';
     if (it.img) {
       var img = document.createElement("img");
       img.loading = "lazy"; img.alt = ""; img.src = it.img;
@@ -208,15 +211,14 @@ textarea{width:100%;min-height:210px;font-family:"IBM Plex Mono",monospace;
     el.querySelector(".den").textContent =
       it.d == null ? "unmeasured" : it.d + " " + (L.measure||"");
     el.querySelector(".when").textContent = when + (it.n > 1 ? "  +" + (it.n-1) : "");
+    // The source line and the flag button go together: both exist only
+    // where English actually replaced the archive's words. Drawing a
+    // dead button on the other 92% made the row look broken.
     if (it.src) {
       var s = document.createElement("span");
       s.className = "src";
       s.textContent = "[" + (it.lang||"?") + "] " + it.src;
       el.querySelector(".meta").appendChild(s);
-    } else {
-      el.querySelector(".flag").disabled = true;
-      el.querySelector(".flag").title = "Nothing was translated on this one";
-      el.querySelector(".flag").style.opacity = ".4";
     }
     function toggle(set, name){
       if (set.has(it.id)) set.delete(it.id); else set.add(it.id);
@@ -226,7 +228,7 @@ textarea{width:100%;min-height:210px;font-family:"IBM Plex Mono",monospace;
     el.querySelector(".shot").addEventListener("click", function(){ toggle(veto,"veto"); });
     el.querySelector(".veto").addEventListener("click", function(){ toggle(veto,"veto"); });
     var f = el.querySelector(".flag");
-    if (!f.disabled) f.addEventListener("click", function(){ toggle(flag,"flag"); });
+    if (f) f.addEventListener("click", function(){ toggle(flag,"flag"); });
     return el;
   }
 
