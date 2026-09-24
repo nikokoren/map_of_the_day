@@ -37,6 +37,7 @@ jobs:
           REVIEWED_TO: ${{ steps.runway.outputs.reviewed_to }}
           QUEUE_TO: ${{ steps.runway.outputs.queue_to }}
           WAITING: ${{ steps.runway.outputs.waiting }}
+          QUEUE_PAGE: https://claude.ai/artifact/TDK64Xdcsh82AQiFTRiMG4
         run: |
           set -euo pipefail
           existing="$(gh issue list --label review-queue --state open \
@@ -62,6 +63,13 @@ jobs:
             "" \
             "Past the reviewed date, whatever the rotation picks reaches a" \
             "screen without anyone having looked at it first." \
+            "" \
+            "The queue page is at ${QUEUE_PAGE}" \
+            "" \
+            "It is a snapshot and does not rebuild itself, so it still shows" \
+            "whatever window it was last built for. review.json in this repo" \
+            "is current -- the daily job rewrites it -- but the page has to be" \
+            "rebuilt from it before the thumbnails match." \
             "" \
             "This issue closes itself once the runway recovers.")"
 
