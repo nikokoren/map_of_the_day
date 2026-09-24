@@ -1062,6 +1062,8 @@ def review_manifest(entries, day, days, path):
     would have put 399 unknowns at the top and buried the ranking. A
     HEAD at PROBE_BOX gives the same number for the price of a request.
     """
+    import translate
+    load_translations()
     themes = [s for s, _ in THEMES]
     eras = [s for s, _, _, _ in ERAS]
     topics = themes + eras + [c for c in
@@ -1080,9 +1082,26 @@ def review_manifest(entries, day, days, path):
             # vetoed -- otherwise a second pass re-asks about every map
             # refused in the first.
             entry = pick(subset, topic, that_day, check=False)[0]
+            # The caption as shown, and what it was made from. A flag is
+            # no use to whoever has to diagnose it without the source
+            # and the language it was read as: the three together say
+            # whether the fault is the rule, the glossary, or the
+            # detector.
+            shown = title_line(entry)
+            cached = _english.get(entry["t"]) or {}
+            # Only when English actually replaced the catalogue's words.
+            # title_line also truncates, and a shortened title is not a
+            # translated one -- comparing the two strings called 37 of
+            # 155 translated when none of them were.
+            rendered_en = translate.tidy(entry["t"], cached.get("en"))
+            was_translated = bool(rendered_en
+                                  and translate.usable(entry["t"], rendered_en)
+                                  and entry["id"] not in untranslated())
             row = found.setdefault(entry["id"], {
                 "id": entry["id"],
-                "title": title_line(entry),
+                "title": shown,
+                "source": entry["t"] if was_translated else "",
+                "lang": cached.get("lang") or "" if was_translated else "",
                 "year": str(entry.get("y") or ""),
                 "byline": byline(entry),
                 "thumb": iiif(entry["s"], (400, 400), "default"),
