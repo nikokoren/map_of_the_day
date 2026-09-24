@@ -936,6 +936,114 @@ def pick(entries, category, day, check):
     return candidates[0], state, size
 
 
+def review_manifest(entries, day, days, path):
+    """
+    What is coming, for someone to look at before it ships.
+
+    Every cell's pick for the next `days` days, from day+3 onward --
+    the feed already carries today and tomorrow, and those are frozen
+    for the people mid-look, so the first day a veto can still change
+    is the third.
+
+    Deduplicated by map, because one map fills several cells on
+    different days and nobody should be asked about it twice. Ordered
+    thinnest first: 50 maps a day is more than anyone will look at, but
+    the ones most likely to be a bad day on a wall cluster at one end,
+    so the list can be worked until it stops turning up anything and
+    then abandoned.
+
+    The ink is measured here rather than read from quality.json, which
+    covers 3,034 of 4,971 maps -- and an unmeasured map sorting first
+    would have put 399 unknowns at the top and buried the ranking. A
+    HEAD at PROBE_BOX gives the same number for the price of a request.
+    """
+    themes = [s for s, _ in THEMES]
+    eras = [s for s, _, _, _ in ERAS]
+    topics = themes + eras + [c for c in
+                              (cell_key(t, e) for t in themes if t != "all"
+                               for e in eras)
+                              if len(maps_for(entries, c)) >= CELL_MIN]
+
+    found = {}
+    for shift in range(3, 3 + days):
+        that_day = day + timedelta(days=shift)
+        for topic in topics:
+            subset = maps_for(entries, topic)
+            if not subset:
+                continue
+            entry = candidates_for(subset, topic, that_day)[0]
+            row = found.setdefault(entry["id"], {
+                "id": entry["id"],
+                "title": title_line(entry),
+                "year": str(entry.get("y") or ""),
+                "byline": byline(entry),
+                "thumb": iiif(entry["s"], (400, 400), "default"),
+                "full": iiif(entry["s"], WARM_BOX, WARM_QUALITY),
+                "item": "https://www.loc.gov/item/{}/".format(entry["id"]),
+                "when": [],
+            })
+            row["when"].append({"day": that_day.isoformat(), "cell": topic})
+            row["_entry"] = entry
+
+    # Measure the ink on everything in the window, thinnest first. The
+    # bar the daily job uses is MIN_INK_DENSITY; these are all above it
+    # or they would not have been picked, so this is ordering rather
+    # than filtering -- it says which end of the list is worth a look.
+    def measure(row):
+        entry = row["_entry"]
+        kpx = probe_kilopixels(entry)
+        state, size = image_state(image_urls(entry)["probe"], kpx)
+        row["density"] = round(size / kpx) if kpx and size else None
+        row["state"] = state
+        return row
+
+    rows = list(found.values())
+    # Two passes, as warm() does: a render that ran past the timeout on
+    # the first pass has usually finished by the second, and asking
+    # again reads it from cache rather than making it twice. Without
+    # this, 139 of 706 came back unmeasured and sorted to the top of the
+    # list, which buries the maps actually worth looking at.
+    for attempt in (1, 2):
+        todo = [r for r in rows if r.get("density") is None]
+        if not todo:
+            break
+        with ThreadPoolExecutor(max_workers=WARM_WORKERS) as pool:
+            list(pool.map(measure, todo))
+    for row in rows:
+        row.pop("_entry", None)
+    # Drop what the daily job will reject anyway. A map under the ink
+    # bar never reaches a screen -- it is probed on the day it becomes
+    # the middle of the feed and a stand-in takes its place -- so asking
+    # someone about it spends their attention on a map that was never
+    # going to ship, and teaches them the list is full of noise.
+    thin = [r for r in rows if r["density"] is not None
+            and r["density"] < MIN_INK_DENSITY]
+    rows = [r for r in rows if r not in thin]
+    # Unmeasurable sorts first: a map we could not read is the one most
+    # worth a human glance. Then thinnest, which is where a dull sheet
+    # that still clears the bar will be.
+    rows.sort(key=lambda r: (r["density"] is not None, r["density"] or 0))
+    if thin:
+        print("  {} below the ink bar, left out -- the daily job skips "
+              "those on its own".format(len(thin)))
+    for n, row in enumerate(rows):
+        row["rank"] = n + 1
+    out = {
+        "kind": "map-of-the-day",
+        "generated": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "from": (day + timedelta(days=3)).isoformat(),
+        "to": (day + timedelta(days=2 + days)).isoformat(),
+        "vetoed": sorted(vetoed()),
+        "items": rows,
+    }
+    with open(path, "w") as fh:
+        json.dump(out, fh, separators=(",", ":"), sort_keys=True)
+        fh.write("\n")
+    print("{} maps to review over {} days -> {}"
+          .format(len(rows), days, os.path.relpath(path, os.getcwd())))
+    return 0
+
+
 # ============================================================
 # self-test
 # ============================================================
@@ -1214,6 +1322,9 @@ def main():
                         help="skip the image availability check")
     parser.add_argument("--selftest", action="store_true",
                         help="check the schedule's properties and exit")
+    parser.add_argument("--review", type=int, metavar="DAYS",
+                        help="write review.json: every cell's pick for the "
+                             "next DAYS days, worst-measured first")
     parser.add_argument("--recompute", action="store_true",
                         help="choose every day afresh, ignoring what is "
                              "already published")
@@ -1232,6 +1343,10 @@ def main():
 
     if args.selftest:
         return selftest(entries, day)
+
+    if args.review:
+        return review_manifest(entries, day, args.review,
+                               os.path.join(HERE, "review.json"))
 
     if args.preview:
         for offset in range(args.preview):
