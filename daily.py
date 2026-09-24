@@ -175,16 +175,85 @@ def in_era(entry, era):
     return False
 
 
+# ============================================================
+# balance
+# ============================================================
+
+# The Library of Congress collects where it sits, so the pool it hands
+# back is 16.7% Washington DC -- 832 of 4,971 maps -- and another 7.5%
+# is land ownership: plats, deed surveys, block-by-block property
+# atlases. Together a fifth of everything, which in the general feed
+# means roughly one map in six is the same city.
+#
+# Neither is a reason to drop them. A reader who picks Land Ownership
+# wants exactly that, and half the good city plans in the collection are
+# of Washington. What is wrong is their share of the feed nobody chose:
+# "All Maps" and the five eras, which is what a reader sees before they
+# have expressed any interest at all.
+#
+# So the crowded groups are thinned in those selections and left whole
+# everywhere else. Thinned by a hash of the id, which keeps the same
+# maps every run -- thinning by date or at random would move the
+# schedule under everyone each time it ran.
+DC_PLACES = re.compile(
+    r"washington|district of columbia|\bD\.?\s?C\.?\b|georgetown", re.I)
+DC_KEEP = 0.30
+LAND_KEEP = 0.40
+
+
+def is_capital(entry):
+    """Whether a map is one more of the Library's Washington holdings."""
+    return bool(DC_PLACES.search(" ".join(
+        str(entry.get(field) or "") for field in ("t", "p", "d", "col"))))
+
+
+def crowded_share(entry):
+    """How much of this map's group a broad selection keeps."""
+    share = 1.0
+    if is_capital(entry):
+        share = min(share, DC_KEEP)
+    if "land-ownership" in (entry.get("g") or []):
+        share = min(share, LAND_KEEP)
+    return share
+
+
+def thinned(entries):
+    """
+    The crowded groups cut to their share, the rest untouched.
+
+    Salted apart from the schedule's own hash, so which maps survive
+    here has nothing to do with the order they come round in.
+    """
+    out = []
+    for entry in entries:
+        share = crowded_share(entry)
+        if share >= 1.0:
+            out.append(entry)
+            continue
+        digest = hashlib.sha256(
+            "{}|thin|{}".format(SALT, entry["id"]).encode()).hexdigest()
+        if int(digest[:8], 16) / 0xFFFFFFFF < share:
+            out.append(entry)
+    return out
+
+
 def maps_for(entries, topic):
-    """The subset of the pool a topic -- theme, era, or cell -- selects."""
+    """
+    The subset of the pool a topic -- theme, era, or cell -- selects.
+
+    "All Maps" and the eras are what a reader gets before choosing
+    anything, so the crowded groups are thinned there. A theme or a
+    theme-and-era cell is a choice, and a choice is answered in full:
+    Land Ownership holds every land-ownership map there is.
+    """
     if topic == "all":
-        return entries
+        return thinned(entries)
     if CELL_SEP in topic:
         theme, era = topic.split(CELL_SEP, 1)
         return [e for e in entries
                 if theme in (e.get("g") or []) and in_era(e, era)]
     if topic.startswith("era-"):
-        return [e for e in entries if in_era(e, topic)]
+        return thinned([e for e in entries if in_era(e, topic)])
     return [e for e in entries if topic in (e.get("g") or [])]
 
 EPOCH = date(1970, 1, 1)
@@ -1254,6 +1323,26 @@ def selftest(entries, day):
     import translate
     failures.extend("translation guard: " + f
                     for f in translate.usable_failures())
+
+    # 5f. The crowded groups are thinned where nobody chose them, and
+    #     whole where somebody did. The Library collects where it sits,
+    #     so a sixth of the pool is Washington; a reader who has picked
+    #     nothing should not be shown the same city every week, and a
+    #     reader who picks Land Ownership should get all of it.
+    broad = maps_for(entries, "all")
+    capital_share = sum(1 for e in broad if is_capital(e)) / max(1, len(broad))
+    raw_share = sum(1 for e in entries if is_capital(e)) / max(1, len(entries))
+    if capital_share > raw_share * 0.6:
+        failures.append(
+            "Washington is {:.1%} of the general pool, barely down from {:.1%}"
+            .format(capital_share, raw_share))
+    for theme in ("land-ownership", "city-plans"):
+        whole = [e for e in entries if theme in (e.get("g") or [])]
+        if len(maps_for(entries, theme)) != len(whole):
+            failures.append(theme + " is thinned, but it was chosen")
+    # Same maps every run, or the schedule moves under everyone.
+    if [e["id"] for e in maps_for(entries, "all")] != [e["id"] for e in broad]:
+        failures.append("thinning is not deterministic")
 
     # 6. Every topic offered as a setting is deep enough that a reader
     #    does not see the same map twice inside a year.
