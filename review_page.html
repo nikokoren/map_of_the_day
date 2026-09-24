@@ -1,0 +1,314 @@
+<title>Review Queue</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --paper:#e7e6e1; --card:#f7f6f3; --ink:#1a1c1a; --muted:#6e716a;
+  --rule:#d3d1ca; --veto:#a63d2c; --veto-soft:#f0dcd7; --chip:#dedcd4;
+  --flag:#8a6d1f; --flag-soft:#f2e9d2;
+  --shadow:0 1px 2px rgba(26,28,26,.08);
+}
+@media (prefers-color-scheme:dark){ :root:not([data-theme="light"]){
+  color-scheme:dark;
+  --paper:#15171a; --card:#1d2024; --ink:#e6e5e1; --muted:#8e918a;
+  --rule:#2e3237; --veto:#d97b66; --veto-soft:#3a2420; --chip:#272b30;
+  --flag:#d8b968; --flag-soft:#332b16;
+  --shadow:0 1px 2px rgba(0,0,0,.4);
+}}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --paper:#15171a; --card:#1d2024; --ink:#e6e5e1; --muted:#8e918a;
+  --rule:#2e3237; --veto:#d97b66; --veto-soft:#3a2420; --chip:#272b30;
+  --flag:#d8b968; --flag-soft:#332b16;
+  --shadow:0 1px 2px rgba(0,0,0,.4);
+}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);font-family:Archivo,system-ui,sans-serif;margin:0}
+.wrap{padding-inline:16px;padding-block:0 48px;max-width:1240px;margin:0 auto}
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;
+  background:var(--paper);border-bottom:1px solid var(--rule);
+  padding-block:14px 12px;margin-bottom:20px}
+h1{font-size:19px;font-weight:700;letter-spacing:-.01em;margin:0 0 2px}
+.sub{color:var(--muted);font-size:12.5px;margin:0;max-width:68ch}
+.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:12px}
+.count{font-family:"IBM Plex Mono",monospace;font-size:12px;
+  font-variant-numeric:tabular-nums;color:var(--muted)}
+.count b{color:var(--ink);font-weight:500}
+button{font:inherit;font-size:12.5px;padding:6px 12px;border-radius:3px;
+  border:1px solid var(--rule);background:var(--card);color:var(--ink);
+  cursor:pointer;box-shadow:var(--shadow)}
+button:hover{border-color:var(--muted)}
+button:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+button[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.seg{display:inline-flex}
+.seg button{border-radius:0;margin-left:-1px;box-shadow:none}
+.seg button:first-child{border-radius:3px 0 0 3px;margin-left:0}
+.seg button:last-child{border-radius:0 3px 3px 0}
+.daymark{grid-column:1/-1;display:flex;align-items:baseline;gap:10px;
+  margin:14px 0 -2px;padding-bottom:6px;border-bottom:1px solid var(--rule)}
+.daymark:first-child{margin-top:0}
+.daymark .d{font-size:13px;font-weight:600;letter-spacing:-.01em}
+.daymark .c{font-family:"IBM Plex Mono",monospace;font-size:11px;
+  color:var(--muted);font-variant-numeric:tabular-nums}
+.grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(178px,1fr))}
+.card{background:var(--card);border:1px solid var(--rule);border-radius:3px;
+  overflow:hidden;display:flex;flex-direction:column;box-shadow:var(--shadow);
+  position:relative}
+.shot{aspect-ratio:1;background:var(--chip);display:flex;align-items:center;
+  justify-content:center;overflow:hidden;cursor:pointer;border:0;padding:0;
+  width:100%}
+.shot img{width:100%;height:100%;object-fit:contain;display:block}
+.shot:focus-visible{outline:2px solid var(--ink);outline-offset:-2px}
+.meta{padding:9px 10px 10px;display:flex;flex-direction:column;gap:3px;flex:1}
+.t{font-size:12.5px;line-height:1.3;font-weight:500;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.by{font-size:11px;color:var(--muted);line-height:1.35;
+  display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}
+.foot{display:flex;flex-direction:column;gap:2px;margin-top:auto;padding-top:7px}
+.den{font-family:"IBM Plex Mono",monospace;font-size:11px;
+  font-variant-numeric:tabular-nums;color:var(--muted)}
+.when{font-size:10.5px;color:var(--muted);font-variant-numeric:tabular-nums;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.acts{display:flex;border-top:1px solid var(--rule)}
+.acts button{flex:1;border:0;border-radius:0;box-shadow:none;font-size:11px;
+  padding:7px 4px;background:transparent;color:var(--muted)}
+.acts button + button{border-left:1px solid var(--rule)}
+.acts button:hover{background:var(--chip);color:var(--ink)}
+.acts .on{background:var(--ink);color:var(--paper)}
+.card[data-veto="1"]{border-color:var(--veto);background:var(--veto-soft)}
+.card[data-veto="1"] .shot img{opacity:.3;filter:grayscale(1)}
+.card[data-veto="1"] .t{text-decoration:line-through;text-decoration-color:var(--veto)}
+.card[data-veto="1"] .acts .veto{background:var(--veto);color:#fff}
+.card[data-flag="1"]{border-color:var(--flag);background:var(--flag-soft)}
+.card[data-flag="1"] .acts .flag{background:var(--flag);color:#fff}
+.stamp{position:absolute;top:8px;right:8px;background:var(--ink);color:var(--paper);
+  font-size:9.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;
+  padding:3px 6px;border-radius:2px;display:none}
+.card[data-new="1"] .stamp{display:block}
+.src{font-size:10.5px;color:var(--flag);line-height:1.3;
+  border-top:1px dotted var(--rule);padding-top:5px;margin-top:2px;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.note{font-size:12px;color:var(--muted);margin:20px 0 0;line-height:1.55;max-width:66ch}
+dialog{border:1px solid var(--rule);border-radius:4px;background:var(--card);
+  color:var(--ink);max-width:min(680px,92vw);padding:0}
+dialog::backdrop{background:rgba(0,0,0,.45)}
+.dlg{padding:16px}
+.dlg h2{font-size:15px;margin:0 0 6px}
+.dlg p{font-size:12.5px;color:var(--muted);margin:0 0 10px;line-height:1.5}
+textarea{width:100%;min-height:210px;font-family:"IBM Plex Mono",monospace;
+  font-size:11.5px;line-height:1.45;background:var(--paper);color:var(--ink);
+  border:1px solid var(--rule);border-radius:3px;padding:9px;resize:vertical}
+.dlg .row{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.status{font-size:11.5px;color:var(--muted);font-family:"IBM Plex Mono",monospace}
+@media (prefers-reduced-motion:no-preference){.card{transition:background .12s,border-color .12s}}
+</style>
+<div class="wrap">
+<header>
+  <h1 id="h1">Review Queue</h1>
+  <p class="sub" id="sub"></p>
+  <div class="bar">
+    <span class="count"><b id="nshown">0</b> <span id="nounlabel">items</span> &middot;
+      <b id="nveto">0</b> vetoed &middot; <b id="nflag">0</b> flagged</span>
+    <button id="onlynew" aria-pressed="false">Only new</button>
+    <span class="seg"><button id="bydate" aria-pressed="true">By date</button><button id="bythin" aria-pressed="false">Sort</button></span>
+    <button id="near" aria-pressed="false">Narrow</button>
+    <button id="hand">Hand over decisions</button>
+    <span class="status" id="status"></span>
+  </div>
+</header>
+<div class="grid" id="grid"></div>
+<p class="note" id="note"></p>
+</div>
+<dialog id="dlg"><div class="dlg">
+  <h2>Paste this into the reminder issue</h2>
+  <p>Comment it on the open <code>review-queue</code> issue in the repo. A
+     workflow reads it, writes the decisions and rebuilds the feed. It carries
+     the window it covers, so pasting an old block is refused rather than
+     quietly undoing newer work.</p>
+  <textarea id="out" readonly></textarea>
+  <div class="row">
+    <button id="copy">Copy</button>
+    <button id="close">Close</button>
+    <span class="status" id="copied"></span>
+  </div>
+</div></dialog>
+<script id="data" type="application/json">__DATA__</script>
+<script>
+(function(){
+  var D = JSON.parse(document.getElementById("data").textContent);
+  var L = D.labels || {};
+  var veto = new Set(D.vetoed || []), flag = new Set(D.flagged || []);
+  var grid = document.getElementById("grid");
+
+  function put(id, text){ var el=document.getElementById(id); if(el) el.textContent=text; }
+  function pressed(id){ var el=document.getElementById(id);
+    return !!el && el.getAttribute("aria-pressed")==="true"; }
+
+  // Decisions survive a reload of this page only. The block is the
+  // transport; a static host has nothing to write to.
+  var KEY = "queue:" + (D.kind||"") + ":" + (D.from||"");
+  try {
+    var saved = JSON.parse(localStorage.getItem(KEY) || "{}");
+    (saved.veto||[]).forEach(function(x){ veto.add(x); });
+    (saved.flag||[]).forEach(function(x){ flag.add(x); });
+  } catch(e){}
+  function remember(){
+    try { localStorage.setItem(KEY, JSON.stringify(
+      {veto: Array.from(veto), flag: Array.from(flag)})); } catch(e){}
+  }
+
+  document.title = L.title || "Review Queue";
+  put("h1", L.title || "Review Queue");
+  put("nounlabel", L.nouns || "items");
+  put("sub", "Every " + (L.noun||"item") + " the rotation will serve between "
+      + D.from + " and " + D.to + ". Click the picture to veto it; flag the "
+      + "text when the caption is wrong but the picture is fine.");
+  document.getElementById("bythin").textContent = L.sort_label || "Sort";
+  document.getElementById("near").textContent = L.near_label || "Narrow";
+  put("note", "Grouped by the day each one is first served. A veto drops it "
+      + "and the slot falls to a stand-in half a cycle away. A text flag "
+      + "keeps the picture and drops only the translation, so the archive's "
+      + "own words come back — and queues the caption for a proper look, "
+      + "since one wrong caption is usually a class of them.");
+
+  function near(it){ return it.d != null && it.d < 30; }
+
+  function dayLabel(iso){
+    var p = (iso||"").split("-");
+    if (p.length < 3) return iso || "";
+    var dt = new Date(Date.UTC(+p[0], +p[1]-1, +p[2]));
+    return dt.toLocaleDateString(undefined,
+      {weekday:"long", month:"long", day:"numeric", timeZone:"UTC"});
+  }
+
+  function counts(){
+    put("nveto", veto.size); put("nflag", flag.size);
+  }
+
+  function card(it){
+    var el = document.createElement("div");
+    el.className = "card";
+    el.setAttribute("data-veto", veto.has(it.id) ? "1":"0");
+    el.setAttribute("data-flag", flag.has(it.id) ? "1":"0");
+    el.setAttribute("data-new", it["new"] ? "1":"0");
+    var when = it.w && it.w[0] ? it.w[0].day.slice(5) + " · " + it.w[0].cell : "";
+    el.innerHTML =
+      '<span class="stamp">new</span>' +
+      '<button class="shot" type="button" aria-label="Veto"></button>' +
+      '<span class="meta"><span class="t"></span><span class="by"></span>' +
+      '<span class="foot"><span class="den"></span><span class="when"></span></span>' +
+      '</span><span class="acts"><button type="button" class="veto">Veto</button>' +
+      '<button type="button" class="flag">Flag text</button></span>';
+    if (it.img) {
+      var img = document.createElement("img");
+      img.loading = "lazy"; img.alt = ""; img.src = it.img;
+      el.querySelector(".shot").appendChild(img);
+    }
+    el.querySelector(".t").textContent = it.t;
+    el.querySelector(".by").textContent = it.b || "";
+    el.querySelector(".den").textContent =
+      it.d == null ? "unmeasured" : it.d + " " + (L.measure||"");
+    el.querySelector(".when").textContent = when + (it.n > 1 ? "  +" + (it.n-1) : "");
+    if (it.src) {
+      var s = document.createElement("span");
+      s.className = "src";
+      s.textContent = "[" + (it.lang||"?") + "] " + it.src;
+      el.querySelector(".meta").appendChild(s);
+    } else {
+      el.querySelector(".flag").disabled = true;
+      el.querySelector(".flag").title = "Nothing was translated on this one";
+      el.querySelector(".flag").style.opacity = ".4";
+    }
+    function toggle(set, name){
+      if (set.has(it.id)) set.delete(it.id); else set.add(it.id);
+      el.setAttribute("data-" + name, set.has(it.id) ? "1":"0");
+      counts(); remember();
+    }
+    el.querySelector(".shot").addEventListener("click", function(){ toggle(veto,"veto"); });
+    el.querySelector(".veto").addEventListener("click", function(){ toggle(veto,"veto"); });
+    var f = el.querySelector(".flag");
+    if (!f.disabled) f.addEventListener("click", function(){ toggle(flag,"flag"); });
+    return el;
+  }
+
+  function render(){
+    var list = (D.items||[]).slice();
+    if (pressed("onlynew")) list = list.filter(function(i){ return i["new"]; });
+    if (pressed("near")) list = list.filter(near);
+    grid.textContent = "";
+    var frag = document.createDocumentFragment();
+    if (pressed("bydate")) {
+      list.sort(function(a,b){
+        var x=a.w&&a.w[0]?a.w[0].day:"", y=b.w&&b.w[0]?b.w[0].day:"";
+        if (x!==y) return x<y?-1:1;
+        return (a.d||0)-(b.d||0);
+      });
+      var day=null;
+      list.forEach(function(it){
+        var d = it.w&&it.w[0]?it.w[0].day:"";
+        if (d!==day){
+          day=d;
+          var n=list.filter(function(o){return (o.w&&o.w[0]?o.w[0].day:"")===d;}).length;
+          var h=document.createElement("div");
+          h.className="daymark";
+          h.innerHTML='<span class="d"></span><span class="c"></span>';
+          h.querySelector(".d").textContent=dayLabel(d);
+          h.querySelector(".c").textContent=n+" "+(n===1?(L.noun||"item"):(L.nouns||"items"));
+          frag.appendChild(h);
+        }
+        frag.appendChild(card(it));
+      });
+    } else {
+      list.sort(function(a,b){ return (a.d==null?-1:a.d)-(b.d==null?-1:b.d); });
+      list.forEach(function(it){ frag.appendChild(card(it)); });
+    }
+    grid.appendChild(frag);
+    put("nshown", list.length); counts();
+  }
+
+  ["bydate","bythin"].forEach(function(id){
+    document.getElementById(id).addEventListener("click", function(){
+      document.getElementById("bydate").setAttribute("aria-pressed", id==="bydate"?"true":"false");
+      document.getElementById("bythin").setAttribute("aria-pressed", id==="bythin"?"true":"false");
+      render();
+    });
+  });
+  ["near","onlynew"].forEach(function(id){
+    document.getElementById(id).addEventListener("click", function(){
+      this.setAttribute("aria-pressed", pressed(id)?"false":"true"); render();
+    });
+  });
+
+  document.getElementById("hand").addEventListener("click", function(){
+    var byId = {}; (D.items||[]).forEach(function(i){ byId[i.id]=i; });
+    var block = {
+      queue: D.kind, from: D.from, to: D.to,
+      reviewed_to: D.to,
+      vetoed: Array.from(veto).sort(),
+      untranslate: Array.from(flag).sort().map(function(id){
+        var i = byId[id] || {};
+        return {id: id, lang: i.lang||"", source: i.src||"", shown: i.t||""};
+      })
+    };
+    document.getElementById("out").value =
+      "```queue\n" + JSON.stringify(block, null, 1) + "\n```";
+    document.getElementById("dlg").showModal();
+  });
+  document.getElementById("close").addEventListener("click", function(){
+    document.getElementById("dlg").close();
+  });
+  document.getElementById("copy").addEventListener("click", function(){
+    var t = document.getElementById("out");
+    navigator.clipboard.writeText(t.value).then(
+      function(){ put("copied","copied"); },
+      function(){ t.select(); put("copied","press ⌘C"); });
+  });
+
+  var fresh = (D.items||[]).filter(function(i){ return i["new"]; }).length;
+  if (D.anyold && fresh > 0 && fresh < (D.items||[]).length) {
+    document.getElementById("onlynew").setAttribute("aria-pressed","true");
+  } else {
+    document.getElementById("onlynew").hidden = true;
+  }
+  render();
+})();
+</script>

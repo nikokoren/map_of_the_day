@@ -1,0 +1,97 @@
+name: Apply Review Decisions
+
+# The comment on the reminder issue is the whole handover: a person
+# reviews the queue, presses "Hand over decisions", and pastes the block
+# here. This reads it, writes curation.json, rebuilds the feed and
+# pushes -- so a pass costs a copy and a paste rather than a
+# conversation.
+#
+# Only the repository owner is listened to. This path turns text from a
+# comment box into what a plugin serves, and apply_decisions.py refuses
+# anything it does not fully understand, but the first gate is who is
+# speaking.
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: apply-decisions
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    if: >-
+      github.event.issue.state == 'open' &&
+      contains(github.event.comment.body, '```queue') &&
+      github.event.comment.user.login == github.repository_owner
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 20
+
+      - name: Install the image libraries
+        run: pip install --quiet pillow numpy
+
+      - name: Fold the decisions in
+        id: apply
+        env:
+          BODY: ${{ github.event.comment.body }}
+        run: |
+          set -o pipefail
+          printf '%s' "$BODY" | python3 apply_decisions.py \
+            > summary.txt 2> problem.txt || {
+              {
+                echo "I could not apply that block."
+                echo
+                echo '```'
+                cat problem.txt
+                echo '```'
+              } > reply.md
+              echo "ok=false" >> "$GITHUB_OUTPUT"
+              exit 0
+            }
+          echo "ok=true" >> "$GITHUB_OUTPUT"
+
+      - name: Rebuild the feed
+        if: steps.apply.outputs.ok == 'true'
+        run: python3 daily.py
+
+      - name: Check it still holds together
+        if: steps.apply.outputs.ok == 'true'
+        run: python3 daily.py --selftest
+
+      - name: Push
+        if: steps.apply.outputs.ok == 'true'
+        run: |
+          set -euo pipefail
+          git config user.name "GitHub Action"
+          git config user.email "action@github.com"
+          git add -A ':!summary.txt' ':!problem.txt' ':!reply.md'
+          if git diff --staged --quiet; then
+            echo "Nothing changed." > reply.md
+            exit 0
+          fi
+          git commit -m "Apply review decisions: $(cat summary.txt)"
+          for attempt in 1 2 3; do
+            git push && break
+            git pull --rebase origin "$GITHUB_REF_NAME" || exit 1
+            sleep $((attempt * 5))
+          done
+          {
+            echo "Applied: $(cat summary.txt)"
+            echo
+            echo "The feed is rebuilt and pushed. Anything vetoed is out of"
+            echo "the schedule; anything flagged now shows the archive's own"
+            echo "words instead of the translation."
+          } > reply.md
+
+      - name: Say what happened
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh issue comment "${{ github.event.issue.number }}" --body-file reply.md

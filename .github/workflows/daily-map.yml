@@ -49,11 +49,21 @@ jobs:
         continue-on-error: true
         run: python3 daily.py --review 14
 
+      # And draw it, into docs/ where Pages serves it. The page carries
+      # every thumbnail inline, so building it is a minute of fetching
+      # -- which is exactly why it belongs on the schedule and not on
+      # somebody remembering to ask.
+      - name: Draw the review page
+        continue-on-error: true
+        run: |
+          pip install --quiet pillow
+          python3 review_page.py
+
       - name: Commit and push
         run: |
           git config user.name "GitHub Action"
           git config user.email "action@github.com"
-          git add map.json today.json review.json
+          git add map.json today.json review.json docs
 
           if git diff --staged --quiet; then
             echo "Same map as the last run, nothing to commit"
