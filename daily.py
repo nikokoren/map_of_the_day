@@ -840,6 +840,49 @@ def load_translations():
     return _english
 
 
+# ------------------------------------------------------------
+# catalogue shorthand
+# ------------------------------------------------------------
+# A catalogue title is written for a card index, not a wall. Square
+# brackets mean the words were supplied by a cataloguer rather than
+# printed on the map; a trailing colon or slash is ISBD punctuation
+# joining fields that are not here; "[i.e. 1865]" is a correction to a
+# date printed wrong. All of it is information about the record, and
+# none of it is information about the picture.
+#
+# 425 of 4,971 maps carry brackets and 195 are bracketed end to end.
+# "Mississipi [i.e. Mississippi]" -- the bracket holds the correction,
+# so the word before it is the one to drop. Taking the bracket out
+# instead would keep the cataloguer's misspelling and throw away the
+# fix, which is backwards. 166 titles in this pool.
+IE_NOTE = re.compile(r"\S+\s*\[\s*i\.?\s*e\.?\s*([^\]]+)\]", re.I)
+SIC_NOTE = re.compile(r"\s*[\[(]\s*sic\.?\s*[\])]", re.I)
+BRACKETS = re.compile(r"[\[\]]")
+ISBD_TAIL = re.compile(r"[\s:;/,=]+$")
+ISBD_HEAD = re.compile(r"^[\s:;/,=]+")
+
+
+def clean_catalogue(text):
+    """
+    A catalogue title with the cataloguing taken out.
+
+    A correction takes the place of what it corrects: "Mississipi [i.e.
+    Mississippi]" becomes "Mississippi". (sic) goes whole. Then the
+    bracket
+    characters, keeping what is inside them: the words are the title,
+    only the marks around them are the convention. Then the ISBD
+    punctuation that joins a title to fields the panel is not showing.
+    """
+    if not text:
+        return text
+    cleaned = IE_NOTE.sub(r"\1", text)
+    cleaned = SIC_NOTE.sub("", cleaned)
+    cleaned = BRACKETS.sub("", cleaned)
+    cleaned = ISBD_HEAD.sub("", ISBD_TAIL.sub("", cleaned))
+    cleaned = re.sub(r"\s{2,}", " ", cleaned)
+    return cleaned.strip() or text
+
+
 def title_line(entry):
     """
     The title, trimmed to something that fits a headline. The full title
@@ -864,6 +907,10 @@ def title_line(entry):
         english = None
     title = english if english and translate.usable(entry["t"], english) \
         else entry["t"]
+    # Before the length is measured, not after: cleaning can free thirty
+    # characters, and truncating first would spend the budget on
+    # punctuation and then cut a real word to pay for it.
+    title = clean_catalogue(title)
     if len(title) <= TITLE_LIMIT:
         return title
 
@@ -1420,6 +1467,32 @@ def selftest(entries, day):
                 failures.append("a text flag removed the map as well")
     finally:
         _untranslated = held
+
+    # 5h. Cataloguing does not reach the wall. Brackets mean a title a
+    #     cataloguer supplied, a trailing colon joins fields the panel
+    #     is not showing, and "[i.e. X]" corrects a word printed wrong --
+    #     where X is the correction, so the word before it is the one to
+    #     drop. Getting that backwards would keep every misspelling and
+    #     throw away every fix.
+    for want, given in (
+            ("North America to the Pacific", "[North America to the Pacific]"),
+            ("Military map of Virginia", "Military map of Virginia,"),
+            ("Map of Washington D.C.", "Map of Washington [D.C.]"),
+            ("Chart of the coast of Maine", "Chart of the coast [sic] of Maine"),
+            ("Carte du Mississippi", "Carte du Mississipi [i.e. Mississippi]"),
+            ("Amerique septentrionale",
+             "Amerique septentrion.lle [i.e. septentrionale]"),
+            ("A plan of Boston", "A plan of Boston :"),
+            ("Map of the Red River", "Map of the Red River"),
+    ):
+        got = clean_catalogue(given)
+        if got != want:
+            failures.append("clean_catalogue({!r}) = {!r}, want {!r}"
+                            .format(given, got, want))
+    left = [title_line(e) for e in entries]
+    strays = sum(1 for t in left if "[" in t or "]" in t)
+    if strays:
+        failures.append("{} titles still carry brackets".format(strays))
 
     # 6. Every topic offered as a setting is deep enough that a reader
     #    does not see the same map twice inside a year.
