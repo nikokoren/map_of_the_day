@@ -704,12 +704,19 @@ def still_stands(standing, probe):
     enough ink was settled when it was chosen; asking again would let a
     changed threshold move a day somebody is already looking at, which
     is the thing this is here to prevent.
+
+    A veto is the exception, and the difference is that a person made
+    it. Carrying a day forward exists so a map does not move under
+    someone mid-look; it does not exist to keep shipping a map that has
+    been looked at and refused.
     """
     if not isinstance(standing, list) or len(standing) != len(PICK_FIELDS):
         return False
     if not all(isinstance(field, str) for field in standing):
         return False
     if not standing[0]:
+        return False
+    if standing[PICK_FIELDS.index("item_id")] in vetoed():
         return False
     if not probe or budget_left() <= 0:
         return True
@@ -866,9 +873,51 @@ def build_payload(entry, category, day, pool, checked, ink_bytes=0):
     return payload
 
 
+# ============================================================
+# curation
+# ============================================================
+
+# Maps a person has looked at and said no to, by item id. A veto is the
+# one judgement no measurement makes for us: a scan that is technically
+# fine and still not worth a day of someone's wall.
+#
+# It marks the map dead rather than removing it from the pool, and that
+# distinction is the whole design. The schedule is divmod(day, len(pool))
+# over a hash ordering of the pool's *membership*, so dropping one entry
+# changes the length, reshuffles every cycle, and moves every future pick
+# -- including the ones just reviewed. Reviewing would rewrite the thing
+# being reviewed. Marked dead, the pool is untouched, nothing shuffles,
+# and the single slot falls through to its stand-in half a cycle away.
+CURATION_PATH = os.path.join(HERE, "curation.json")
+_vetoed = None
+
+
+def vetoed():
+    """The set of vetoed item ids, read once."""
+    global _vetoed
+    if _vetoed is None:
+        try:
+            with open(CURATION_PATH) as fh:
+                data = json.load(fh)
+            _vetoed = {str(i) for i in (data.get("vetoed") or [])}
+        except (OSError, ValueError):
+            _vetoed = set()
+    return _vetoed
+
+
 def pick(entries, category, day, check):
-    """The day's map, skipping images that are gone or nearly blank."""
-    candidates = candidates_for(entries, category, day)
+    """The day's map, skipping images that are vetoed, gone or blank."""
+    scheduled = candidates_for(entries, category, day)
+    # A veto applies whether or not the images are being checked --
+    # it is a decision about the map, not about its file.
+    candidates = [e for e in scheduled if e["id"] not in vetoed()]
+    if not candidates:
+        # Every stand-in vetoed too. Rather than leave the cell empty,
+        # show the day's map and say so; the review will come round to
+        # it again.
+        sys.stderr.write("  {} {}: every candidate is vetoed\n"
+                         .format(category, day.isoformat()))
+        candidates = scheduled
     if not check or budget_left() <= 0:
         return candidates[0], "skipped", 0
     for entry in candidates:
@@ -1047,6 +1096,35 @@ def selftest(entries, day):
                 {"pick_fields": list(PICK_FIELDS), "days": []}):
         if published_days(bad):
             failures.append("carry-forward: a mismatched feed was carried")
+
+    # 5d. A veto moves its own slot and nothing else. This is what lets
+    #     a person review what is coming and say no to it: if vetoing
+    #     reshuffled the schedule, every pick they had just approved
+    #     would move and the review would never converge. Marked dead
+    #     rather than removed, the pool's length and hash order are
+    #     untouched, so only the vetoed slot falls to its stand-in.
+    global _vetoed
+    keep = _vetoed
+    try:
+        sample_days = [day + timedelta(days=i) for i in range(3, 18)]
+        sample_topics = ["all", smallest]
+        _vetoed = set()
+        was = {(t, d): pick(maps_for(entries, t), t, d, False)[0]["id"]
+               for t in sample_topics for d in sample_days}
+        victim = was[(sample_topics[0], sample_days[3])]
+        _vetoed = {victim}
+        now = {(t, d): pick(maps_for(entries, t), t, d, False)[0]["id"]
+               for t in sample_topics for d in sample_days}
+        moved = [k for k in was if was[k] != now[k]]
+        expected = [k for k in was if was[k] == victim]
+        if sorted(moved) != sorted(expected):
+            failures.append(
+                "a veto moved {} slots, expected {}"
+                .format(len(moved), len(expected)))
+        if victim in now.values():
+            failures.append("a vetoed map is still scheduled")
+    finally:
+        _vetoed = keep
 
     # 6. Every topic offered as a setting is deep enough that a reader
     #    does not see the same map twice inside a year.
