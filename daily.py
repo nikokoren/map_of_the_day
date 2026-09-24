@@ -785,7 +785,14 @@ def title_line(entry):
     # English replaces the original rather than joining it: the panel has
     # room for one caption, and a reader who cannot read Latin is not
     # helped by being shown the Latin as well. The pool keeps both.
-    title = rendered.get("en") or entry["t"]
+    #
+    # Checked here as well as where it is written: the cache outlives any
+    # one rule, and a caption refused today must not ship because it was
+    # stored before the rule existed.
+    import translate
+    english = rendered.get("en")
+    title = english if english and translate.usable(entry["t"], english) \
+        else entry["t"]
     if len(title) <= TITLE_LIMIT:
         return title
 
@@ -1236,6 +1243,17 @@ def selftest(entries, day):
             failures.append("a vetoed map is still scheduled")
     finally:
         _vetoed = keep
+
+    # 5e. A translation may not rename the thing it describes. A caption
+    #     of one word is a name, and a translator given a name with no
+    #     sentence around it renders it as vocabulary -- Antietam came
+    #     back "Antimony", which is the map that was vetoed as a mineral
+    #     chart. Nor may a translation say anything foul its source did
+    #     not; that is compared rather than filtered, so a real place
+    #     name survives.
+    import translate
+    failures.extend("translation guard: " + f
+                    for f in translate.usable_failures())
 
     # 6. Every topic offered as a setting is deep enough that a reader
     #    does not see the same map twice inside a year.

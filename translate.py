@@ -62,6 +62,51 @@ NON_LATIN = re.compile(r"[^\x00-\x7F\u00C0-\u024F\u1E00-\u1EFF]")
 SKIP_LANGS = {"en", "af", "no", "da", "sw", "tl", "cy", "so", "et"}
 
 
+# ============================================================
+# what a translation is not allowed to do
+# ============================================================
+
+# A caption of one word is a name -- a place, a battlefield, a country --
+# and a translator handed a name with no sentence around it translates it
+# as vocabulary. In this cache Antietam came back "Antimony", Atlanta and
+# Berkeley both "Home", Maine "Repute", Austria-Hungary "Austria-Hunger".
+# Venezia to Venice is the only real gain among them, and it is not worth
+# the trade: a German noun left in German is a caption a reader
+# half-follows, a battlefield renamed "Antimony" is one that lies.
+def is_one_word(title):
+    return len(title.split()) == 1
+
+
+# And nothing may appear in a translation that was not in its source.
+# Machine translation of a short contextless string occasionally invents
+# rather than errs -- on the postcards side a Turkish town came back as
+# an obscenity and a Romanian caption as a racial slur. Comparison, not a
+# word list over the output, so a real place name in the source survives.
+SLURS = re.compile(
+    r"\b(fuck\w*|shit\w*|cunt\w*|bitch\w*|bastard|wank\w*|arse\w*|asshole|"
+    r"nigg\w+|fag(?:got)?s?|whore|slut|piss\w*|dick(?:head)?|prick|"
+    r"chink|spic|kike|wetback|retard\w*|tranny)\b", re.I)
+
+
+def invents_slur(source, english):
+    if not english:
+        return False
+    found = {m.group(0).lower() for m in SLURS.finditer(english)}
+    if not found:
+        return False
+    already = {m.group(0).lower() for m in SLURS.finditer(source or "")}
+    return bool(found - already)
+
+
+def usable(source, english):
+    """Whether a translation may be published at all."""
+    if not english:
+        return False
+    if is_one_word(source):
+        return False
+    return not invents_slur(source, english)
+
+
 def upcoming_titles(pool, days):
     """
     The titles that will actually be on a screen in the next `days`,
@@ -260,3 +305,36 @@ def main():
 
 if __name__ == "__main__":
     sys.exit(main())
+
+
+# What a translation must never do, at the strings that taught each rule.
+USABLE_CASES = [
+    # a one-word caption is a name, and a name is not vocabulary
+    (False, "Antietam", "Antimony"),
+    (False, "Atlanta", "Home"),
+    (False, "Maine", "Repute"),
+    (False, "Graubunden", "Grey bandages"),
+    (False, "Alt-Graz", "Old Great"),
+    # including the ones it got right, which is the trade being made
+    (False, "Venezia", "Venice"),
+    (False, "Glockenturm", "Bell Tower"),
+    # nothing foul the source did not say
+    (False, "Selcuk", "Fuck."),
+    (False, "Bereg Baikala", "Fuck that time."),
+    (False, "Tigani ciurari", "Tiger niggers"),
+    # but a real place name survives, because the source says it too
+    (True, "Bitche (Lorraine), Le camp", "Bitche (Lorraine), The camp"),
+    (True, "Camp de Bitche (Lorraine", "Bitche Camp (Lorraine)"),
+    # and ordinary captions are untouched
+    (True, "Alt Graz", "Old Graz"),
+    (True, "Beleuchteter Uhrturm", "Illuminated Clock Tower"),
+    (True, "Arnhem, Rijnbrug", "Arnhem, Rhine Bridge"),
+    # nothing to publish is not publishable
+    (False, "Graz", ""),
+]
+
+
+def usable_failures():
+    """Empty when every guard case holds."""
+    return ["usable({!r}, {!r}) = {}, want {}".format(s, e, usable(s, e), w)
+            for w, s, e in USABLE_CASES if usable(s, e) is not w]
