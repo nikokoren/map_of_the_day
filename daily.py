@@ -860,6 +860,8 @@ def title_line(entry):
     # stored before the rule existed.
     import translate
     english = rendered.get("en")
+    if entry["id"] in untranslated():
+        english = None
     title = english if english and translate.usable(entry["t"], english) \
         else entry["t"]
     if len(title) <= TITLE_LIMIT:
@@ -968,17 +970,44 @@ CURATION_PATH = os.path.join(HERE, "curation.json")
 _vetoed = None
 
 
+_untranslated = None
+
+
+def _curation():
+    try:
+        with open(CURATION_PATH) as fh:
+            return json.load(fh)
+    except (OSError, ValueError):
+        return {}
+
+
 def vetoed():
     """The set of vetoed item ids, read once."""
     global _vetoed
     if _vetoed is None:
-        try:
-            with open(CURATION_PATH) as fh:
-                data = json.load(fh)
-            _vetoed = {str(i) for i in (data.get("vetoed") or [])}
-        except (OSError, ValueError):
-            _vetoed = set()
+        _vetoed = {str(i) for i in (_curation().get("vetoed") or [])}
     return _vetoed
+
+
+def untranslated():
+    """
+    Ids whose English caption a person has flagged as wrong.
+
+    The map stays; only the translation goes, and the catalogue's own
+    words take its place. That is the whole repair, and it needs nobody
+    to write a replacement: the original was always there, and a title
+    in the language it was catalogued in is a title, where "Antimony"
+    for Antietam is a lie a reader cannot detect.
+
+    A flag is also evidence. One report of Graubunden shown as "Grey
+    bandages" is what turned up the rule that a one-word caption is a
+    name, which put 114 captions right at once. These accumulate for
+    the next time someone goes looking.
+    """
+    global _untranslated
+    if _untranslated is None:
+        _untranslated = {str(i) for i in (_curation().get("untranslate") or [])}
+    return _untranslated
 
 
 def pick(entries, category, day, check):
@@ -1343,6 +1372,35 @@ def selftest(entries, day):
     # Same maps every run, or the schedule moves under everyone.
     if [e["id"] for e in maps_for(entries, "all")] != [e["id"] for e in broad]:
         failures.append("thinning is not deterministic")
+
+    # 5g. A text flag drops the translation and keeps the map. The two
+    #     judgements are separate: a good map with a wrong caption is
+    #     not a map to throw away, and a flag has to work without
+    #     anybody writing a replacement.
+    global _untranslated
+    held = _untranslated
+    try:
+        load_translations()
+        import translate
+        renders = [e for e in entries
+                   if (_english.get(e["t"]) or {}).get("en")
+                   and translate.usable(e["t"], _english[e["t"]]["en"])]
+        if renders:
+            subject = renders[0]
+            _untranslated = set()
+            english_shown = title_line(subject)
+            _untranslated = {subject["id"]}
+            flagged_shown = title_line(subject)
+            if english_shown == flagged_shown:
+                failures.append("a text flag changed nothing")
+            if not subject["t"].startswith(flagged_shown[:20].rstrip(".")):
+                failures.append("a flagged map does not fall back to "
+                                "the catalogue's own words")
+            if subject not in maps_for(entries, "all") and \
+                    subject in thinned([subject]):
+                failures.append("a text flag removed the map as well")
+    finally:
+        _untranslated = held
 
     # 6. Every topic offered as a setting is deep enough that a reader
     #    does not see the same map twice inside a year.
