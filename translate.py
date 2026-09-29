@@ -28,11 +28,13 @@ a better translation never needs a re-crawl.
 
 import argparse
 import collections
+import gzip
 import json
 import re
 import os
 import sys
 import time
+import unicodedata
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 POOL_PATH = os.path.join(HERE, "pool.json")
@@ -122,6 +124,8 @@ def usable(source, english):
     if loses_a_numeral(source, english):
         return False
     if barely_changed(source, english):
+        return False
+    if invents_a_word(source, english):
         return False
     return True
 
@@ -363,6 +367,21 @@ USABLE_CASES = [
      "Monreale. Cathedral apse (12th century)"),
     (True, "Charte uber die XIII Vereinigte Staaten von Nord-America",
      "Chart of the XIII United States of North America"),
+    # a word that exists in no language, which is what a translator does
+    # with a word it cannot translate
+    (False, "Rabat - Musee des Arts indigenes des Oudaias",
+     "Rabat - Musee des Arts Indigenouss des Oudaias"),
+    (False, "Nafplio, Peloponnese", "Napple, Peloponnese"),
+    (False, "Attaques des retranchemens devant le Fort Carillon",
+     "Attacks of the entrechemens in front of Fort Carillon"),
+    # but a plain translation of ordinary words is not an invention
+    (True, "Vier verschiedene Ansichten von Graz",
+     "Four different views of Graz"),
+    (True, "Aufnahmen im Gebirgslande westlich von Peking",
+     "Recordings in the mountains west of Beijing"),
+    # and a transliteration cannot be looked up, so it is not judged here
+    (True, "\u0391\u03b8\u03b7\u03bd\u03b1\u03b9 - \u03a0\u03c1\u03bf\u03c0\u03cd\u03bb\u03b1\u03b9\u03b1 \u0386\u03ba\u03c1\u03bf\u03c0\u03cc\u03bb\u03b5\u03c9\u03c2",
+     "Athens - Acropolis Propylaia"),
     # nothing to publish is not publishable
     (False, "Graz", ""),
 ]
@@ -510,6 +529,129 @@ def loses_a_numeral(source, english):
         if token.lower() in lowered:
             continue
         if re.search(r"(?<!\d){}(?!\d)".format(value), english):
+            continue
+        return True
+    return False
+
+
+# ------------------------------------------------------------
+# Words the translator made up
+# ------------------------------------------------------------
+# The third class the flagged captions turned up, and the one that needed
+# a dictionary. The corpus cannot serve as one: a vocabulary built from
+# every English caption in both archives is 16,000 words and has no
+# "roofs", no "conquer" and no "eternal", so real English reads as
+# invented and the test flags a third of everything. words_en.txt.gz is
+# 370,105 words, and it separates the two cleanly -- it has "roofs" and
+# "potassium", and it has no "Indigenouss", "deboutmen" or "corrigerated".
+
+WORDS_PATH = os.path.join(HERE, "words_en.txt.gz")
+
+# Apostrophes stay inside a word, so "Qur'an" is one word rather than a
+# fragment called "Qur".
+TOKEN = re.compile(r"[^\W\d_]+(?:['\u2019][^\W\d_]+)*", re.U)
+
+# Anything outside Latin and its extensions. A caption in Greek, Cyrillic
+# or Japanese has to be transliterated, and no dictionary can tell a good
+# transliteration from a bad one -- "Propylaia" and "Zappeion" are exactly
+# right and are in no wordlist. Those captions are left to the other
+# guards.
+FOREIGN_SCRIPT = re.compile(r"[^\u0000-\u024f\u1e00-\u1eff]")
+
+_known = None
+
+
+def flatten(text):
+    """One spelling to compare: lower case, no accents, straight quotes."""
+    decomposed = unicodedata.normalize(
+        "NFD", unicodedata.normalize("NFC", text).lower())
+    return "".join(c for c in decomposed
+                   if not unicodedata.combining(c)).replace("\u2019", "'")
+
+
+def known_words():
+    """Every word that is not evidence of anything, loaded once.
+
+    Two sources. The wordlist is English. The corpus is everything these
+    archives already say in any language -- place names, collections,
+    cataloguing jargon, the captions themselves -- because a translator
+    copying "Beijing" or "Graz" through has invented nothing, and neither
+    list alone covers both.
+    """
+    global _known
+    if _known is not None:
+        return _known
+    words = set()
+    try:
+        with gzip.open(WORDS_PATH, "rt", encoding="utf-8") as fh:
+            words.update(flatten(line.strip()) for line in fh if line.strip())
+    except OSError:
+        # No list, no guard. Refusing every translation because a data
+        # file is missing would be worse than publishing them.
+        _known = set()
+        return _known
+    try:
+        with open(POOL_PATH) as fh:
+            pool = json.load(fh)
+        for entry in (pool.get("maps") or pool.get("entries") or []):
+            for value in entry.values():
+                for text in (value if isinstance(value, list) else [value]):
+                    if isinstance(text, str):
+                        words.update(flatten(t) for t in TOKEN.findall(text))
+    except (OSError, ValueError):
+        pass
+    _known = words
+    return _known
+
+
+def is_known(word):
+    """Whether this is a word somebody uses, in any of these languages."""
+    known = known_words()
+    if not known:
+        return True
+    flat = flatten(word)
+    for form in (flat, flat[:-2] if flat.endswith("'s") else flat,
+                 flat.replace("'", "")):
+        if form in known:
+            return True
+    # Archaic English the wordlist does not carry: beareth, goeth.
+    for suffix in ("eth", "est"):
+        if flat.endswith(suffix) and (flat[:-len(suffix)] in known
+                                      or flat[:-len(suffix)] + "e" in known):
+            return True
+    return False
+
+
+def invents_a_word(source, english):
+    """
+    A word in the translation that exists in no language.
+
+    The translator, handed a word it cannot translate, sometimes half
+    copies it and produces something that is a word in nothing:
+    "indigenes" came back as "Indigenouss", "regionis" as "Regionss",
+    "debouquemens" as "deboutmen", "retranchemens" as "entrechemens".
+    Worse, it does this to names a reader would look up -- Nafplio
+    published as "Napple", Perkasie as "Perkassie", Soest as "Soust",
+    Seinenkan as "Seisenkan".
+
+    Judged by hand over a sample, nearly every map caught this way is
+    genuinely mangled; about one postcard in six is a decent translation
+    caught by a gap in the wordlist ("Surinamese", "winegrowers"). That
+    trade is worth making, because the two mistakes do not cost the same:
+    a translation wrongly refused falls back to the archive's own words,
+    which a reader can still read, while one wrongly published puts a
+    place name on a wall that does not exist.
+    """
+    if FOREIGN_SCRIPT.search(source):
+        return False
+    said = {flatten(t) for t in TOKEN.findall(source)}
+    for word in TOKEN.findall(english):
+        flat = flatten(word)
+        if len(flat) <= 2 or flat in said or is_known(word):
+            continue
+        # A word trimmed rather than invented: "Skeppsholmsbron" to
+        # "Skeppsholm", "Obshchii" to "Obshchi".
+        if any(s.startswith(flat) and len(flat) >= 5 for s in said):
             continue
         return True
     return False
