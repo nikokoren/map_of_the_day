@@ -41,6 +41,13 @@ CACHE_PATH = os.path.join(HERE, "translations.json")
 BUDGET = 1200
 MIN_CONFIDENCE = 0.55
 
+# How much of a caption may come through untouched before the translation
+# is not worth publishing, and the length below which the measure says
+# nothing. Both settled by measuring the cache.
+BARELY_SHARE = 0.75
+BARELY_FLOOR = 6
+WORDS = re.compile(r"[^\W\d_]{2,}", re.U)
+
 # A caption is usually "PLACE. What you are looking at", and the place is
 # the whole point of a postcard. Left to itself the translator treats it
 # as vocabulary: on the postcard side "Dameron. Le coin
@@ -111,6 +118,10 @@ def usable(source, english):
     if only_recased(source, english):
         return False
     if mangles_numbers(source, english):
+        return False
+    if loses_a_numeral(source, english):
+        return False
+    if barely_changed(source, english):
         return False
     return True
 
@@ -337,6 +348,21 @@ USABLE_CASES = [
     (True, "Alt Graz", "Old Graz"),
     (True, "Beleuchteter Uhrturm", "Illuminated Clock Tower"),
     (True, "Arnhem, Rijnbrug", "Arnhem, Rhine Bridge"),
+    # a translation that hands back most of the caption untouched has
+    # translated nothing, and says otherwise
+    (False, "Paris (17e), la rue Demours, Le Restaurant du Grand Veneur",
+     "Paris (17th), rue Demours, Le Restaurant du Grand Veneur"),
+    (False, "Rabat - Musee des Arts indigenes des Oudaias",
+     "Rabat - Musee des Arts Indigenouss des Oudaias"),
+    # but a short caption is allowed its one honest change
+    (True, "Bitche (Lorraine), Le camp", "Bitche (Lorraine), The camp"),
+    # a date must survive, in either script
+    (False, "Monreale. Abside della Cattedrale (XII secolo",
+     "Monreale. Cathedral apse (16th century)"),
+    (True, "Monreale. Abside della Cattedrale (XII secolo",
+     "Monreale. Cathedral apse (12th century)"),
+    (True, "Charte uber die XIII Vereinigte Staaten von Nord-America",
+     "Chart of the XIII United States of North America"),
     # nothing to publish is not publishable
     (False, "Graz", ""),
 ]
@@ -385,7 +411,108 @@ def mangles_numbers(source, english):
     Dates, regiments and street numbers are the part of a caption a
     reader is most likely to take at face value.
     """
-    return re.findall(r"\d+", source) != re.findall(r"\d+", english)
+    want = re.findall(r"\d+", source)
+    got = re.findall(r"\d+", english)
+    if want == got:
+        return False
+    # A date written the old way may legitimately come back in Arabic
+    # numerals -- "(XII secolo" to "12th century" is the right answer, and
+    # comparing digit lists alone would refuse it for gaining a number
+    # the source never wrote in digits. Only the value the source
+    # actually states is forgiven; loses_a_numeral has the rest.
+    forgiven = {str(value) for _, value in roman_numerals(source)}
+    return want != [g for g in got if g not in forgiven]
+
+
+# ------------------------------------------------------------
+# What the first flagged captions turned up
+# ------------------------------------------------------------
+# Two more classes, both found by reading the three captions a person
+# flagged and then measuring the whole cache for the same fault. Neither
+# was rare.
+
+def barely_changed(source, english):
+    """
+    A caption that comes back still in its own language, minus a word.
+
+    "Paris (17e), la rue Demours, Le Restaurant du Grand Veneur" was
+    published as "Paris (17th), rue Demours, Le Restaurant du Grand
+    Veneur": the arrondissement turned into English, an article dropped,
+    and the rest left exactly as it was. "Rabat - Musee des Arts
+    indigenes des Oudaias" kept six of its seven words and mangled the
+    seventh into "Indigenouss".
+
+    Measured across the cache, a translation that hands back
+    three-quarters of the source untouched is worth nothing: half of
+    them still read as another language outright, and almost all the
+    rest only moved a comma, doubled a year ("Amherst, Mass. 1886 1886")
+    or broke a diacritic ("Culhuacan" to "Culhuaca n"). Not one was a
+    caption a reader was better off for.
+
+    A short caption is exempt, because at four words a single honest
+    change already leaves three-quarters standing -- "Bitche (Lorraine),
+    Le camp" to "Bitche (Lorraine), The camp" is a real translation and
+    must survive. Six words is where the measure starts meaning
+    something.
+    """
+    src = [w.lower() for w in WORDS.findall(source)]
+    if len(src) < BARELY_FLOOR:
+        return False
+    left = collections.Counter(w.lower() for w in WORDS.findall(english))
+    survived = 0
+    for word in src:
+        if left[word]:
+            left[word] -= 1
+            survived += 1
+    return survived >= BARELY_SHARE * len(src)
+
+
+# A Roman numeral as a cartouche writes it, dots and all: MDCCLXV, XII,
+# M.DCC.LXV. Three letters at least, because "DI" and "IL" are Italian
+# words, "VI" is both, and "M.V." is somebody's initials -- a caption
+# gains nothing from arguing about them.
+ROMAN = re.compile(r"(?<![A-Za-z.])((?:[MDCLXVI]+\.?){1,6})(?![A-Za-z])")
+ROMAN_VALUE = {"M": 1000, "D": 500, "C": 100, "L": 50, "X": 10, "V": 5, "I": 1}
+
+
+def roman_numerals(text):
+    """Every Roman numeral in the text, with what it is worth."""
+    found = []
+    for match in ROMAN.finditer(text):
+        letters = match.group(1).replace(".", "").upper()
+        if len(letters) < 3 or not all(c in ROMAN_VALUE for c in letters):
+            continue
+        total = previous = 0
+        for letter in reversed(letters):
+            value = ROMAN_VALUE[letter]
+            total += -value if value < previous else value
+            previous = max(previous, value)
+        found.append((match.group(1), total))
+    return found
+
+
+def loses_a_numeral(source, english):
+    """
+    A year or a century that did not survive being translated.
+
+    mangles_numbers watches digits, so a date written the old way walks
+    straight past it. "M.DCC.LXV" came back as "Mr.DCC.LXV" -- the M read
+    as an abbreviation for a man. "(XII secolo" became "16th century",
+    which is not a clumsy caption but a wrong one, and a reader has no
+    way to know. "LXXX A Esposizione Nazionale" lost its eightieth
+    entirely and gained a musical note.
+
+    Either script counts: "XII secolo" to "12th century" is exactly
+    right, and so is leaving the numeral alone.
+    """
+    lowered = english.lower()
+    for token, value in roman_numerals(source):
+        if token.lower() in lowered:
+            continue
+        if re.search(r"(?<!\d){}(?!\d)".format(value), english):
+            continue
+        return True
+    return False
 
 
 TRAILING_JUNK = re.compile(r"[\u2018\u2019'\"]+$")
