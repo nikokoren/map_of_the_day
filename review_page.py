@@ -21,6 +21,7 @@ import io
 import json
 import os
 import sys
+import time
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 
@@ -62,6 +63,42 @@ def thumbnail(url, agent):
         return ""
 
 
+def fetch_all(items, agent):
+    """
+    Every thumbnail, with the ones that did not come asked for again.
+
+    A burst of several hundred requests is enough for an archive to
+    start refusing, and the Library of Congress does: built from a
+    runner, 275 of 460 of its tiles came back empty where the other
+    three archives returned every one, and the same build from a laptop
+    had lost 10 of 621. It is load, not the URLs.
+
+    So: fewer at a time on each pass, and a pause between them. The
+    refusals are not spread evenly -- they arrive once the burst has
+    been going a while -- so a second ask after a rest recovers most of
+    what a first ask lost. The last pass goes one at a time, which is
+    slow and is why it only ever sees what two passes could not get.
+    """
+    todo = list(items)
+    for attempt, (workers, rest) in enumerate(
+            ((WORKERS, 0), (4, 5), (1, 15)), start=1):
+        if not todo:
+            break
+        if rest:
+            time.sleep(rest)
+        with ThreadPoolExecutor(max_workers=workers) as pool:
+            list(pool.map(
+                lambda it: it.__setitem__(
+                    "img", thumbnail(it.get("thumb") or "", agent)),
+                todo))
+        got = sum(1 for i in todo if i["img"])
+        if got or attempt > 1:
+            sys.stderr.write(
+                "  thumbnails pass {}: {} of {}\n".format(attempt, got, len(todo)))
+        todo = [i for i in todo if not i["img"]]
+    return items
+
+
 def seen_before():
     """Ids the last built page already showed, so a repeat pass opens on
     what has changed rather than on 600 items already looked at."""
@@ -90,14 +127,16 @@ def main():
     items = review.get("items") or []
     previous = seen_before()
 
-    def fetch(item):
-        item["img"] = thumbnail(item.get("thumb") or "", agent)
-        return item
-
-    with ThreadPoolExecutor(max_workers=WORKERS) as pool:
-        items = list(pool.map(fetch, items))
-
+    items = fetch_all(items, agent)
     got = sum(1 for i in items if i["img"])
+    missing = len(items) - got
+    if missing > len(items) * 0.05:
+        sys.stderr.write(
+            "WARNING: {} of {} thumbnails never came. The page is still "
+            "usable -- a card with no tile keeps its title and can still "
+            "be vetoed -- but that much missing is an archive refusing "
+            "the load, not a handful of dead scans.\n"
+            .format(missing, len(items)))
     slim = [{
         "id": i["id"],
         "t": i.get("title") or "",

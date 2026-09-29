@@ -145,11 +145,30 @@ textarea{width:100%;min-height:210px;font-family:"IBM Plex Mono",monospace;
 
   // Decisions survive a reload of this page only. The block is the
   // transport; a static host has nothing to write to.
-  var KEY = "queue:" + (D.kind||"") + ":" + (D.from||"");
+  // Keyed by queue alone, never by the window. It used to carry the
+  // window start, and the daily job moves that every morning -- so a
+  // review done on Tuesday was saved under a key Wednesday's page never
+  // looked at, and the work vanished without a word. Anything already
+  // handed over is in curation.json and comes back in D.vetoed, so
+  // remembering across windows costs nothing and losing it costs a
+  // morning.
+  var KEY = "queue:" + (D.kind||"");
+  function recall(key){
+    try {
+      var saved = JSON.parse(localStorage.getItem(key) || "{}");
+      (saved.veto||[]).forEach(function(x){ veto.add(x); });
+      (saved.flag||[]).forEach(function(x){ flag.add(x); });
+      return true;
+    } catch(e){ return false; }
+  }
+  recall(KEY);
+  // And anything saved under the old window-scoped keys, once, so a
+  // review in progress when this changed is not thrown away.
   try {
-    var saved = JSON.parse(localStorage.getItem(KEY) || "{}");
-    (saved.veto||[]).forEach(function(x){ veto.add(x); });
-    (saved.flag||[]).forEach(function(x){ flag.add(x); });
+    for (var n = 0; n < localStorage.length; n++) {
+      var k = localStorage.key(n);
+      if (k && k.indexOf("queue:" + (D.kind||"") + ":") === 0) recall(k);
+    }
   } catch(e){}
   function remember(){
     try { localStorage.setItem(KEY, JSON.stringify(
