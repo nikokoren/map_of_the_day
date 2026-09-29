@@ -217,43 +217,53 @@ def crowded_share(entry):
     return share
 
 
-def thinned(entries):
+def crowded_out(entry):
     """
-    The crowded groups cut to their share, the rest untouched.
+    Whether this map is one of the crowded ones a broad selection skips.
 
-    Salted apart from the schedule's own hash, so which maps survive
-    here has nothing to do with the order they come round in.
+    Salted apart from the schedule's own hash, so which maps are held
+    back has nothing to do with the order they come round in.
+
+    This is asked at pick time and never used to build a pool, which is
+    the whole point. Filtering the pool instead changes its length and
+    its membership, and the schedule is divmod by that length over a
+    hash of that membership -- so a filter that looks like a tidy-up
+    reshuffles every cell it touches. It did: thinning the general pool
+    moved 80 slots and put 72 unreviewed maps in front of a reader whose
+    review had been finished four hours earlier. A veto had been made
+    safe against exactly this and the thinning walked into it from the
+    other side.
     """
-    out = []
-    for entry in entries:
-        share = crowded_share(entry)
-        if share >= 1.0:
-            out.append(entry)
-            continue
-        digest = hashlib.sha256(
-            "{}|thin|{}".format(SALT, entry["id"]).encode()).hexdigest()
-        if int(digest[:8], 16) / 0xFFFFFFFF < share:
-            out.append(entry)
-    return out
+    share = crowded_share(entry)
+    if share >= 1.0:
+        return False
+    digest = hashlib.sha256(
+        "{}|thin|{}".format(SALT, entry["id"]).encode()).hexdigest()
+    return int(digest[:8], 16) / 0xFFFFFFFF >= share
+
+
+def is_broad(topic):
+    """"All Maps" and the eras -- what a reader gets before choosing."""
+    return topic == "all" or topic.startswith("era-")
 
 
 def maps_for(entries, topic):
     """
     The subset of the pool a topic -- theme, era, or cell -- selects.
 
-    "All Maps" and the eras are what a reader gets before choosing
-    anything, so the crowded groups are thinned there. A theme or a
-    theme-and-era cell is a choice, and a choice is answered in full:
-    Land Ownership holds every land-ownership map there is.
+    Every topic gets its whole subset. The crowded groups are held back
+    from the broad selections at pick time instead -- see crowded_out --
+    because a pool that changes shape reshuffles the schedule built on
+    it, and a review already done is the thing that reshuffle destroys.
     """
     if topic == "all":
-        return thinned(entries)
+        return entries
     if CELL_SEP in topic:
         theme, era = topic.split(CELL_SEP, 1)
         return [e for e in entries
                 if theme in (e.get("g") or []) and in_era(e, era)]
     if topic.startswith("era-"):
-        return thinned([e for e in entries if in_era(e, topic)])
+        return [e for e in entries if in_era(e, topic)]
     return [e for e in entries if topic in (e.get("g") or [])]
 
 EPOCH = date(1970, 1, 1)
@@ -1062,7 +1072,9 @@ def pick(entries, category, day, check):
     scheduled = candidates_for(entries, category, day)
     # A veto applies whether or not the images are being checked --
     # it is a decision about the map, not about its file.
-    candidates = [e for e in scheduled if e["id"] not in vetoed()]
+    candidates = [e for e in scheduled
+                  if e["id"] not in vetoed()
+                  and not (is_broad(category) and crowded_out(e))]
     if not candidates:
         # Every stand-in vetoed too. Rather than leave the cell empty,
         # show the day's map and say so; the review will come round to
@@ -1424,20 +1436,25 @@ def selftest(entries, day):
     #     so a sixth of the pool is Washington; a reader who has picked
     #     nothing should not be shown the same city every week, and a
     #     reader who picks Land Ownership should get all of it.
-    broad = maps_for(entries, "all")
-    capital_share = sum(1 for e in broad if is_capital(e)) / max(1, len(broad))
+    # Measured on what is served, not on the pool: the pool is no longer
+    # thinned, because thinning it reshuffled every cell built on it.
+    served = [pick(maps_for(entries, "all"), "all",
+                   day + timedelta(days=n), False)[0] for n in range(3, 63)]
+    capital_share = sum(1 for e in served if is_capital(e)) / len(served)
     raw_share = sum(1 for e in entries if is_capital(e)) / max(1, len(entries))
     if capital_share > raw_share * 0.6:
         failures.append(
-            "Washington is {:.1%} of the general pool, barely down from {:.1%}"
-            .format(capital_share, raw_share))
+            "Washington is {:.0%} of what the general feed serves, barely "
+            "down from {:.0%} of the pool".format(capital_share, raw_share))
+    # And the pool itself is untouched, whatever the topic. This is the
+    # property that keeps a finished review finished.
+    if len(maps_for(entries, "all")) != len(entries):
+        failures.append("the general pool is being filtered, which "
+                        "reshuffles every cell built on it")
     for theme in ("land-ownership", "city-plans"):
         whole = [e for e in entries if theme in (e.get("g") or [])]
         if len(maps_for(entries, theme)) != len(whole):
-            failures.append(theme + " is thinned, but it was chosen")
-    # Same maps every run, or the schedule moves under everyone.
-    if [e["id"] for e in maps_for(entries, "all")] != [e["id"] for e in broad]:
-        failures.append("thinning is not deterministic")
+            failures.append(theme + " is filtered, but it was chosen")
 
     # 5g. A text flag drops the translation and keeps the map. The two
     #     judgements are separate: a good map with a wrong caption is
@@ -1462,8 +1479,7 @@ def selftest(entries, day):
             if not subject["t"].startswith(flagged_shown[:20].rstrip(".")):
                 failures.append("a flagged map does not fall back to "
                                 "the catalogue's own words")
-            if subject not in maps_for(entries, "all") and \
-                    subject in thinned([subject]):
+            if subject not in maps_for(entries, "all"):
                 failures.append("a text flag removed the map as well")
     finally:
         _untranslated = held
@@ -1493,6 +1509,25 @@ def selftest(entries, day):
     strays = sum(1 for t in left if "[" in t or "]" in t)
     if strays:
         failures.append("{} titles still carry brackets".format(strays))
+
+    # 5i. Nothing may change the pool's shape. The schedule is divmod by
+    #     its length over a hash of its membership, so a filter applied
+    #     to the pool -- however sensible the filter -- reshuffles every
+    #     cell built on it and voids any review already done. That is
+    #     not hypothetical: thinning the general pool moved 80 slots and
+    #     put 72 unreviewed maps in front of a reader four hours after
+    #     they had finished. Everything that holds a map back now does
+    #     it at pick time, where the cost is one slot.
+    for topic in ("all", "era-1800-1849", "land-ownership"):
+        subset = maps_for(entries, topic)
+        expected = (entries if topic == "all"
+                    else [e for e in entries
+                          if (in_era(e, topic) if topic.startswith("era-")
+                              else topic in (e.get("g") or []))])
+        if len(subset) != len(expected):
+            failures.append(
+                "maps_for({!r}) returns {} of {} -- something is filtering "
+                "the pool".format(topic, len(subset), len(expected)))
 
     # 6. Every topic offered as a setting is deep enough that a reader
     #    does not see the same map twice inside a year.
