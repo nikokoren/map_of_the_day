@@ -714,6 +714,13 @@ def label_aliases(topics, picks):
 # three midnights, and it comes to three for any publish hour.
 DAY_SPAN = (-1, 0, 1)
 
+# Which of those days gets the image budget first. Today is what most
+# devices are on; tomorrow is what the ones ahead of UTC are about to be
+# on; yesterday is nearly over everywhere. So when the budget runs short
+# it runs short on the day that matters least. The file carries all three
+# whatever order they were chosen in.
+BUDGET_ORDER = (0, 1, -1)
+
 # A pick is a list, not an object. At 55 cells across 3 days, field
 # names alone would cost about 20KB of the 95KB TRMNL allows. The order
 # is the contract with the markup, and selection.liquid unpacks it into
@@ -1390,6 +1397,13 @@ def selftest(entries, day):
                 {"pick_fields": list(PICK_FIELDS), "days": []}):
         if published_days(bad):
             failures.append("carry-forward: a mismatched feed was carried")
+    # A row stands once it is published, so every day the file carries has
+    # to be probed as it is written -- a day published unprobed never gets
+    # a second chance to be. The budget order decides which day goes short
+    # when the checks run out, so it has to name them all.
+    if set(BUDGET_ORDER) != set(DAY_SPAN):
+        failures.append("carry-forward: the budget order misses a day the "
+                        "feed carries")
 
     # 5d. A veto moves its own slot and nothing else. This is what lets
     #     a person review what is coming and say no to it: if vetoing
@@ -1696,7 +1710,7 @@ def main():
     days, written, chosen_images, sizes = {}, [], [], {}
     picks = {}
     carried = unresolved = 0
-    for shift in DAY_SPAN:
+    for shift in BUDGET_ORDER:
         that_day = day + timedelta(days=shift)
         standing_day = published.get(str(day_index(that_day))) or {}
         day_picks = {}
@@ -1707,10 +1721,24 @@ def main():
                     sys.stderr.write(
                         "  {} selects no maps, skipping\n".format(topic))
                 continue
-            # Only probe images for the middle day. The other two are
-            # the same maps a day either side of their own turn, and get
-            # probed when it comes.
+            # A carried row is probed on the middle day only: it was
+            # vetted when it was chosen, and the middle day is the one
+            # about to be everybody's.
+            #
+            # A fresh choice is probed whichever day it is for. It used to
+            # be the middle day alone, on the reasoning that the other two
+            # get probed when their turn comes -- but a row now stands
+            # once it is published, so its turn never comes: a blank sheet
+            # chosen for tomorrow is pinned tomorrow. Measured against the
+            # committed feeds before days were carried, this is the whole
+            # of the old drift -- 8 to 12 of 55 topics moved every
+            # morning, and every one of them was a day published without
+            # its image ever being asked about. Probing here costs the
+            # budget one extra day's worth, since yesterday and today are
+            # normally carried, and buys a file whose every row was vetted
+            # on the day it went out.
             probe = not args.no_check and shift == 0
+            probe_fresh = not args.no_check
             sizes[topic] = len(subset)
 
             standing = standing_day.get(topic)
@@ -1748,7 +1776,8 @@ def main():
                     "  {} holds {}, no longer in the pool; the feed keeps "
                     "it, map.json does not\n".format(topic, standing[item_at]))
 
-            entry, checked, size = pick(subset, topic, that_day, check=probe)
+            entry, checked, size = pick(subset, topic, that_day,
+                                        check=probe_fresh)
             payload = build_payload(entry, topic, that_day, pool, checked, size)
             payload["topic_size"] = len(subset)
             if topic not in day_picks:

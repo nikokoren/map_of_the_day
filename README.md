@@ -625,3 +625,33 @@ day afresh, for when something wrong has been published.
 A map dropped from the pool between runs therefore keeps the day it
 already holds and loses every day after it.
 
+### And nothing is published unprobed
+
+Standing still is only worth having if what stands was worth publishing.
+Only the middle day used to be probed, on the reasoning that the other
+two get probed when their turn comes — but a row that stands once
+published never gets that turn, so a blank sheet chosen for tomorrow is
+pinned tomorrow.
+
+It is not a small case. Measured across the committed feeds from before
+days were carried, **8 to 12 of 55 topics moved every morning, and every
+single one of them** was a day that had gone out without its image ever
+being asked about: when its turn came the probe found the scan gone or
+nearly blank and moved the map, mid-morning, for everyone already on it.
+Carrying the day forward would have made those blank sheets stay instead.
+
+So a fresh choice is probed on whichever of the three days it is for. The
+day it goes out is the day it was vetted, and there is nothing left for
+tomorrow's run to correct. Yesterday and today are normally carried
+rather than chosen, so the cost is about one extra day's worth of checks.
+
+The budget goes to today first, then tomorrow, then yesterday — when the
+checks run out they run out on the day that matters least, and a pick
+that did go out unprobed is still probed when its day arrives, exactly as
+before.
+
+Verified against the Library's own service: a run on top of a feed
+written the old way replaced 11 unprobed picks, and the next run — on a
+feed where every day had been probed — carried all 110 overlapping picks
+with nothing moved.
+
