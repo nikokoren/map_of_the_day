@@ -16,10 +16,12 @@ What it checks, and why each one:
                                    from an older pool would otherwise
                                    write ids that match nothing, and the
                                    mistake would be invisible
-  the window is not older than
-  what has already been reviewed   pasting yesterday's block must not
-                                   walk reviewed_to backwards and
-                                   re-open a week already done
+  reviewed_to only moves forward   the date is a high-water mark, so a
+                                   block from inside a window already
+                                   reviewed keeps the later date -- and
+                                   its decisions still apply, because a
+                                   sliding window means a fresh pass
+                                   often sits inside an old one
 
 Decisions are a union with what is already there, never a replacement:
 a block carries only the window it covered, and treating it as the whole
@@ -83,11 +85,19 @@ def main():
         return fail("{} id(s) are not in the pool, e.g. {}; refusing the "
                     "whole block".format(len(unknown), ", ".join(unknown[:5])))
 
+    # How far the review now reaches. This only ever moves forward, but
+    # a block that does not move it is still full of decisions: the
+    # queue window is a week or a fortnight wide and slides daily, so a
+    # pass done today can easily sit inside a window reviewed last week
+    # and still be the first look at what the reshuffle put there.
+    #
+    # This used to refuse such a block outright, which threw away every
+    # veto in it to protect a date. The date is the cheap part -- it is
+    # a high-water mark, so keeping the later of the two costs nothing
+    # and loses nothing.
     was_to = curation.get("reviewed_to") or ""
     now_to = block.get("reviewed_to") or block.get("to") or ""
-    if was_to and now_to and now_to < was_to:
-        return fail("this block reviews to {} but {} is already reviewed; "
-                    "refusing to go backwards".format(now_to, was_to))
+    reviewed_to = max(was_to, now_to) if (was_to and now_to) else (now_to or was_to)
 
     before_v = set(str(i) for i in (curation.get("vetoed") or []))
     before_f = set(str(i) for i in (curation.get("untranslate") or []))
@@ -96,8 +106,8 @@ def main():
 
     curation["vetoed"] = sorted(after_v)
     curation["untranslate"] = sorted(after_f)
-    if now_to:
-        curation["reviewed_to"] = now_to
+    if reviewed_to:
+        curation["reviewed_to"] = reviewed_to
     with open(CURATION, "w") as fh:
         json.dump({"vetoed": curation["vetoed"],
                    "untranslate": curation["untranslate"],
@@ -121,10 +131,16 @@ def main():
             json.dump(existing, fh, indent=1, sort_keys=True)
             fh.write("\n")
 
+    # Say plainly whether this pass extended the reviewed window or sat
+    # inside it, so a block that looks like it did nothing to the date
+    # does not read as a block that did nothing at all.
+    reach = curation.get("reviewed_to") or "unchanged"
+    if was_to and now_to and now_to < was_to:
+        reach = "{} (this pass covered {}, inside what was already reviewed)".format(
+            was_to, now_to)
     print("{} vetoed (+{}), {} flagged (+{}), reviewed through {}".format(
         len(after_v), len(after_v - before_v),
-        len(after_f), len(after_f - before_f),
-        curation.get("reviewed_to") or "unchanged"))
+        len(after_f), len(after_f - before_f), reach))
     return 0
 
 
