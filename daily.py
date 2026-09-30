@@ -915,8 +915,11 @@ def title_line(entry):
     english = translate.tidy(entry["t"], rendered.get("en"))
     if entry["id"] in untranslated():
         english = None
-    title = english if english and translate.usable(entry["t"], english) \
-        else entry["t"]
+    # A caption somebody wrote by hand outranks both: the machine's
+    # attempt, and the catalogue's own words that a flag falls back to.
+    title = corrected(entry) or (
+        english if english and translate.usable(entry["t"], english)
+        else entry["t"])
     # Before the length is measured, not after: cleaning can free thirty
     # characters, and truncating first would spend the budget on
     # punctuation and then cut a real word to pay for it.
@@ -1028,6 +1031,57 @@ _vetoed = None
 
 
 _untranslated = None
+
+CORRECTIONS_PATH = os.path.join(HERE, "corrections.json")
+_corrections = None
+_stale = set()
+
+
+def corrections():
+    """
+    Captions written by hand, read once.
+
+    The flag list is the blunt repair: it drops a bad translation and
+    puts the catalogue's own words back, which needs nobody to write
+    anything but leaves a reader looking at French. This is the other
+    half -- somebody reads the caption, works out what the translator
+    got wrong, and writes the line that should have been there. It beats
+    both the machine and the fallback, because a person who has looked
+    at the source is a better authority than either.
+
+    Kept in its own file rather than in curation.json, which
+    apply_decisions.py rewrites from a pasted block and would drop
+    anything it does not recognise.
+    """
+    global _corrections
+    if _corrections is None:
+        try:
+            with open(CORRECTIONS_PATH) as fh:
+                _corrections = json.load(fh)
+        except (OSError, ValueError):
+            _corrections = {}
+    return _corrections
+
+
+def corrected(entry):
+    """The hand-written caption for this entry, if it still applies."""
+    fix = corrections().get(str(entry["id"]))
+    if not fix:
+        return None
+    # A correction answers one particular caption. Archives do re-catalogue,
+    # and a correction left pointing at text that has since changed would
+    # put the answer to one question against another. Dropped, and the
+    # selftest says so rather than letting it pass unnoticed.
+    if fix.get("was") is not None and fix["was"] != entry["t"]:
+        _stale.add(str(entry["id"]))
+        return None
+    return fix.get("title") or None
+
+
+def stale_corrections():
+    """Corrections whose caption has moved since they were written."""
+    return set(_stale)
+
 
 
 def _curation():
@@ -1244,6 +1298,30 @@ def selftest(entries, day):
     total = len(entries)
     index = day_index(day)
     cycle, position = divmod(index, total)
+
+    # 0. A caption written by hand has to actually reach the panel, and
+    #    has to still be answering the caption it was written for. A
+    #    correction that quietly stopped applying is worse than none:
+    #    somebody looked at it, worked out the fault, and would have no
+    #    way to know it had lapsed.
+    by_id = {str(e["id"]): e for e in entries}
+    for item, fix in corrections().items():
+        entry = by_id.get(item)
+        if entry is None:
+            failures.append(f"correction {item} has no entry in the pool")
+            continue
+        if fix.get("was") != entry["t"]:
+            failures.append(f"correction {item} was written for a different "
+                            f"caption; the pool now says {entry['t']!r}")
+            continue
+        served = title_line(entry)
+        wanted = clean_catalogue(fix["title"])
+        if not (served == wanted or wanted.startswith(served.rstrip(" .\u2026"))):
+            failures.append(f"correction {item} is not what gets served: "
+                            f"{served!r}")
+    if stale_corrections():
+        failures.append(f"corrections have gone stale: "
+                        f"{sorted(stale_corrections())}")
 
     # 1. The same day gives the same map, every time it is asked.
     if (candidates_for(entries, "all", day)[0]["id"]
@@ -1815,6 +1893,8 @@ def main():
               "{} carried forward".format(
                   len(days), len(picks), len(themes), len(eras), len(cells),
                   carried))
+        if corrections():
+            print("{} captions written by hand".format(len(corrections())))
         size = len(json.dumps(combined, separators=(",", ":"),
                               sort_keys=True).encode("utf-8"))
         print("today.json {:.1f}KB ({} picks)".format(size / 1024.0,
