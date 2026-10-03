@@ -191,14 +191,20 @@ def in_era(entry, era):
 # "All Maps" and the five eras, which is what a reader sees before they
 # have expressed any interest at all.
 #
-# So the crowded groups are thinned in those selections and left whole
-# everywhere else. Thinned by a hash of the id, which keeps the same
+# So the crowded groups are held back in those selections and left whole
+# everywhere else -- Washington thinned to a share, land ownership cut
+# outright. Thinned by a hash of the id, which keeps the same
 # maps every run -- thinning by date or at random would move the
 # schedule under everyone each time it ran.
 DC_PLACES = re.compile(
     r"washington|district of columbia|\bD\.?\s?C\.?\b|georgetown", re.I)
 DC_KEEP = 0.30
-LAND_KEEP = 0.40
+# Land ownership is cut from those selections rather than thinned. Plat
+# books and county atlases are a large, uniform block -- 375 maps, and
+# one page of parcel outlines looks much like the next on a panel. They
+# stay available to a reader who picks "Land & Property", which is what
+# that option is for; they are simply not what anybody gets by default.
+LAND_KEEP = 0.0
 
 
 def is_capital(entry):
@@ -237,6 +243,8 @@ def crowded_out(entry):
     share = crowded_share(entry)
     if share >= 1.0:
         return False
+    if share <= 0.0:
+        return True
     digest = hashlib.sha256(
         "{}|thin|{}".format(SALT, entry["id"]).encode()).hexdigest()
     return int(digest[:8], 16) / 0xFFFFFFFF >= share
@@ -1533,6 +1541,18 @@ def selftest(entries, day):
         whole = [e for e in entries if theme in (e.get("g") or [])]
         if len(maps_for(entries, theme)) != len(whole):
             failures.append(theme + " is filtered, but it was chosen")
+    # Cut, not merely thinned: none of it in a selection nobody made.
+    strays = [e["id"] for e in served if "land-ownership" in (e.get("g") or [])]
+    if strays:
+        failures.append(
+            "land ownership is cut from the general feed, but {} of {} "
+            "served maps carry it, e.g. {}".format(
+                len(strays), len(served), strays[0]))
+    # And still there for the reader who asks for it.
+    chosen = [pick(maps_for(entries, "land-ownership"), "land-ownership",
+                   day + timedelta(days=n), False)[0] for n in range(3, 13)]
+    if not all("land-ownership" in (e.get("g") or []) for e in chosen):
+        failures.append("the Land & Property option stopped serving its maps")
 
     # 5g. A text flag drops the translation and keeps the map. The two
     #     judgements are separate: a good map with a wrong caption is
