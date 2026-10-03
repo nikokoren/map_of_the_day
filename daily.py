@@ -199,12 +199,6 @@ def in_era(entry, era):
 DC_PLACES = re.compile(
     r"washington|district of columbia|\bD\.?\s?C\.?\b|georgetown", re.I)
 DC_KEEP = 0.30
-# Land ownership is cut from those selections rather than thinned. Plat
-# books and county atlases are a large, uniform block -- 375 maps, and
-# one page of parcel outlines looks much like the next on a panel. They
-# stay available to a reader who picks "Land & Property", which is what
-# that option is for; they are simply not what anybody gets by default.
-LAND_KEEP = 0.0
 
 
 def is_capital(entry):
@@ -213,14 +207,14 @@ def is_capital(entry):
         str(entry.get(field) or "") for field in ("t", "p", "d", "col"))))
 
 
+def is_land(entry):
+    """Whether this is a plat book or county atlas page."""
+    return "land-ownership" in (entry.get("g") or [])
+
+
 def crowded_share(entry):
     """How much of this map's group a broad selection keeps."""
-    share = 1.0
-    if is_capital(entry):
-        share = min(share, DC_KEEP)
-    if "land-ownership" in (entry.get("g") or []):
-        share = min(share, LAND_KEEP)
-    return share
+    return DC_KEEP if is_capital(entry) else 1.0
 
 
 def crowded_out(entry):
@@ -243,8 +237,6 @@ def crowded_out(entry):
     share = crowded_share(entry)
     if share >= 1.0:
         return False
-    if share <= 0.0:
-        return True
     digest = hashlib.sha256(
         "{}|thin|{}".format(SALT, entry["id"]).encode()).hexdigest()
     return int(digest[:8], 16) / 0xFFFFFFFF >= share
@@ -253,6 +245,31 @@ def crowded_out(entry):
 def is_broad(topic):
     """"All Maps" and the eras -- what a reader gets before choosing."""
     return topic == "all" or topic.startswith("era-")
+
+
+def held_back(entry, topic):
+    """
+    Whether a map is kept out of a selection it was not chosen for.
+
+    Two different rules, because the two groups are crowded in different
+    ways. Washington is a sixth of the Library's holdings and plenty of
+    it is worth seeing, so it is thinned to a share, and only where
+    nobody expressed an interest.
+
+    Land ownership is not thinned but set apart. Plat books and county
+    atlases are a large, uniform block -- 375 maps, and one page of
+    parcel outlines looks much like the next on a panel -- so they
+    appear under "Land & Property" and nowhere else. That matters more
+    than it sounds: 373 of the 375 also carry another group, 322 of them
+    city-plans, so leaving them in the themes would have let most of
+    them back in through the side door this was meant to close.
+
+    Asked at pick time and never used to build a pool -- see crowded_out
+    for what filtering the pool costs.
+    """
+    if is_land(entry):
+        return topic != "land-ownership"
+    return is_broad(topic) and crowded_out(entry)
 
 
 def maps_for(entries, topic):
@@ -1136,7 +1153,7 @@ def pick(entries, category, day, check):
     # it is a decision about the map, not about its file.
     candidates = [e for e in scheduled
                   if e["id"] not in vetoed()
-                  and not (is_broad(category) and crowded_out(e))]
+                  and not held_back(e, category)]
     if not candidates:
         # Every stand-in vetoed too. Rather than leave the cell empty,
         # show the day's map and say so; the review will come round to
@@ -1541,17 +1558,28 @@ def selftest(entries, day):
         whole = [e for e in entries if theme in (e.get("g") or [])]
         if len(maps_for(entries, theme)) != len(whole):
             failures.append(theme + " is filtered, but it was chosen")
-    # Cut, not merely thinned: none of it in a selection nobody made.
-    strays = [e["id"] for e in served if "land-ownership" in (e.get("g") or [])]
-    if strays:
-        failures.append(
-            "land ownership is cut from the general feed, but {} of {} "
-            "served maps carry it, e.g. {}".format(
-                len(strays), len(served), strays[0]))
+    # Set apart, not merely thinned: under its own option and nowhere
+    # else. Checked across every topic, not just the general feed,
+    # because 373 of the 375 also carry another group -- 322 of them
+    # city-plans -- so the themes are the door this has to close.
+    for topic, _label in THEMES + [(slug, lab) for slug, lab, _a, _b in ERAS]:
+        if topic == "land-ownership":
+            continue
+        pool = maps_for(entries, topic)
+        if len(pool) < CELL_MIN:
+            continue
+        shown = [pick(pool, topic, day + timedelta(days=n), False)[0]
+                 for n in range(3, 33)]
+        strays = [e["id"] for e in shown if is_land(e)]
+        if strays:
+            failures.append(
+                "land ownership should appear only under its own option, "
+                "but {} of {} maps served for {} carry it, e.g. {}".format(
+                    len(strays), len(shown), topic, strays[0]))
     # And still there for the reader who asks for it.
     chosen = [pick(maps_for(entries, "land-ownership"), "land-ownership",
-                   day + timedelta(days=n), False)[0] for n in range(3, 13)]
-    if not all("land-ownership" in (e.get("g") or []) for e in chosen):
+                   day + timedelta(days=n), False)[0] for n in range(3, 33)]
+    if not all(is_land(e) for e in chosen):
         failures.append("the Land & Property option stopped serving its maps")
 
     # 5g. A text flag drops the translation and keeps the map. The two
