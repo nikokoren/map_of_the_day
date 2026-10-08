@@ -186,11 +186,13 @@ textarea{width:100%;min-height:210px;font-family:"IBM Plex Mono",monospace;
   document.getElementById("near").textContent = L.near_label || "Narrow";
   put("note", "Grouped by the day each one is first served. A veto drops it "
       + "and the slot falls to a stand-in half a cycle away. A text flag "
-      + "keeps the picture and drops only the translation, so the archive's "
-      + "own words come back — and queues the caption for a proper look, "
-      + "since one wrong caption is usually a class of them. Only items "
-      + "whose caption was translated carry a Flag text button, and those "
-      + "show the original underneath.");
+      + "keeps the picture and queues the caption for a proper look, "
+      + "since one wrong caption is usually a class of them. Where there "
+      + "is a translation it is dropped too, so the archive's own words "
+      + "come back, and the original is shown underneath. Anything can be "
+      + "flagged, including a caption that was never translated and is "
+      + "still in its own language — there is nothing to drop there, but "
+      + "it is exactly the case that needs a replacement written.");
 
   function near(it){ return it.d != null && it.d < 30; }
 
@@ -219,7 +221,7 @@ textarea{width:100%;min-height:210px;font-family:"IBM Plex Mono",monospace;
       '<span class="meta"><span class="t"></span><span class="by"></span>' +
       '<span class="foot"><span class="den"></span><span class="when"></span></span>' +
       '</span><span class="acts"><button type="button" class="veto">Veto</button>' +
-      (it.src ? '<button type="button" class="flag">Flag text</button>' : '') +
+      '<button type="button" class="flag">Flag text</button>' +
       '</span>';
     if (it.img) {
       var img = document.createElement("img");
@@ -309,9 +311,21 @@ textarea{width:100%;min-height:210px;font-family:"IBM Plex Mono",monospace;
       queue: D.kind, from: D.from, to: D.to,
       reviewed_to: D.to,
       vetoed: Array.from(veto).sort(),
-      untranslate: Array.from(flag).sort().map(function(id){
+      // Only what this window can describe. An id flagged in an earlier
+      // pass is still in the set but may have left the window, and
+      // without a row to read it would go out as a pair of empty
+      // strings -- noise, since it was recorded when it was flagged.
+      untranslate: Array.from(flag).filter(function(id){
+        return byId[id];
+      }).sort().map(function(id){
         var i = byId[id] || {};
-        return {id: id, lang: i.lang||"", source: i.src||"", shown: i.t||""};
+        // An item that was never translated has no separate original:
+        // the caption on the panel is the archive's own words. Sending
+        // it as both says so -- source equal to shown is how a reader
+        // of flagged_text.json tells "the translation is wrong" from
+        // "this was never translated and is still in its own language".
+        return {id: id, lang: i.lang||"", source: i.src || i.t || "",
+                shown: i.t||""};
       })
     };
     document.getElementById("out").value =

@@ -117,7 +117,15 @@ def main():
 
     # The flags are the part a person has to look at later, so they are
     # written out with what they need rather than as bare ids.
-    notes = [f for f in flags if isinstance(f, dict) and f.get("source")]
+    #
+    # A flag on something that was never translated carries no separate
+    # source -- the caption on the panel is already the archive's own
+    # words. Requiring one dropped exactly those, which are the ones
+    # most in need of a replacement being written: there is no
+    # translation to fall back to, so a flag alone changes nothing a
+    # reader sees.
+    notes = [f for f in flags if isinstance(f, dict)
+             and (f.get("source") or f.get("shown"))]
     if notes:
         path = os.path.join(HERE, "flagged_text.json")
         try:

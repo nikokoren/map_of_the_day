@@ -108,6 +108,23 @@ def main():
     check("  and keeps the source line to diagnose from",
           len(notes) == 1 and notes[0]["source"] == "Graubünden", str(notes))
 
+    # A caption that was never translated is the case most in need of a
+    # replacement -- there is no translation to drop, so a flag changes
+    # nothing a reader sees until somebody writes one. These used to be
+    # thrown away for carrying no separate source.
+    rc, out, after, notes = run(block(untranslate=[
+        {"id": "c", "lang": "", "source": "Vue de la Place Royale",
+         "shown": "Vue de la Place Royale"}]))
+    check("an untranslated caption can be flagged",
+          rc == 0 and after["untranslate"] == ["c"], out + str(after))
+    check("  and reaches the diagnostic queue",
+          len(notes) == 1 and notes[0]["shown"] == "Vue de la Place Royale",
+          str(notes))
+    rc, out, after, notes = run(block(untranslate=[
+        {"id": "d", "lang": "", "source": "", "shown": "Ozero Baĭkal"}]))
+    check("  even with no source field at all",
+          rc == 0 and len(notes) == 1, out + str(notes))
+
     print("refuses, and writes nothing:")
     for name, kwargs, want in (
             ("a comment with no block", {"block": None}, "no ```queue block"),
