@@ -71,7 +71,13 @@ jobs:
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          claude_args: --max-turns 30
+          # Without these the run has no hands. A plain-text prompt gets
+          # no shell and no file access until they are granted, and the
+          # first attempt proved what that looks like: three turns, two
+          # permission denials, and a green tick for having done nothing.
+          claude_args: |
+            --max-turns 30
+            --allowedTools Read,Edit,Write,Bash,Glob,Grep
           prompt: |
             Run `python3 pending_rewrites.py` in the repository root. It
             lists flagged captions that have no replacement written yet.
@@ -103,11 +109,55 @@ jobs:
               helps nobody; "debouquemens is an 18th-century naval term for
               the channels out of the Antilles, half-copied into deboutmen"
               is the kind of thing that stops it happening again.
-            - Change corrections.json and nothing else.
 
             Then run `python3 daily.py --selftest` and make sure it passes.
             It checks that every correction still matches the caption it
             corrects and actually reaches the panel.
 
-            Open a pull request titled "Rewrite N flagged map captions",
-            with the before and after for each one in the body.
+            Change corrections.json and nothing else. Do not commit, do not
+            push, and do not open a pull request -- the workflow does that
+            with whatever you leave in the working tree.
+
+      # Deliberately not Claude's job. Opening the pull request is
+      # mechanical, and leaving it to the prompt means it depends on which
+      # tools the run happened to be granted; here it either works or
+      # fails loudly. It also bounds the blast radius: whatever else the
+      # run touched on disk, only corrections.json can reach the branch.
+      - name: Open a pull request with what changed
+        if: steps.waiting.outputs.pending != '0' && steps.gate.outputs.ready == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PENDING: ${{ steps.waiting.outputs.pending }}
+        run: |
+          set -euo pipefail
+          stray="$(git status --porcelain -- . ':!corrections.json')"
+          if [ -n "$stray" ]; then
+            echo "::warning::files other than corrections.json were touched and"\
+                 "will not be included:"
+            echo "$stray"
+          fi
+          if git diff --quiet -- corrections.json; then
+            echo "::warning::the run left corrections.json unchanged;"\
+                 "$PENDING caption(s) are still waiting"
+            exit 0
+          fi
+          branch="rewrite-captions-${GITHUB_RUN_ID}"
+          git config user.name "GitHub Action"
+          git config user.email "action@github.com"
+          git checkout -b "$branch"
+          git add corrections.json
+          git commit -m "Rewrite $PENDING flagged map caption(s)"
+          git push -u origin "$branch"
+          {
+            echo "Replacements for the captions flagged as wrong."
+            echo
+            echo '```diff'
+            git diff main...HEAD -- corrections.json
+            echo '```'
+            echo
+            echo "Each entry carries the fault it fixes in its note. Merging"
+            echo "puts these on the panel from day three onward -- a published"
+            echo "day keeps the caption it was published with."
+          } > body.md
+          gh pr create --title "Rewrite $PENDING flagged map caption(s)" \
+                       --body-file body.md --base main --head "$branch"
