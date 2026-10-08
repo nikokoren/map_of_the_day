@@ -147,12 +147,18 @@ jobs:
           git checkout -b "$branch"
           git add corrections.json
           git commit -m "Rewrite $PENDING flagged map caption(s)"
-          git push -u origin "$branch"
+          # Push with a credential of our own. actions/checkout stores one,
+          # but the Claude action revokes its app token as its last step and
+          # that leaves the stored credential dead -- the first attempt got
+          # "Password authentication is not supported" after committing
+          # perfectly good work. Inline, so nothing is persisted in config.
+          git push "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" \
+                   "HEAD:refs/heads/$branch"
           {
             echo "Replacements for the captions flagged as wrong."
             echo
             echo '```diff'
-            git diff main...HEAD -- corrections.json
+            git diff origin/main...HEAD -- corrections.json
             echo '```'
             echo
             echo "Each entry carries the fault it fixes in its note. Merging"
