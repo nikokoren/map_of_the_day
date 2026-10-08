@@ -29,6 +29,14 @@ jobs:
         id: runway
         run: python3 runway.py >> "$GITHUB_OUTPUT"
 
+      # Flags used to pile up in a file nothing read. Saying the number
+      # here means they cannot sit unnoticed for a fortnight again, and
+      # it stays useful once the rewrite workflow is live: a count that
+      # does not fall is that workflow failing.
+      - name: How many captions are waiting for a rewrite
+        id: rewrites
+        run: python3 pending_rewrites.py --brief >> "$GITHUB_OUTPUT"
+
       - name: Open or close the reminder
         env:
           GH_TOKEN: ${{ github.token }}
@@ -37,13 +45,17 @@ jobs:
           REVIEWED_TO: ${{ steps.runway.outputs.reviewed_to }}
           QUEUE_TO: ${{ steps.runway.outputs.queue_to }}
           WAITING: ${{ steps.runway.outputs.waiting }}
-          QUEUE_PAGE: https://claude.ai/artifact/TDK64Xdcsh82AQiFTRiMG4
+          PENDING: ${{ steps.rewrites.outputs.pending }}
+          QUEUE_PAGE: https://nikokoren.github.io/map_of_the_day/
         run: |
           set -euo pipefail
           existing="$(gh issue list --label review-queue --state open \
                         --json number --jq '.[0].number // empty')"
 
-          if [ "$DUE" != "yes" ]; then
+          # A caption waiting for a replacement is reason enough on its
+          # own: the runway can be months and the feed still be showing a
+          # line somebody reported as wrong.
+          if [ "$DUE" != "yes" ] && [ "${PENDING:-0}" = "0" ]; then
             if [ -n "$existing" ]; then
               gh issue close "$existing" \
                 --comment "Reviewed through $REVIEWED_TO, ${RUNWAY} days of runway left. Nothing to do."
@@ -60,16 +72,15 @@ jobs:
             "- Reviewed through **${REVIEWED_TO:-nothing yet}**" \
             "- That is **${RUNWAY:-unknown} days** of runway" \
             "- The queue now reaches **${QUEUE_TO}**, with ${WAITING} items in it" \
+            "- **${PENDING:-0}** flagged caption(s) are waiting for a replacement" \
             "" \
             "Past the reviewed date, whatever the rotation picks reaches a" \
             "screen without anyone having looked at it first." \
             "" \
             "The queue page is at ${QUEUE_PAGE}" \
             "" \
-            "It is a snapshot and does not rebuild itself, so it still shows" \
-            "whatever window it was last built for. review.json in this repo" \
-            "is current -- the daily job rewrites it -- but the page has to be" \
-            "rebuilt from it before the thumbnails match." \
+            "The daily job rebuilds that page, and the page says so itself if" \
+            "it is ever drawing a queue more than two days old." \
             "" \
             "This issue closes itself once the runway recovers.")"
 

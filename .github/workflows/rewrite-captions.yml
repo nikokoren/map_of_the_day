@@ -1,0 +1,113 @@
+name: Rewrite Flagged Captions
+
+# The other half of a text flag.
+#
+# Flagging drops a bad translation so the archive's own words come back.
+# Where there was never a translation it changes nothing a reader sees --
+# the caption is already the archive's words, and they are the problem.
+# Either way the repair is a line somebody writes by hand, and until this
+# existed nothing asked for one: flagged_text.json was written and never
+# read, and eight captions sat in it for a fortnight.
+#
+# So: when a flag lands, work out what the translator got wrong and write
+# the replacement into corrections.json. As a pull request, not a push --
+# a veto is the owner's own judgement going straight in, but a caption is
+# invented prose going onto somebody's wall, and that is worth a glance.
+#
+# Inert until the repository has a Claude credential. Without one the job
+# says what is waiting and stops, so adding the secret later is the only
+# step needed to bring it to life.
+
+on:
+  push:
+    branches: [main]
+    paths: ["flagged_text.json"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  id-token: write
+
+concurrency:
+  group: rewrite-captions
+  cancel-in-progress: false
+
+jobs:
+  rewrite:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: What is waiting
+        id: waiting
+        run: python3 pending_rewrites.py --brief >> "$GITHUB_OUTPUT"
+
+      - name: Say what it is
+        if: steps.waiting.outputs.pending != '0'
+        run: python3 pending_rewrites.py --task
+
+      # secrets cannot be read in an `if:`, so the gate goes through a step.
+      - name: Is there a credential to run with
+        id: gate
+        env:
+          HAVE: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN != '' || secrets.ANTHROPIC_API_KEY != '' }}
+        run: echo "ready=$HAVE" >> "$GITHUB_OUTPUT"
+
+      - name: Nothing to run with
+        if: steps.waiting.outputs.pending != '0' && steps.gate.outputs.ready != 'true'
+        run: |
+          echo "::notice::${{ steps.waiting.outputs.pending }} caption(s) need a"\
+               "replacement, but this repository has no CLAUDE_CODE_OAUTH_TOKEN"\
+               "or ANTHROPIC_API_KEY secret, so there is nothing to write them."\
+               "Install the Claude GitHub App and add the secret; this workflow"\
+               "then runs on the next flag with no further change."
+
+      - name: Write the corrections
+        if: steps.waiting.outputs.pending != '0' && steps.gate.outputs.ready == 'true'
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          claude_args: --max-turns 30
+          prompt: |
+            Run `python3 pending_rewrites.py` in the repository root. It
+            lists flagged captions that have no replacement written yet.
+
+            For each one, work out what the translator actually got wrong,
+            then write the caption that should have been there into
+            corrections.json, keyed by the item's id:
+
+              "<id>": {
+                "was":   "<the caption pool.json currently holds, exactly>",
+                "title": "<your replacement, in English>",
+                "note":  "<what was wrong, for whoever reads this next>"
+              }
+
+            Rules that matter here:
+
+            - "was" must match pool.json's caption for that id character
+              for character. daily.py drops a correction whose "was" has
+              drifted, and the selftest fails on it, so a careless copy is
+              worse than no correction.
+            - Keep proper names as names. A place, a building, a person or
+              a restaurant is not vocabulary -- this whole mechanism exists
+              because a translator rendered Antietam as "Antimony" and
+              Nafplio as "Napple".
+            - Where a caption was never translated, the archive's own words
+              are the source. Translate them properly; do not paraphrase,
+              and do not invent detail the caption does not carry.
+            - Say in "note" what the fault was, specifically. "Mistranslated"
+              helps nobody; "debouquemens is an 18th-century naval term for
+              the channels out of the Antilles, half-copied into deboutmen"
+              is the kind of thing that stops it happening again.
+            - Change corrections.json and nothing else.
+
+            Then run `python3 daily.py --selftest` and make sure it passes.
+            It checks that every correction still matches the caption it
+            corrects and actually reaches the panel.
+
+            Open a pull request titled "Rewrite N flagged map captions",
+            with the before and after for each one in the body.
