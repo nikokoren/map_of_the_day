@@ -70,7 +70,7 @@ def main():
 
     def block(**kw):
         out = {"queue": this, "to": "2026-10-24", "reviewed_to": "2026-10-24",
-               "vetoed": [], "untranslate": []}
+               "vetoed": [], "untranslate": [], "starred": []}
         out.update(kw)
         return out
 
@@ -124,6 +124,26 @@ def main():
         {"id": "d", "lang": "", "source": "", "shown": "Ozero Baĭkal"}]))
     check("  even with no source field at all",
           rc == 0 and len(notes) == 1, out + str(notes))
+
+    print("stars:")
+    rc, out, after, _ = run(block(starred=["b", "c"]))
+    check("a star is recorded", rc == 0 and after.get("starred") == ["b", "c"],
+          out + str(after))
+    rc, out, after, _ = run(block(starred=["b"]),
+                            curation=dict(BASE, starred=["c"]))
+    check("stars union with what is already there",
+          after.get("starred") == ["b", "c"], str(after))
+    # Changing your mind can only ever mean "keep it out".
+    rc, out, after, _ = run(block(vetoed=["c"], starred=["c"]))
+    check("a veto in the same block beats a star",
+          after["vetoed"] == ["a", "c"] and after.get("starred") == [], str(after))
+    rc, out, after, _ = run(block(starred=["a"]))
+    check("and beats one already in force",
+          after.get("starred") == [], str(after))
+    rc, out, after, _ = run(block(starred=["b", "nope"]))
+    check("an unknown id refuses the whole block",
+          rc == 1 and "not in the pool" in out, out)
+    check("  and nothing is written", after == BASE, str(after))
 
     print("refuses, and writes nothing:")
     for name, kwargs, want in (

@@ -77,10 +77,11 @@ def main():
 
     known = pool_ids()
     vetoed = [str(i) for i in (block.get("vetoed") or [])]
+    starred = [str(i) for i in (block.get("starred") or [])]
     flags = block.get("untranslate") or []
     flag_ids = [str(f.get("id") if isinstance(f, dict) else f) for f in flags]
 
-    unknown = sorted({i for i in vetoed + flag_ids if i not in known})
+    unknown = sorted({i for i in vetoed + starred + flag_ids if i not in known})
     if unknown:
         return fail("{} id(s) are not in the pool, e.g. {}; refusing the "
                     "whole block".format(len(unknown), ", ".join(unknown[:5])))
@@ -101,16 +102,23 @@ def main():
 
     before_v = set(str(i) for i in (curation.get("vetoed") or []))
     before_f = set(str(i) for i in (curation.get("untranslate") or []))
+    before_s = set(str(i) for i in (curation.get("starred") or []))
     after_v = before_v | set(vetoed)
     after_f = before_f | set(flag_ids)
+    # A veto outranks a star: the two can only disagree if somebody
+    # changed their mind, and the later judgement is the one that says
+    # keep it out.
+    after_s = (before_s | set(starred)) - after_v
 
     curation["vetoed"] = sorted(after_v)
     curation["untranslate"] = sorted(after_f)
+    curation["starred"] = sorted(after_s)
     if reviewed_to:
         curation["reviewed_to"] = reviewed_to
     with open(CURATION, "w") as fh:
         json.dump({"vetoed": curation["vetoed"],
                    "untranslate": curation["untranslate"],
+                   "starred": curation["starred"],
                    "reviewed_to": curation.get("reviewed_to")},
                   fh, indent=1)
         fh.write("\n")
@@ -146,9 +154,11 @@ def main():
     if was_to and now_to and now_to < was_to:
         reach = "{} (this pass covered {}, inside what was already reviewed)".format(
             was_to, now_to)
-    print("{} vetoed (+{}), {} flagged (+{}), reviewed through {}".format(
-        len(after_v), len(after_v - before_v),
-        len(after_f), len(after_f - before_f), reach))
+    print("{} vetoed (+{}), {} starred (+{}), {} flagged (+{}), "
+          "reviewed through {}".format(
+              len(after_v), len(after_v - before_v),
+              len(after_s), len(after_s - before_s),
+              len(after_f), len(after_f - before_f), reach))
     return 0
 
 

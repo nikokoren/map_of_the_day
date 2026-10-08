@@ -5,6 +5,7 @@
   --paper:#e7e6e1; --card:#f7f6f3; --ink:#1a1c1a; --muted:#6e716a;
   --rule:#d3d1ca; --veto:#a63d2c; --veto-soft:#f0dcd7; --chip:#dedcd4;
   --flag:#8a6d1f; --flag-soft:#f2e9d2;
+  --star:#2d6a4a; --star-soft:#dce9e0;
   --shadow:0 1px 2px rgba(26,28,26,.08);
 }
 @media (prefers-color-scheme:dark){ :root:not([data-theme="light"]){
@@ -12,6 +13,7 @@
   --paper:#15171a; --card:#1d2024; --ink:#e6e5e1; --muted:#8e918a;
   --rule:#2e3237; --veto:#d97b66; --veto-soft:#3a2420; --chip:#272b30;
   --flag:#d8b968; --flag-soft:#332b16;
+  --star:#7fbf9a; --star-soft:#17301f;
   --shadow:0 1px 2px rgba(0,0,0,.4);
 }}
 :root[data-theme="dark"]{
@@ -19,6 +21,7 @@
   --paper:#15171a; --card:#1d2024; --ink:#e6e5e1; --muted:#8e918a;
   --rule:#2e3237; --veto:#d97b66; --veto-soft:#3a2420; --chip:#272b30;
   --flag:#d8b968; --flag-soft:#332b16;
+  --star:#7fbf9a; --star-soft:#17301f;
   --shadow:0 1px 2px rgba(0,0,0,.4);
 }
 *{box-sizing:border-box}
@@ -81,6 +84,13 @@ button[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-colo
 .card[data-veto="1"] .acts .veto{background:var(--veto);color:#fff}
 .card[data-flag="1"]{border-color:var(--flag);background:var(--flag-soft)}
 .card[data-flag="1"] .acts .flag{background:var(--flag);color:#fff}
+.card[data-star="1"]{border-color:var(--star);background:var(--star-soft)}
+.card[data-star="1"] .acts .star{background:var(--star);color:#fff}
+.prog{font:11.5px/1.5 ui-monospace,monospace;color:var(--muted);
+  padding:6px 0 0;border-top:1px dotted var(--rule);margin-top:8px}
+.prog b{color:var(--ink)}
+.stale{background:var(--veto-soft);border:1px solid var(--veto);color:var(--ink);
+  padding:8px 10px;border-radius:3px;margin:10px 0 0;font-size:12.5px}
 .stamp{position:absolute;top:8px;right:8px;background:var(--ink);color:var(--paper);
   font-size:9.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;
   padding:3px 6px;border-radius:2px;display:none}
@@ -106,9 +116,11 @@ textarea{width:100%;min-height:210px;font-family:"IBM Plex Mono",monospace;
 <header>
   <h1 id="h1">Review Queue</h1>
   <p class="sub" id="sub"></p>
+  <p class="stale" id="stale" hidden></p>
   <div class="bar">
     <span class="count"><b id="nshown">0</b> <span id="nounlabel">items</span> &middot;
-      <b id="nveto">0</b> vetoed &middot; <b id="nflag">0</b> flagged</span>
+      <b id="nveto">0</b> vetoed &middot; <b id="nstar">0</b> starred &middot;
+      <b id="nflag">0</b> flagged</span>
     <button id="onlynew" aria-pressed="false">Only new</button>
     <span class="seg"><button id="bydate" aria-pressed="true">By date</button><button id="bythin" aria-pressed="false">Sort</button></span>
     <button id="near" aria-pressed="false">Narrow</button>
@@ -137,7 +149,8 @@ textarea{width:100%;min-height:210px;font-family:"IBM Plex Mono",monospace;
 (function(){
   var D = JSON.parse(document.getElementById("data").textContent);
   var L = D.labels || {};
-  var veto = new Set(D.vetoed || []), flag = new Set(D.flagged || []);
+  var veto = new Set(D.vetoed || []), flag = new Set(D.flagged || []),
+      star = new Set(D.starred || []);
   var grid = document.getElementById("grid");
 
   function put(id, text){ var el=document.getElementById(id); if(el) el.textContent=text; }
@@ -159,6 +172,7 @@ textarea{width:100%;min-height:210px;font-family:"IBM Plex Mono",monospace;
       var saved = JSON.parse(localStorage.getItem(key) || "{}");
       (saved.veto||[]).forEach(function(x){ veto.add(x); });
       (saved.flag||[]).forEach(function(x){ flag.add(x); });
+      (saved.star||[]).forEach(function(x){ star.add(x); });
       return true;
     } catch(e){ return false; }
   }
@@ -173,15 +187,17 @@ textarea{width:100%;min-height:210px;font-family:"IBM Plex Mono",monospace;
   } catch(e){}
   function remember(){
     try { localStorage.setItem(KEY, JSON.stringify(
-      {veto: Array.from(veto), flag: Array.from(flag)})); } catch(e){}
+      {veto: Array.from(veto), flag: Array.from(flag),
+       star: Array.from(star)})); } catch(e){}
   }
 
   document.title = L.title || "Review Queue";
   put("h1", L.title || "Review Queue");
   put("nounlabel", L.nouns || "items");
   put("sub", "Every " + (L.noun||"item") + " the rotation will serve between "
-      + D.from + " and " + D.to + ". Click the picture to veto it; flag the "
-      + "text when the caption is wrong but the picture is fine.");
+      + D.from + " and " + D.to + ". Click the picture to veto it, star the "
+      + "ones worth keeping, and flag the text when the caption is wrong "
+      + "but the picture is fine.");
   document.getElementById("bythin").textContent = L.sort_label || "Sort";
   document.getElementById("near").textContent = L.near_label || "Narrow";
   put("note", "Grouped by the day each one is first served. A veto drops it "
@@ -194,6 +210,49 @@ textarea{width:100%;min-height:210px;font-family:"IBM Plex Mono",monospace;
       + "still in its own language — there is nothing to drop there, but "
       + "it is exactly the case that needs a replacement written.");
 
+  // How far the curation has got, per selection. A star only counts in
+  // company: a cell serves only its starred cards once it has enough,
+  // and keeps everything until then. Cells too shallow to ever reach the
+  // threshold are named separately so they do not read as work left.
+  (function progress(){
+    var p = D.progress, need = D.star_min || 0;
+    if (!p || !need) return;
+    var keys = Object.keys(p), on = [], able = [], capped = [];
+    keys.forEach(function(k){
+      if (p[k].capped) capped.push(k);
+      else if (p[k].on) on.push(k);
+      else able.push(k);
+    });
+    able.sort(function(a, b){ return p[a].needs - p[b].needs; });
+    var el = document.createElement("p");
+    el.className = "prog";
+    var next = able.slice(0, 3).map(function(k){
+      return k.replace(/__/g, "/") + " needs " + p[k].needs;
+    }).join(" \u00b7 ");
+    el.innerHTML = "<b>" + on.length + "</b> of <b>" +
+      (on.length + able.length) + "</b> selections are served from starred " +
+      (L.nouns || "items") + " only, at " + need + " each. " +
+      capped.length + " are too shallow to ever switch and keep their whole " +
+      "pool." + (next ? "<br>Closest: " + next + "." : "");
+    document.querySelector("header").appendChild(el);
+  })();
+
+  // A queue that silently stopped being rebuilt is worse than no queue:
+  // it looks current and is not. This happened -- the daily job runs the
+  // rebuild with continue-on-error, the step broke, and the page went on
+  // showing a week-old window without a word.
+  (function stale(){
+    var when = Date.parse(D.generated || "");
+    if (!when) return;
+    var days = (Date.now() - when) / 86400000;
+    if (days < 2) return;
+    var el = document.getElementById("stale");
+    el.textContent = "This queue was built " + Math.floor(days) +
+      " days ago and may no longer be what the rotation will serve. " +
+      "The job that rebuilds it is failing.";
+    el.hidden = false;
+  })();
+
   function near(it){ return it.d != null && it.d < 30; }
 
   function dayLabel(iso){
@@ -205,7 +264,7 @@ textarea{width:100%;min-height:210px;font-family:"IBM Plex Mono",monospace;
   }
 
   function counts(){
-    put("nveto", veto.size); put("nflag", flag.size);
+    put("nveto", veto.size); put("nflag", flag.size); put("nstar", star.size);
   }
 
   function card(it){
@@ -213,6 +272,7 @@ textarea{width:100%;min-height:210px;font-family:"IBM Plex Mono",monospace;
     el.className = "card";
     el.setAttribute("data-veto", veto.has(it.id) ? "1":"0");
     el.setAttribute("data-flag", flag.has(it.id) ? "1":"0");
+    el.setAttribute("data-star", star.has(it.id) ? "1":"0");
     el.setAttribute("data-new", it["new"] ? "1":"0");
     var when = it.w && it.w[0] ? it.w[0].day.slice(5) + " · " + it.w[0].cell : "";
     el.innerHTML =
@@ -221,6 +281,7 @@ textarea{width:100%;min-height:210px;font-family:"IBM Plex Mono",monospace;
       '<span class="meta"><span class="t"></span><span class="by"></span>' +
       '<span class="foot"><span class="den"></span><span class="when"></span></span>' +
       '</span><span class="acts"><button type="button" class="veto">Veto</button>' +
+      '<button type="button" class="star">Star</button>' +
       '<button type="button" class="flag">Flag text</button>' +
       '</span>';
     if (it.img) {
@@ -245,15 +306,27 @@ textarea{width:100%;min-height:210px;font-family:"IBM Plex Mono",monospace;
       s.textContent = "[" + (it.lang||"?") + "] " + it.src;
       el.querySelector(".meta").appendChild(s);
     }
-    function toggle(set, name){
+    function mark(set, name){
       if (set.has(it.id)) set.delete(it.id); else set.add(it.id);
       el.setAttribute("data-" + name, set.has(it.id) ? "1":"0");
-      counts(); remember();
     }
-    el.querySelector(".shot").addEventListener("click", function(){ toggle(veto,"veto"); });
-    el.querySelector(".veto").addEventListener("click", function(){ toggle(veto,"veto"); });
+    function toggle(set, name){ mark(set, name); counts(); remember(); }
+    // A veto and a star are opposite answers to the same question, so
+    // taking one clears the other instead of leaving the card claiming
+    // both. The applier settles it the same way -- a veto wins -- but a
+    // card shown as kept and dropped at once is a card you cannot read.
+    function decide(set, name, other, othername){
+      if (!set.has(it.id) && other.has(it.id)) mark(other, othername);
+      toggle(set, name);
+    }
+    function vetoIt(){ decide(veto, "veto", star, "star"); }
+    el.querySelector(".shot").addEventListener("click", vetoIt);
+    el.querySelector(".veto").addEventListener("click", vetoIt);
     var f = el.querySelector(".flag");
     if (f) f.addEventListener("click", function(){ toggle(flag,"flag"); });
+    el.querySelector(".star").addEventListener("click", function(){
+      decide(star, "star", veto, "veto");
+    });
     return el;
   }
 
@@ -311,6 +384,7 @@ textarea{width:100%;min-height:210px;font-family:"IBM Plex Mono",monospace;
       queue: D.kind, from: D.from, to: D.to,
       reviewed_to: D.to,
       vetoed: Array.from(veto).sort(),
+      starred: Array.from(star).sort(),
       // Only what this window can describe. An id flagged in an earlier
       // pass is still in the set but may have left the window, and
       // without a row to read it would go out as a pair of empty

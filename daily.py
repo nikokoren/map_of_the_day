@@ -161,6 +161,14 @@ TOPIC_LABELS.update({slug: label for slug, label, _, _ in ERAS})
 # empty and always will be -- there are no 1700s railroad maps, because
 # there were no railroads.
 CELL_MIN = 25
+
+# How many starred maps a topic needs before it serves only those. Ninety
+# is a quarter of a year before it comes round again, well past the three
+# days a device can see at once. Below this a topic keeps its whole pool,
+# which is what stops curation from quietly costing a reader a selection:
+# the thinnest cells here hold 25 maps and could never sustain a starred
+# rotation, so they are never asked to.
+STAR_MIN = 90
 CELL_SEP = "__"
 
 
@@ -340,6 +348,7 @@ def candidates_for(entries, category, day):
     offers, years for the pool as a whole. A stand-in still comes round
     again on its own day, once, that far away.
     """
+    entries = preferred(entries)
     index = day_index(day)
     total = len(entries)
     cycle, position = divmod(index, total)
@@ -1059,6 +1068,7 @@ _untranslated = None
 
 CORRECTIONS_PATH = os.path.join(HERE, "corrections.json")
 _corrections = None
+_starred = None
 _stale = set()
 
 
@@ -1123,6 +1133,69 @@ def vetoed():
     if _vetoed is None:
         _vetoed = {str(i) for i in (_curation().get("vetoed") or [])}
     return _vetoed
+
+
+def starred():
+    """Ids somebody marked as worth showing, read once."""
+    global _starred
+    if _starred is None:
+        _starred = {str(i) for i in (_curation().get("starred") or [])}
+    return _starred
+
+
+def preferred(pool):
+    """
+    What a topic actually draws from.
+
+    A veto is a judgement about one map. A star is a judgement that takes
+    effect only in company: a topic with enough of them serves those and
+    nothing else, one without enough keeps everything.
+
+    Deciding it per topic is the point. Keeping only approved maps
+    everywhere would be a different recipe -- the breadth here is paid
+    for by the tail, and the thinnest cells hold 25 maps and would
+    vanish below CELL_MIN at the first cut, taking a reader's selection
+    with them. So shallow topics are never asked to carry a starred
+    rotation and deep ones switch the moment they can.
+
+    This reshuffles the topic it switches, which is sound where the usual
+    rule is not: everything in the new order was approved by hand, so
+    there is nothing unreviewed to be surprised by. The pool itself is
+    untouched, so no other topic moves.
+    """
+    chosen = starred()
+    if not chosen:
+        return pool
+    kept = [e for e in pool if str(e["id"]) in chosen]
+    return kept if len(kept) >= STAR_MIN else pool
+
+
+def all_topics(entries):
+    """Every selection a reader can make: themes, eras, and deep cells."""
+    themes = [slug for slug, _ in THEMES]
+    eras = [slug for slug, _l, _a, _b in ERAS]
+    out = list(themes) + list(eras)
+    for theme in themes:
+        if theme == "all":
+            continue
+        for era in eras:
+            key = cell_key(theme, era)
+            if len(maps_for(entries, key)) >= CELL_MIN:
+                out.append(key)
+    return out
+
+
+def star_progress(entries, topics):
+    """Per topic: how many of its maps are starred, and whether it switched."""
+    out = {}
+    for topic in topics:
+        pool = maps_for(entries, topic)
+        have = sum(1 for e in pool if str(e["id"]) in starred())
+        out[topic] = {"starred": have, "depth": len(pool),
+                      "needs": max(0, STAR_MIN - have),
+                      "on": have >= STAR_MIN,
+                      "capped": len(pool) < STAR_MIN}
+    return out
 
 
 def untranslated():
@@ -1299,6 +1372,12 @@ def review_manifest(entries, day, days, path):
         "from": (day + timedelta(days=3)).isoformat(),
         "to": (day + timedelta(days=2 + days)).isoformat(),
         "vetoed": sorted(vetoed()),
+        "starred": sorted(starred()),
+        # Per topic, so the page can say which selections are curated and
+        # which still need stars. Without it a finished topic and an
+        # untouched one look the same, and the work has no end.
+        "progress": star_progress(entries, all_topics(entries)),
+        "star_min": STAR_MIN,
         "items": rows,
     }
     with open(path, "w") as fh:
@@ -1347,6 +1426,54 @@ def selftest(entries, day):
     if stale_corrections():
         failures.append(f"corrections have gone stale: "
                         f"{sorted(stale_corrections())}")
+
+    # 0b. A star only takes effect in company. A topic with enough of
+    #     them serves those and nothing else; one without enough is
+    #     untouched, which is what stops curation from costing a reader
+    #     a selection they chose.
+    global _starred
+    held_stars = _starred
+    try:
+        topics = all_topics(entries)
+        deep = max(topics, key=lambda t: len(maps_for(entries, t)))
+        thin = min(topics, key=lambda t: len(maps_for(entries, t)))
+        deep_pool, thin_pool = maps_for(entries, deep), maps_for(entries, thin)
+        if len(thin_pool) >= STAR_MIN:
+            failures.append("no topic is below STAR_MIN, so the switchover "
+                            "check proves nothing")
+
+        _starred = {str(e["id"]) for e in deep_pool[:STAR_MIN]}
+        served = [pick(maps_for(entries, deep), deep,
+                       day + timedelta(days=n), False)[0] for n in range(3, 43)]
+        stray = [e["id"] for e in served if str(e["id"]) not in _starred]
+        if stray:
+            failures.append("a topic at the threshold served {} unstarred "
+                            "maps, e.g. {}".format(len(stray), stray[0]))
+
+        _starred = set(sorted(_starred)[:-1])
+        served = [pick(maps_for(entries, deep), deep,
+                       day + timedelta(days=n), False)[0] for n in range(3, 23)]
+        if all(str(e["id"]) in _starred for e in served):
+            failures.append("one star short and the topic switched anyway")
+
+        _starred = {str(e["id"]) for e in thin_pool}
+        served = [pick(maps_for(entries, thin), thin,
+                       day + timedelta(days=n), False)[0] for n in range(3, 23)]
+        if not all(served):
+            failures.append("a topic shallower than STAR_MIN lost its maps")
+
+        _starred = {str(e["id"]) for e in deep_pool[:STAR_MIN]}
+        if (len(maps_for(entries, deep)) != len(deep_pool)
+                or len(maps_for(entries, thin)) != len(thin_pool)):
+            failures.append("starring filtered the pool, which reshuffles "
+                            "every topic built on it")
+        progress = star_progress(entries, [deep, thin])
+        if not (progress[deep]["on"] and progress[deep]["needs"] == 0):
+            failures.append("progress does not report the topic that switched")
+        if not progress[thin]["capped"]:
+            failures.append("progress does not mark a topic that never can")
+    finally:
+        _starred = held_stars
 
     # 1. The same day gives the same map, every time it is asked.
     if (candidates_for(entries, "all", day)[0]["id"]

@@ -114,6 +114,9 @@ def main():
         "anyold": bool(previous),
         "vetoed": sorted(curation.get("vetoed") or []),
         "flagged": sorted(curation.get("untranslate") or []),
+        "starred": sorted(curation.get("starred") or []),
+        "progress": review.get("progress") or {},
+        "star_min": review.get("star_min") or 0,
         "labels": kind,
         "items": slim,
     }, separators=(",", ":"))
