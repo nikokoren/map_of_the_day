@@ -123,6 +123,10 @@ jobs:
               the channels out of the Antilles, half-copied into deboutmen"
               is the kind of thing that stops it happening again.
 
+            - End corrections.json with a newline. Without one every
+              later diff of the file opens with "\ No newline at end of
+              file" and the last entry reads as changed when it is not.
+
             Then run `python3 daily.py --selftest` and make sure it passes.
             It checks that every correction still matches the caption it
             corrects and actually reaches the panel.
