@@ -83,8 +83,13 @@ jobs:
           # no shell and no file access until they are granted, and the
           # first attempt proved what that looks like: three turns, two
           # permission denials, and a green tick for having done nothing.
+          # A backlog is the normal case after a review pass, not the
+          # exception: one pass flagged 65 captions. Thirty turns was
+          # sized for the trickle, and a run that stops early leaves the
+          # rest pending -- recoverable, but it reports a count it did
+          # not finish.
           claude_args: |
-            --max-turns 30
+            --max-turns 120
             --allowedTools Read,Edit,Write,Bash,Glob,Grep
           prompt: |
             Run `python3 pending_rewrites.py` in the repository root. It
