@@ -163,5 +163,10 @@
   "was": "Karta puteĭ soobshchenīi︠a︡ Azīatskoĭ Rossīi",
   "title": "Map of the Communication Routes of Asiatic Russia",
   "note": "Language detector read transliterated Russian as Latvian ('lv') and the translator returned 'Member of the Commission', apparently from the issuing body's name, not the title. Karta = map; puteĭ soobshchenīi︠a︡ = ways/lines of communication (the Russian ministry's term for railways, waterways and roads, matching the record's description); Azīatskoĭ Rossīi = of Asiatic Russia (Siberia and Central Asia)."
+ },
+ "90682666": {
+  "was": "Plano de la Bahía de Concepción de Chile situada la ciudad antigua en latitud meridional de 36°42ʹ53ʺ y en longitud de 303°52ʹ3ʺ de Tenerife observadas astronómicamente",
+  "title": "Plan of the Bay of Concepción in Chile, with the old city situated at south latitude 36°42ʹ53ʺ and longitude 303°52ʹ3ʺ from Tenerife, astronomically observed",
+  "note": "Never translated properly: the archive's Spanish title was machine-read as English, so 'Plano' became 'Plane' (it is a plan/map), 'Bahia de Concepción' was left half-Spanish, 'latitud meridional' (meridional = southern in Spanish) became 'South latitude' only by luck while 'longitud ... de Tenerife' became 'at length', and the minute and second marks (ʹ and ʺ) were garbled into 'ю'. 'de Tenerife' means the longitude is reckoned from the Tenerife meridian (old Spanish/French practice, hence 303°), not a place name to drop. Concepción and Tenerife are names and are kept."
  }
 }
