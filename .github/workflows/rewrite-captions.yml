@@ -40,6 +40,55 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Enough to check out an open rewrite branch and diff it against
+          # main, rather than only the one commit this run was started on.
+          fetch-depth: 0
+
+      # Before counting anything, because what is waiting depends on which
+      # branch we are standing on.
+      #
+      # pending_rewrites.py reads corrections.json from the checkout, so a
+      # caption answered in a pull request nobody has merged yet still
+      # counts as unanswered. A pass dispatched while one is open therefore
+      # writes the whole backlog a second time: three such runs happened in
+      # one evening, one of them thirty captions of pure duplicate, and two
+      # of the pull requests then conflicted with each other over the same
+      # file.
+      #
+      # So add to the open one instead of racing it. Its branch becomes the
+      # base, pending_rewrites sees the captions already written and asks
+      # only for the rest, and the push updates that pull request rather
+      # than opening a rival. The concurrency group above stops two runs
+      # overlapping; this stops two pull requests.
+      - name: Is a rewrite already waiting to be merged
+        id: open
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          # Through the REST endpoint rather than `gh pr list --json`,
+          # which answers over GraphQL; this is the same question asked
+          # somewhere a workflow can always reach.
+          #
+          # Newest, if somehow there is more than one -- it has the most
+          # written into it, so it is the one worth building on.
+          gh api "repos/${GITHUB_REPOSITORY}/pulls?state=open&base=main&per_page=100" \
+             --jq '[.[] | select(.head.ref | startswith("rewrite-captions-"))]
+                   | sort_by(.number) | last
+                   | if . then "branch=\(.head.ref)\nnumber=\(.number)"
+                     else "branch=\nnumber=" end' > found.txt
+          cat found.txt >> "$GITHUB_OUTPUT"
+          branch="$(sed -n 's/^branch=//p' found.txt)"
+          number="$(sed -n 's/^number=//p' found.txt)"
+          rm -f found.txt
+          if [ -z "$branch" ]; then
+            echo "No rewrite pull request open; starting from main."
+            exit 0
+          fi
+          echo "::notice::#$number is open on $branch, so this run adds to it"\
+               "rather than opening a second pull request for the same file."
+          git checkout "$branch"
 
       - name: What is waiting
         id: waiting
@@ -145,6 +194,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           PENDING: ${{ steps.waiting.outputs.pending }}
+          OPEN_BRANCH: ${{ steps.open.outputs.branch }}
+          OPEN_NUMBER: ${{ steps.open.outputs.number }}
         run: |
           set -euo pipefail
           stray="$(git status --porcelain -- . ':!corrections.json')"
@@ -158,12 +209,25 @@ jobs:
                  "$PENDING caption(s) are still waiting"
             exit 0
           fi
-          branch="rewrite-captions-${GITHUB_RUN_ID}"
           git config user.name "GitHub Action"
           git config user.email "action@github.com"
-          git checkout -b "$branch"
+          if [ -n "$OPEN_BRANCH" ]; then
+            # Already standing on it, from the step that found it.
+            branch="$OPEN_BRANCH"
+          else
+            branch="rewrite-captions-${GITHUB_RUN_ID}"
+            git checkout -b "$branch"
+          fi
           git add corrections.json
           git commit -m "Rewrite $PENDING flagged map caption(s)"
+          # What the branch carries in total, which is what the pull
+          # request is for -- not what this run happened to add. A second
+          # run onto an open branch would otherwise retitle it with its own
+          # smaller count and understate what is waiting to be merged.
+          git show origin/main:corrections.json > "$RUNNER_TEMP/base.json"
+          written="$(jq -n --slurpfile now corrections.json \
+                          --slurpfile base "$RUNNER_TEMP/base.json" \
+                       '(($now[0] | keys) - ($base[0] | keys)) | length')"
           # Push with a credential of our own. actions/checkout stores one,
           # but the Claude action revokes its app token as its last step and
           # that leaves the stored credential dead -- the first attempt got
@@ -186,7 +250,14 @@ jobs:
           # pull request itself is refused -- which it is, by default:
           # repositories ship with Actions unable to open one, and the
           # error GitHub returns does not say where the setting lives.
-          if ! gh pr create --title "Rewrite $PENDING flagged map caption(s)" \
+          title="Rewrite $written flagged map caption(s)"
+          if [ -n "$OPEN_NUMBER" ]; then
+            gh pr edit "$OPEN_NUMBER" --title "$title" --body-file body.md
+            echo "::notice::#$OPEN_NUMBER now carries $written caption(s);"\
+                 "$PENDING were added by this run."
+            exit 0
+          fi
+          if ! gh pr create --title "$title" \
                             --body-file body.md --base main --head "$branch" 2> pr.err; then
             cat pr.err
             if grep -q "not permitted to create or approve pull requests" pr.err; then
