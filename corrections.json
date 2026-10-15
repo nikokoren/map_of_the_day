@@ -3,5 +3,150 @@
   "was": "Carte réduite des débouquemens de St. Domingue dressée pour le service des vaisseaux du roy. Par ordre de M. le duc de Choiseul, colonel général des suisses et grisons, ministre de la guerre et de la marine. M.DCC.LXV",
   "title": "Reduced chart of the channels of Saint-Domingue, drawn for the service of the King's ships. By order of the Duc de Choiseul, Colonel General of the Swiss and Grisons regiments, Minister of War and of the Navy. 1765",
   "note": "Two faults. Debouquemens is an 18th-century naval term for the channels by which a ship works its way out of the Antilles; the translator half-copied it into deboutmen, a word in no language. And M.DCC.LXV is the year 1765, which came back as Mr.DCC.LXV -- the M read as an abbreviation for a man. Carte reduite is the period's term for a small-scale chart. Suisses et grisons is right as Swiss and Grisons: these are the regiments in French service that Choiseul was colonel general of, not the canton, so this is the one place the word should not become Graubunden."
+ },
+ "14002124": {
+  "was": "Planʺ stolichnago goroda Sanktpeterburga cʺ izobrazhenīemʺ znatni︠e︡ĭshikhʺ onago prospektovʺ",
+  "title": "Plan of the capital city of St Petersburg, with depictions of its most notable prospects",
+  "note": "Pre-reform Russian in Library-of-Congress romanization (Planŭ stolichnago goroda Sanktpeterburga sŭ izobrazheniemŭ znatneishikhŭ onago prospektovŭ), left untranslated because language detection found nothing. Stolichnago goroda is 'capital city'; znatneishikh is 'most notable'; prospektov is ambiguous in 18th-century usage (views or avenues) and is rendered 'prospects'. Sanktpeterburg stays a name."
+ },
+ "2002624054": {
+  "was": "Le grand teatre de la guerre en Italie",
+  "title": "The great theatre of the war in Italy",
+  "note": "'Teatre' is the old spelling of théâtre, here the period sense of a theatre of war; the translator read it as 'star' (étoile). Likely a map series title, so the sense is the operational area."
+ },
+ "2004632070": {
+  "was": "Plan topografico del Valle de Centa",
+  "title": "Topographical Plan of the Valle de Centa",
+  "note": "Language was misdetected, but the text is a plain Spanish/Italian-style title and the earlier rendering was essentially right. Valle de Centa is a place name and must stay as written; do not anglicise it to 'Centa Valley'."
+ },
+ "2011590182": {
+  "was": "Travajo personal que en la inspesion de esta corta obra tubo el Ro. Pe. F. Juan Miguel Menchero como Visitador General de la Nueva Mexico y lo dedica a el Exmo. Sr. Dn. Juan Franco. Guemes y Orcasitas Virrei, Gobernador y Capitan General de Nueva Espana para que su ex proteja su major incremento de estas misiones",
+  "title": "Personal work which the Reverend Father Fray Juan Miguel Menchero did in inspecting this short work, as Visitor General of New Mexico, and which he dedicates to the Most Excellent Lord Don Juan Francisco Güemes y Horcasitas, Viceroy, Governor and Captain General of New Spain, so that His Excellency may protect the greater growth of these missions",
+  "note": "Spanish abbreviations were read as words, scrambling the sentence: Ro. Pe. F. is Reverendo Padre Fray, Exmo. Sr. Dn. is Excelentísimo Señor Don, 'su ex' is 'su Excelencia', and 'tubo' is tuvo (had/undertook), so Menchero is the subject who did the work, not a man 'travelling with information'. 'Corta obra' is 'short work'. The Franco in Juan Franco. is Francisco. Güemes y Orcasitas (Horcasitas) is the viceroy's name and stays. The pool caption is the archive's text with 'Espana' for España."
+ },
+ "2013593011": {
+  "was": "Alexandri magni imperium et expeditiones",
+  "title": "The empire and expeditions of Alexander the Great",
+  "note": "Latin, never translated. Alexandri magni is genitive: of Alexander the Great."
+ },
+ "2013593035": {
+  "was": "Persia Arabia &c",
+  "title": "Persia, Arabia, etc.",
+  "note": "Language misdetected as Indonesian. '&c' is the period abbreviation for et cetera; it was left as '& c'. Persia and Arabia are the names of the regions, not 'Persian Arabia'."
+ },
+ "2017585635": {
+  "was": "Mappe monde nouvelle",
+  "title": "New world map",
+  "note": "French: 'Mappe monde' is a world map (mappemonde), not a 'Mappe' of a 'New World'; 'nouvelle' qualifies the map, not the world."
+ },
+ "2017585646": {
+  "was": "Nova delineatio totius orbis terrarum",
+  "title": "New delineation of the whole world",
+  "note": "Latin, never translated. Orbis terrarum is the whole world (circle of the lands); totius is 'of the whole'."
+ },
+ "2017585658": {
+  "was": "Mappe-monde, dressé sur les observations de mrs. de l'Academie royale des sciences et quelques autres et sur les memoires les plus recens",
+  "title": "World map, drawn up from the observations of the gentlemen of the Royal Academy of Sciences and some others, and from the most recent memoirs",
+  "note": "'Mappe-monde' is a world map, not 'Mappe-world'. 'Mrs.' is the period abbreviation of messieurs (gentlemen), not the English title. 'Dressé' is drawn up, and 'memoires' are scientific memoirs. The earlier rendering was also cut off with an ellipsis; this is the full text."
+ },
+ "2017585675": {
+  "was": "Mappa totius mundi : adornata juxta observationes dnn. academiae regalis scientiarum et nonnullorum aliorum secundum annotationes recentissimas",
+  "title": "Map of the whole world: arranged according to the observations of the gentlemen of the Royal Academy of Sciences and some others, following the most recent annotations",
+  "note": "Latin, never translated. Dnn. abbreviates dominorum (of the gentlemen); academiae regalis scientiarum is the Royal Academy of Sciences. The archive re-catalogued the title and the old truncated form no longer applies. It is the Latin counterpart of the French Mappe-monde of the same plate."
+ },
+ "2017585680": {
+  "was": "Mappe-monde, dressé sur les observations de mrs. de l'Academie royale des sciences et quelques autres et sur les memoires les plus recens",
+  "title": "World map, drawn up from the observations of the gentlemen of the Royal Academy of Sciences and some others, and from the most recent memoirs",
+  "note": "'Mappe-monde' is a world map, not 'Mappe-world'. 'Mrs.' is the period abbreviation of messieurs (gentlemen). The earlier rendering was also cut off with an ellipsis; this is the full text."
+ },
+ "2021668266": {
+  "was": "Susŏn chŏndo",
+  "title": "Susŏn chŏndo",
+  "note": "Korean in McCune-Reischauer romanization, wrongly detected as Spanish and rendered 'Reg'. The romanization is kept: chŏndo is 'complete map', but Susŏn could stand for several Sino-Korean words and the caption carries nothing to choose between them, so no gloss is invented."
+ },
+ "2021668267": {
+  "was": "Da Qing yi tong tian xia quan tu",
+  "title": "Complete map of all under heaven, unified under the Great Qing",
+  "note": "Chinese pinyin, never translated. Da Qing is the Great Qing (the dynasty), yi tong is 'unified', tian xia is 'all under heaven' (the empire/world), quan tu is 'complete map'."
+ },
+ "2021668465": {
+  "was": "Map of the City and Bay of Cartagena de las Indias.",
+  "title": "Map of the City and Bay of Cartagena de las Indias",
+  "note": "Already English; it was flagged only because language detection failed. Only the trailing period is dropped. Cartagena de las Indias is a place name and stays Spanish."
+ },
+ "2021668713": {
+  "was": "Portolan Chart.",
+  "title": "Portolan Chart",
+  "note": "Already English; flagged only because language detection failed. Only the trailing period is dropped."
+ },
+ "74691151": {
+  "was": "Plan de la ville des Cayes, dans l'Isle Saint Domingue",
+  "title": "Plan of the town of Les Cayes, on the island of Saint-Domingue",
+  "note": "'Plan de la ville' is a town plan. Les Cayes and Saint-Domingue are names; 'Isle' was left as an old French spelling of île."
+ },
+ "74692109": {
+  "was": "Carte nouvelle de l'Amérique angloise contenant tout ce que les Anglois possédent sur le continent de l'Amérique septentrionale savoir le Canada, la Nouvelle Ecosse ou Acadie, les treize provinces unies qui font: les quatres colonies de la Nouvelle Angleterre",
+  "title": "New map of English America, containing all that the English possess on the continent of North America, namely Canada, Nova Scotia or Acadia, and the thirteen united provinces, which are the four colonies of New England",
+  "note": "'Anglois' is English, not 'Anglos'; 'savoir' is 'namely', which the translator took as the verb 'know'. The earlier rendering also stopped at 'Canada'. The caption itself breaks off mid-list in the archive after 'les quatres colonies de la Nouvelle Angleterre', so that is where this ends."
+ },
+ "74692148": {
+  "was": "Carte réduite des côtes orientales de l'Amérique septentrionale. Contenant celles des provinces de New-York et de la Nouvelle Angleterre, celles de l'Acadie ou Nouvelle Ecosse, de I'Île Royale de I'Île St. Jean, avec l'interieur du pays",
+  "title": "Reduced chart of the eastern coasts of North America, containing those of the provinces of New York and New England, those of Acadia or Nova Scotia, of Île Royale and Île Saint-Jean, with the interior of the country",
+  "note": "The earlier rendering was cut off before Acadia. Île Royale (Cape Breton) and Île Saint-Jean (Prince Edward Island) are names and stay in their period forms. 'Carte réduite' is a small-scale chart."
+ },
+ "74693118": {
+  "was": "L'Amérique septentrionale, ou se remarquent les Etats Unis",
+  "title": "North America, in which the United States are shown",
+  "note": "'Ou' is 'where/in which', not 'or', and 'se remarquent' is 'are to be seen'. The earlier rendering made the United States an alternative name for North America."
+ },
+ "74693456": {
+  "was": "L'ancien et le nouveau Méxique, avec la Floride et la Basse Louisiane, partie orientale",
+  "title": "Old and New Mexico, with Florida and Lower Louisiana, eastern part",
+  "note": "Reads fine in the earlier rendering except for the loss of the article sense; 'Basse Louisiane' is Lower Louisiana. Rewritten against the archive text."
+ },
+ "74693877": {
+  "was": "Dominia Anglorum in America Septentrionali",
+  "title": "The English dominions in North America",
+  "note": "Latin, never translated. Dominia Anglorum is the dominions of the English; America Septentrionali is North America."
+ },
+ "74695633": {
+  "was": "Carta nautica que comprehende los Desembocaderos al mar del norte viniendo de la Jamaica, y de la isla de Santo Domingo",
+  "title": "Nautical chart comprising the passages out to the Mar del Norte, coming from Jamaica and from the island of Santo Domingo",
+  "note": "'Comprehende' is 'comprises', not 'compresses'; 'desembocaderos' are outlets or passages (cf. the French débouquemens), not 'Retirement'. Mar del Norte was the Spanish name for the Atlantic on the Caribbean side, so 'North Sea' misleads and is kept as the name. Santo Domingo is a name."
+ },
+ "84697512": {
+  "was": "Shinkoku fukui butoku anmin, Okatame taihei kagami : Izu, Sagami, Musashi, Awa, Kazusa, Shimōsa",
+  "title": "Shinkoku fukui butoku anmin, Okatame taihei kagami: Izu, Sagami, Musashi, Awa, Kazusa, Shimōsa",
+  "note": "Japanese romanization, never translated. Izu, Sagami, Musashi, Awa, Kazusa and Shimōsa are provinces and stay as names. The first half of the title could not be segmented reliably from the romanization alone, so it is left as catalogued rather than guessed at; needs someone who reads the original characters."
+ },
+ "88691872": {
+  "was": "Mahābhāratakālīna Bhāratavarshācā nakāśā",
+  "title": "Map of Bhāratavarsha (India) in the time of the Mahābhārata",
+  "note": "Marathi in romanization, never translated. Mahābhārata-kālīna is 'of the time of the Mahābhārata'; Bhāratavarsha is the classical name for India; nakāśā is 'map'."
+ },
+ "96686640": {
+  "was": "La Californie ou Nouvelle Caroline : teatro de los trabajos, Apostolicos de la Compa. e Jesus en la America Septe",
+  "title": "California, or New Caroline: theatre of the apostolic labours of the Society of Jesus in North America",
+  "note": "Mixed French/Spanish title. 'Teatro de los trabajos Apostolicos de la Compa. e Jesus' is 'theatre of the apostolic labours of the Society of Jesus' (Compañía de Jesús, the Jesuits); the translator took 'Compa.' as a name and 'Septe' as the word 'know'. The archive's text is cut off at 'Septe', almost certainly Septentrional, so North America."
+ },
+ "98685607": {
+  "was": "Charte von den Vereinigten Staaten von Nord-America nebst Louisiana : nach Murdochischer projection entworfen nach den neuesten astronomischen ortsbestimmungen",
+  "title": "Chart of the United States of North America together with Louisiana, drawn in Murdoch's projection according to the latest astronomical determinations of position",
+  "note": "German, never translated. 'Nebst' is 'together with'; 'Murdochischer projection' is the conic projection of Patrick Murdoch, a person's name; 'ortsbestimmungen' are determinations of position. The archive re-catalogued the title longer than before."
+ },
+ "98687119": {
+  "was": "La Californie ou Nouvelle Caroline : teatro de los trabajos, Apostolicos de la Compa. e Jesus en la America Septe",
+  "title": "California, or New Caroline: theatre of the apostolic labours of the Society of Jesus in North America",
+  "note": "Mixed French/Spanish title. 'Teatro de los trabajos Apostolicos de la Compa. e Jesus' is 'theatre of the apostolic labours of the Society of Jesus' (Compañía de Jesús, the Jesuits); the translator took 'Compa.' as a name and 'Septe' as the word 'know'. The archive's text is cut off at 'Septe', almost certainly Septentrional, so North America."
+ },
+ "99446187": {
+  "was": "La Palestine, les tribus, et Jerusalem",
+  "title": "Palestine, the Tribes, and Jerusalem",
+  "note": "Earlier rendering was essentially right; rewritten against the archive text. 'Tribes' means the twelve tribes of Israel."
+ },
+ "gm71005066": {
+  "was": "[Taiwan qian hou shan quan tu]",
+  "title": "Complete map of the front and rear mountains of Taiwan (Taiwan qian hou shan quan tu)",
+  "note": "Chinese pinyin in square brackets, never translated. Quan tu is 'complete map'; qian shan and hou shan are the 'front' (west) and 'rear' (east) mountain regions either side of the Central Range. Taiwan is a name. The archive re-catalogued it with brackets."
  }
 }
