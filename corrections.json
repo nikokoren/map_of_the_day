@@ -148,5 +148,25 @@
   "was": "[Taiwan qian hou shan quan tu]",
   "title": "Complete map of the front and rear mountains of Taiwan (Taiwan qian hou shan quan tu)",
   "note": "Chinese pinyin in square brackets, never translated. Quan tu is 'complete map'; qian shan and hou shan are the 'front' (west) and 'rear' (east) mountain regions either side of the Central Range. Taiwan is a name. The archive re-catalogued it with brackets."
+ },
+ "2002622264": {
+  "was": "Carte de l'Amerique Septentrionnale : depuis le 25, jusqu'au 65⁰ deg. de latt. & environ 140, & 235 deg. de longitude / par Iean Baptiste Louis Franquelin, hydrographe du roy, à Québec en Canada",
+  "title": "Map of North America: from 25 to 65 degrees of latitude and about 140 and 235 degrees of longitude / by Jean Baptiste Louis Franquelin, hydrographer to the King, at Quebec in Canada",
+  "note": "Never translated: the caption is the archive's French. Septentrionnale is 'northern'; the title is simply 'Map of North America'. Iean is the period spelling of Jean. Franquelin and Québec are names. Archive re-catalogued the item with the full transcribed title; 'was' follows that."
+ },
+ "2021668287": {
+  "was": "Huang Qing di li tu",
+  "title": "Huang Qing di li tu (Geographical Maps of the Qing Empire)",
+  "note": "Pinyin never translated; the language detector called it Indonesian. The archive's own description glosses it as 'Geographical maps of the Qing Empire' (Huang Qing = imperial Qing, di li = geography, tu = maps). Compiled by Dong Youcheng, 1856."
+ },
+ "99447692": {
+  "was": "Karta puteĭ soobshchenīi︠a︡ Azīatskoĭ Rossīi",
+  "title": "Map of the Routes of Communication of Asiatic Russia",
+  "note": "Transliterated Russian (Karta putei soobshcheniia Aziatskoi Rossii), detected as Latvian and published as 'Member of the Commission', which is unrelated. Karta = map, put' soobshcheniia = ways/routes of communication (the issuing body was the Ministry of Ways of Communication), Aziatskoi Rossii = of Asiatic Russia."
+ },
+ "90682666": {
+  "was": "Plano de la Bahía de Concepción de Chile situada la ciudad antigua en latitud meridional de 36°42ʹ53ʺ y en longitud de 303°52ʹ3ʺ de Tenerife observadas astronómicamente",
+  "title": "Plan of the Bay of Concepción in Chile, with the old city situated at south latitude 36°42′53″ and longitude 303°52′3″ from Tenerife, astronomically observed",
+  "note": "Spanish. Faults: the prime-mark characters (ʹ ʺ) came out as 'ю' and the minutes/seconds were lost; 'longitud' (longitude) was rendered 'at length'; 'Plano' is 'plan', not 'plane'; the caption was truncated. Concepción, Chile and Tenerife (the meridian of reckoning) are names."
  }
 }
