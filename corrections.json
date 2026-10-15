@@ -148,5 +148,20 @@
   "was": "[Taiwan qian hou shan quan tu]",
   "title": "Complete map of the front and rear mountains of Taiwan (Taiwan qian hou shan quan tu)",
   "note": "Chinese pinyin in square brackets, never translated. Quan tu is 'complete map'; qian shan and hou shan are the 'front' (west) and 'rear' (east) mountain regions either side of the Central Range. Taiwan is a name. The archive re-catalogued it with brackets."
+ },
+ "2002622264": {
+  "was": "Carte de l'Amerique Septentrionnale : depuis le 25, jusqu'au 65⁰ deg. de latt. & environ 140, & 235 deg. de longitude / par Iean Baptiste Louis Franquelin, hydrographe du roy, à Québec en Canada",
+  "title": "Map of North America: from the 25th to the 65th degree of latitude, and approximately from 140 to 235 degrees of longitude / by Jean Baptiste Louis Franquelin, royal hydrographer, at Québec in Canada",
+  "note": "Never translated: the pool held the French catalogue title verbatim, so the flag changed nothing a reader saw. Carte = map; Septentrionnale = northern (the whole continent, i.e. North America); 'depuis le 25, jusqu'au 65 deg. de latt.' = from the 25th to the 65th degree of latitude; 'environ 140, & 235 deg. de longitude' = roughly 140 to 235 degrees of longitude (counted eastward from a prime meridian, hence the large numbers). Iean is period spelling of Jean; Franquelin, Québec and Canada are names and kept as such; 'hydrographe du roy' = the King's hydrographer."
+ },
+ "2021668287": {
+  "was": "Huang Qing di li tu",
+  "title": "Huang Qing di li tu (Geographical Maps of the Qing Empire)",
+  "note": "Language detector tagged this pinyin romanization as Indonesian ('id'), so the catalogue's own words were published with a stray full stop and no English. It is Chinese: Huang Qing = Imperial Qing, di li = geography, tu = maps. Gloss taken from the record's own description (compiled by Dong Youcheng, 1856); the romanized title is kept as the title, not translated away."
+ },
+ "99447692": {
+  "was": "Karta puteĭ soobshchenīi︠a︡ Azīatskoĭ Rossīi",
+  "title": "Map of the Communication Routes of Asiatic Russia",
+  "note": "Language detector read transliterated Russian as Latvian ('lv') and the translator returned 'Member of the Commission', apparently from the issuing body's name, not the title. Karta = map; puteĭ soobshchenīi︠a︡ = ways/lines of communication (the Russian ministry's term for railways, waterways and roads, matching the record's description); Azīatskoĭ Rossīi = of Asiatic Russia (Siberia and Central Asia)."
  }
 }
