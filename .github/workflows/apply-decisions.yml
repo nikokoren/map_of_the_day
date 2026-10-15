@@ -17,6 +17,11 @@ on:
 permissions:
   contents: write
   issues: write
+  # To hand the rewrite workflow its cue. A push made with the default
+  # token never starts another workflow -- GitHub's rule, to stop a
+  # workflow looping on its own commits -- so the chain from a flag to a
+  # rewritten caption has to be asked for, not waited for.
+  actions: write
 
 concurrency:
   group: apply-decisions
@@ -103,6 +108,33 @@ jobs:
             echo "the schedule; anything flagged now shows the archive's own"
             echo "words instead of the translation."
           } > reply.md
+
+      # The cue the push cannot give. rewrite-captions.yml listens for a
+      # change to flagged_text.json, and in five weeks it never once
+      # heard one: every run it has ever had was started by hand.
+      - name: Ask for the flagged captions to be rewritten
+        if: steps.apply.outputs.ok == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -uo pipefail
+          waiting="$(python3 pending_rewrites.py --brief | sed -n 's/^pending=//p')"
+          if [ "${waiting:-0}" = "0" ]; then
+            echo "No caption is waiting for a replacement."
+            exit 0
+          fi
+          echo "$waiting caption(s) waiting; starting the rewrite workflow."
+          if gh workflow run rewrite-captions.yml --ref "$GITHUB_REF_NAME"; then
+            echo "" >> reply.md
+            echo "$waiting flagged caption(s) are being rewritten; a pull" >> reply.md
+            echo "request with the replacements follows." >> reply.md
+          else
+            echo "::warning::could not start the rewrite workflow; $waiting"\
+                 "caption(s) are still waiting"
+            echo "" >> reply.md
+            echo "$waiting flagged caption(s) are waiting for a replacement," >> reply.md
+            echo "but the rewrite workflow could not be started from here." >> reply.md
+          fi
 
       # always(), because the interesting case is the one that failed.
       # Without it a failing step skips this one, and a review that was
