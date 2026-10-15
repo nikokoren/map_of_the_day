@@ -84,6 +84,18 @@ button[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-colo
 .card[data-veto="1"] .acts .veto{background:var(--veto);color:#fff}
 .card[data-flag="1"]{border-color:var(--flag);background:var(--flag-soft)}
 .card[data-flag="1"] .acts .flag{background:var(--flag);color:#fff}
+/* A flag that has been answered is not a flag outstanding. Amber stays
+   for the ones still waiting on a caption; an answered one drops back to
+   an ordinary card with a quiet line saying so, so the amber on the page
+   is a count of work left rather than a count of work ever done. */
+.card[data-fix="live"]{border-color:var(--rule);background:var(--card)}
+.card[data-fix="live"] .acts .flag{background:transparent;color:var(--muted)}
+.card[data-fix="stale"]{border-color:var(--veto);background:var(--veto-soft)}
+.fix{font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;
+  line-height:1.3;padding-top:5px;margin-top:2px;
+  border-top:1px dotted var(--rule);color:var(--flag)}
+.card[data-fix="live"] .fix{color:var(--muted)}
+.card[data-fix="stale"] .fix{color:var(--veto)}
 .card[data-star="1"]{border-color:var(--star);background:var(--star-soft)}
 .card[data-star="1"] .acts .star{background:var(--star);color:#fff}
 .prog{font:11.5px/1.5 ui-monospace,monospace;color:var(--muted);
@@ -120,7 +132,7 @@ textarea{width:100%;min-height:210px;font-family:"IBM Plex Mono",monospace;
   <div class="bar">
     <span class="count"><b id="nshown">0</b> <span id="nounlabel">items</span> &middot;
       <b id="nveto">0</b> vetoed &middot; <b id="nstar">0</b> starred &middot;
-      <b id="nflag">0</b> flagged</span>
+      <b id="nflag">0</b> flagged &middot; <b id="nwait">0</b> awaiting a caption</span>
     <button id="onlynew" aria-pressed="false">Only new</button>
     <span class="seg"><button id="bydate" aria-pressed="true">By date</button><button id="bythin" aria-pressed="false">Sort</button></span>
     <button id="near" aria-pressed="false">Narrow</button>
@@ -208,7 +220,13 @@ textarea{width:100%;min-height:210px;font-family:"IBM Plex Mono",monospace;
       + "come back, and the original is shown underneath. Anything can be "
       + "flagged, including a caption that was never translated and is "
       + "still in its own language — there is nothing to drop there, but "
-      + "it is exactly the case that needs a replacement written.");
+      + "it is exactly the case that needs a replacement written. Each "
+      + "flagged row says where that has got to: awaiting a rewritten "
+      + "caption, rewritten by hand, or a rewrite that no longer applies "
+      + "because the archive has re-catalogued the text it answered. The "
+      + "never-translated ones look unchanged until the caption is "
+      + "written, so the line rather than the words tells you whether "
+      + "the flag was acted on.");
 
   // How far the curation has got, per selection. A star only counts in
   // company: a cell serves only its starred cards once it has enough,
@@ -265,7 +283,32 @@ textarea{width:100%;min-height:210px;font-family:"IBM Plex Mono",monospace;
 
   function counts(){
     put("nveto", veto.size); put("nflag", flag.size); put("nstar", star.size);
+    // Flags with no caption written for them yet -- the only one of
+    // these counts that says how much is left to do.
+    var waiting = 0;
+    (D.items||[]).forEach(function(it){
+      if (flag.has(it.id) && !it.fx) waiting++;
+    });
+    put("nwait", waiting);
   }
+
+  // Where a flag has got to. A card whose caption was never translated
+  // shows the same words before and after the flag, so the caption
+  // itself cannot say whether the flag was acted on: only the
+  // correction can. "stale" is the one that needs a person -- a caption
+  // was written and the archive has since re-catalogued the text it
+  // answered, so it has been dropped and the flag is open again.
+  function fixState(it){
+    if (it.sx) return "stale";
+    if (it.fx) return "live";
+    return flag.has(it.id) ? "wait" : "none";
+  }
+
+  var FIXWORD = {
+    live:  "caption rewritten by hand",
+    wait:  "awaiting a rewritten caption",
+    stale: "rewrite no longer applies \u2014 the archive re-catalogued this"
+  };
 
   function card(it){
     var el = document.createElement("div");
@@ -273,6 +316,7 @@ textarea{width:100%;min-height:210px;font-family:"IBM Plex Mono",monospace;
     el.setAttribute("data-veto", veto.has(it.id) ? "1":"0");
     el.setAttribute("data-flag", flag.has(it.id) ? "1":"0");
     el.setAttribute("data-star", star.has(it.id) ? "1":"0");
+    el.setAttribute("data-fix", fixState(it));
     el.setAttribute("data-new", it["new"] ? "1":"0");
     var when = it.w && it.w[0] ? it.w[0].day.slice(5) + " · " + it.w[0].cell : "";
     el.innerHTML =
@@ -306,9 +350,22 @@ textarea{width:100%;min-height:210px;font-family:"IBM Plex Mono",monospace;
       s.textContent = "[" + (it.lang||"?") + "] " + it.src;
       el.querySelector(".meta").appendChild(s);
     }
+    // Drawn after the source line so the two read as one block: what
+    // the archive said, then where the answer to it has got to.
+    var fixline = document.createElement("span");
+    fixline.className = "fix";
+    function showFix(){
+      var state = fixState(it);
+      el.setAttribute("data-fix", state);
+      fixline.textContent = FIXWORD[state] || "";
+      fixline.hidden = !FIXWORD[state];
+    }
+    el.querySelector(".meta").appendChild(fixline);
+    showFix();
     function mark(set, name){
       if (set.has(it.id)) set.delete(it.id); else set.add(it.id);
       el.setAttribute("data-" + name, set.has(it.id) ? "1":"0");
+      if (set === flag) showFix();
     }
     function toggle(set, name){ mark(set, name); counts(); remember(); }
     // A veto and a star are opposite answers to the same question, so

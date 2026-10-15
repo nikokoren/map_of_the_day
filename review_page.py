@@ -101,6 +101,11 @@ def main():
         "d": i.get("density") if "density" in i else i.get("score"),
         "src": i.get("source") or "",
         "lang": i.get("lang") or "",
+        # A flag's own state. Without these a card already rewritten
+        # looks exactly like one still waiting, which is how the same
+        # caption got flagged round after round.
+        "fx": bool(i.get("fixed")),
+        "sx": bool(i.get("stale")),
         "w": (i.get("when") or [])[:3],
         "n": len(i.get("when") or []),
         "new": i["id"] not in previous,
