@@ -1400,8 +1400,18 @@ def selftest(entries, day):
     """
     failures = []
     total = len(entries)
+    # The pool and the rotation stopped being the same thing when stars
+    # arrived: a topic with enough of them draws only from those, so the
+    # cycle is divmod by the starred count, not by the pool. Checks about
+    # what the pool contains keep using `total`; checks about what comes
+    # round when use `drawn`. Conflating them is how the postcard
+    # selftest came to call a correct rotation a fault -- it sampled 400
+    # days of a 301-day cycle, found 99 repeats, and failed -- which
+    # threw away every review that carried stars.
+    drawn = preferred(entries)
+    spin = len(drawn)
     index = day_index(day)
-    cycle, position = divmod(index, total)
+    cycle, position = divmod(index, spin)
 
     # 0. A caption written by hand has to actually reach the panel, and
     #    has to still be answering the caption it was written for. A
@@ -1535,9 +1545,9 @@ def selftest(entries, day):
     # 3. Day n of the cycle really is position n of that cycle's order,
     #    sampled across the whole cycle. (Checking all of them would mean
     #    re-sorting the pool once per day of the cycle.)
-    order = [e["id"] for e in order_for(entries, "all", cycle)]
-    step = max(1, total // 50)
-    for offset in range(0, total, step):
+    order = [e["id"] for e in order_for(drawn, "all", cycle)]
+    step = max(1, spin // 50)
+    for offset in range(0, spin, step):
         wanted = day + timedelta(days=offset - position)
         got = candidates_for(entries, "all", wanted)[0]["id"]
         if got != order[offset]:
@@ -1547,15 +1557,15 @@ def selftest(entries, day):
 
     # 4. The next pass through the pool is in a different order, so the
     #    same map does not come back on the same day every cycle.
-    if order == [e["id"] for e in order_for(entries, "all", cycle + 1)]:
+    if order == [e["id"] for e in order_for(drawn, "all", cycle + 1)]:
         failures.append("the shuffle does not change between cycles")
 
     # 5. Consecutive days differ. (Only guaranteed inside a cycle: the
     #    map either side of a cycle boundary is drawn from two different
     #    shuffles, so it can coincide once in a pool's worth of days.)
-    for offset in (0, 1, 2, total // 3, total - position - 2):
+    for offset in (0, 1, 2, spin // 3, spin - position - 2):
         d = day + timedelta(days=offset)
-        if day_index(d) // total != cycle:
+        if day_index(d) // spin != cycle:
             continue
         if (candidates_for(entries, "all", d)[0]["id"]
                 == candidates_for(entries, "all", d + timedelta(days=1))[0]["id"]):

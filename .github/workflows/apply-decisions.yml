@@ -24,8 +24,13 @@ concurrency:
 
 jobs:
   apply:
+    # Deliberately not conditioned on the issue being open. It used to
+    # be, and that turned a paste into silence: the standing issue
+    # carried the same label the reminder uses to find its own, the
+    # reminder closed it when the runway recovered, and every block
+    # pasted there afterwards was skipped -- no run, no log, no reply.
+    # Who is speaking is the gate that matters.
     if: >-
-      github.event.issue.state == 'open' &&
       contains(github.event.comment.body, '```queue') &&
       github.event.comment.user.login == github.repository_owner
     runs-on: ubuntu-latest
@@ -64,7 +69,15 @@ jobs:
 
       - name: Check it still holds together
         if: steps.apply.outputs.ok == 'true'
-        run: python3 daily.py --selftest
+        # Not piped into tee: the step shell is bash -e without pipefail,
+        # so a pipe would report tee's exit status and a failing selftest
+        # would pass the gate -- the opposite of this step's whole job.
+        run: |
+          python3 daily.py --selftest > selftest.txt 2>&1 || {
+            cat selftest.txt
+            exit 1
+          }
+          cat selftest.txt
 
       - name: Push
         if: steps.apply.outputs.ok == 'true'
@@ -72,7 +85,7 @@ jobs:
           set -euo pipefail
           git config user.name "GitHub Action"
           git config user.email "action@github.com"
-          git add -A ':!summary.txt' ':!problem.txt' ':!reply.md'
+          git add -A ':!summary.txt' ':!problem.txt' ':!reply.md' ':!selftest.txt'
           if git diff --staged --quiet; then
             echo "Nothing changed." > reply.md
             exit 0
@@ -91,7 +104,32 @@ jobs:
             echo "words instead of the translation."
           } > reply.md
 
+      # always(), because the interesting case is the one that failed.
+      # Without it a failing step skips this one, and a review that was
+      # folded in, rebuilt, then refused by the selftest goes back to its
+      # author as nothing at all. Six reviews went that way.
       - name: Say what happened
+        if: always()
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh issue comment "${{ github.event.issue.number }}" --body-file reply.md
+          RESULT: ${{ job.status }}
+          RUN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -uo pipefail
+          if [ ! -s reply.md ]; then
+            {
+              echo "That block was read and the decisions were applied, but"
+              echo "the run did not finish, so **nothing was saved**."
+              echo
+              echo "The checks that run before anything is pushed did not pass:"
+              echo
+              echo '```'
+              sed -n 's/^.*FAIL/FAIL/p' selftest.txt 2>/dev/null | head -20 \
+                || echo "see the run log"
+              echo '```'
+              echo
+              echo "Nothing is lost -- paste the same block again once that is"
+              echo "fixed. [The run]($RUN)"
+            } > reply.md
+          fi
+          gh issue comment "${{ github.event.issue.number }}" --body-file reply.md
