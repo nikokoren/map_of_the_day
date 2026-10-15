@@ -71,6 +71,14 @@ jobs:
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          # The action refuses a run started by a bot, to stop Claude
+          # looping on its own commits. apply-decisions.yml is the only
+          # thing that starts this one, and it is a bot, so without this
+          # the chain ends here -- which is exactly where it ended:
+          # "Workflow initiated by non-human actor: github-actions".
+          # Named rather than "*", so the one caller that may start this
+          # is the one we built, and a rewrite cannot start a rewrite.
+          allowed_bots: "github-actions"
           # Without these the run has no hands. A plain-text prompt gets
           # no shell and no file access until they are granted, and the
           # first attempt proved what that looks like: three turns, two
