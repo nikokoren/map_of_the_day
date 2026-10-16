@@ -168,5 +168,10 @@
   "was": "Plano de la Bahía de Concepción de Chile situada la ciudad antigua en latitud meridional de 36°42ʹ53ʺ y en longitud de 303°52ʹ3ʺ de Tenerife observadas astronómicamente",
   "title": "Plan of the Bay of Concepción in Chile, with the old city situated at south latitude 36°42ʹ53ʺ and longitude 303°52ʹ3ʺ from Tenerife, astronomically observed",
   "note": "Never translated properly: the archive's Spanish title was machine-read as English, so 'Plano' became 'Plane' (it is a plan/map), 'Bahia de Concepción' was left half-Spanish, 'latitud meridional' (meridional = southern in Spanish) became 'South latitude' only by luck while 'longitud ... de Tenerife' became 'at length', and the minute and second marks (ʹ and ʺ) were garbled into 'ю'. 'de Tenerife' means the longitude is reckoned from the Tenerife meridian (old Spanish/French practice, hence 303°), not a place name to drop. Concepción and Tenerife are names and are kept."
+ },
+ "2003623373": {
+  "was": "Plan général du Fort Septentrional du Detour des Anglois, tel qu'il est présentement : [Louisiana]",
+  "title": "General plan of the Northern Fort at the Detour des Anglois, as it presently stands: [Louisiana]",
+  "note": "Detour des Anglois is the English Turn, the bend of the Mississippi below New Orleans, and is a place name to keep as written; the translator turned it into 'Detour des Anglos', a form that exists in no language. Also, 'tel qu'il est présentement' is 'as it presently stands', and the archive's bracketed [Louisiana] is a cataloguer's place note that was reduced to a bare 'Louisiana' with its brackets lost."
  }
 }
