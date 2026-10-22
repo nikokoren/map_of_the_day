@@ -168,5 +168,40 @@
   "was": "Plano de la Bahía de Concepción de Chile situada la ciudad antigua en latitud meridional de 36°42ʹ53ʺ y en longitud de 303°52ʹ3ʺ de Tenerife observadas astronómicamente",
   "title": "Plan of the Bay of Concepción in Chile, with the old city situated at south latitude 36°42ʹ53ʺ and longitude 303°52ʹ3ʺ from Tenerife, astronomically observed",
   "note": "Never translated properly: the archive's Spanish title was machine-read as English, so 'Plano' became 'Plane' (it is a plan/map), 'Bahia de Concepción' was left half-Spanish, 'latitud meridional' (meridional = southern in Spanish) became 'South latitude' only by luck while 'longitud ... de Tenerife' became 'at length', and the minute and second marks (ʹ and ʺ) were garbled into 'ю'. 'de Tenerife' means the longitude is reckoned from the Tenerife meridian (old Spanish/French practice, hence 303°), not a place name to drop. Concepción and Tenerife are names and are kept."
+ },
+ "2003623373": {
+  "was": "Plan général du Fort Septentrional du Detour des Anglois, tel qu'il est présentement : [Louisiana]",
+  "title": "General plan of the Northern Fort at the Detour des Anglois, as it presently stands: [Louisiana]",
+  "note": "Detour des Anglois is the English Turn, the bend of the Mississippi below New Orleans, and is a place name to keep as written; the translator turned it into 'Detour des Anglos', a form that exists in no language. Also, 'tel qu'il est présentement' is 'as it presently stands', and the archive's bracketed [Louisiana] is a cataloguer's place note that was reduced to a bare 'Louisiana' with its brackets lost."
+ },
+ "2013593017": {
+  "was": "Sudwest-Asien : possessions of European Powers",
+  "title": "Southwest Asia: possessions of European Powers",
+  "note": "Caption was never translated; the archive's title is a French/German-style hybrid. 'Sudwest-Asien' is German for Southwest Asia; the rest was already English. Translated the German part only and added nothing."
+ },
+ "2008629058": {
+  "was": "Carta topografica della Colonia Eritrea alla scala di 1:100,000",
+  "title": "Topographic map of the Colony of Eritrea at a scale of 1:100,000",
+  "note": "Translation was mostly right but left 'Colonia Eritrea' (Italian) untranslated. Eritrea is a name and stays; 'Colonia' is the common noun, so 'Colony of Eritrea'. Scale unchanged."
+ },
+ "2021668455": {
+  "was": "Valentia Edetanorum, Plebs of Cid.",
+  "title": "Valentia Edetanorum, the Plebs of the Cid",
+  "note": "Never translated. Valentia Edetanorum is the Roman name of Valencia (Spain), a place name kept as is. 'Plebs of Cid' is the archive's own wording, a Latin 'plebs' (common people / commonalty) of the Cid; rendered as 'the Plebs of the Cid' without adding detail the caption does not carry."
+ },
+ "73697045": {
+  "was": "Le golfe de St. Laurent dressé sur plusieurs arpentages modernes et autres matériaux liés par des observations astronomiques",
+  "title": "The Gulf of St. Lawrence, drawn from several modern surveys and other materials linked by astronomical observations",
+  "note": "French 'dressé sur' (drawn up from, compiled on the basis of) was dropped, leaving a sentence with no verb; the French title 'Le golfe de St. Laurent' was also left in French. St. Laurent is the Gulf of St. Lawrence."
+ },
+ "2006629148": {
+  "was": "[Iconografica rappresentatione della inclita città di Venezia consacrata al reggio serenissimo dominio veneto]",
+  "title": "Iconographic representation of the renowned city of Venice, consecrated to the most serene Venetian dominion",
+  "note": "'inclita' is Italian for illustrious/renowned (from Latin inclitus), not 'inclined'; 'reggio' is a period spelling of 'regio' (royal/sovereign) and was dropped; 'serenissimo dominio veneto' is the formal style of the Venetian Republic. Iconografica rappresentatione = iconographic representation (a view), not 'Iconograph'."
+ },
+ "2013593003": {
+  "was": "Carte de la Turquie D'Asie, de la Perse: de l'Afghanistan, du Belouchistan et de la grande Boukharie; avec une partie des Etats voisins",
+  "title": "Map of Asiatic Turkey, Persia, Afghanistan, Baluchistan and Greater Bukhara, with part of the neighbouring states",
+  "note": "Never translated. The pool's caption was re-catalogued to add 'avec une partie des Etats voisins', so 'was' is the new wording. Belouchistan = Baluchistan; 'la grande Boukharie' = Greater Bukhara (Great Bukharia), a historical region of Central Asia. Place names kept as names."
  }
 }
