@@ -27,8 +27,10 @@ import re
 import sys
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from collections import Counter
+from concurrent.futures import ThreadPoolExecutor
 
 # ============================================================
 # config
@@ -614,12 +616,44 @@ TOPIC_PATTERNS = {
     "world-and-hemispheres": (r"\bworld\b|hemisphere|globe|terrarum|"
                               r"universalis|mappe.?monde|orbis"),
 }
+
+# The same topics in Dutch, for the Rijksmuseum's titles. Without these
+# every map from that source matched nothing and was reachable only
+# through "All Maps" and the eras -- in a pool where every Library map
+# carries at least one topic, that is a source hidden behind the one
+# selection it was added to diversify.
+#
+# Kept apart from the patterns above rather than folded into them
+# because two of the words collide with English: "kaart" is a map but
+# "chart" is nautical, and "plan" is a city plan in Dutch where in the
+# Library's titles it is as often a battle plan.
+TOPIC_PATTERNS_NL = {
+    "city-plans":       r"plattegrond|stadsplan|\bstad\b|plan van de stad",
+    "birds-eye-views":  r"vogelvlucht|profiel van|gezicht op",
+    "railroads":        r"spoorweg|spoorlijn",
+    "roads-and-travel": r"wegenkaart|reiskaart|postroute",
+    "land-ownership":   r"kadaster|grondeigendom|perceel",
+    # Including the forms this catalogue actually uses for a campaign
+    # map, which the first pass missed: an attack on a town, an army
+    # camp, an order of battle, a raid. Those were sitting with no topic
+    # at all despite being the clearest matches in the sample.
+    "battles-and-forts": r"\bbeleg\b|belegering|veldslag|\bslag bij\b"
+                         r"|vesting|fort\b|schans|aanval|legerkamp"
+                         r"|slagorde|\btocht naar\b|\bkamp van\b",
+    "nautical":         r"zeekaart|paskaart|haven|kust|loodsboek|rede van",
+    "exploration":      r"ontdekking|expeditie|\breis\b|zeilagie|seylagie",
+    "world-and-hemispheres": r"wereldkaart|werelddeel|halfrond|aardbol",
+}
+TOPIC_RES_NL = {name: re.compile(pat, re.I)
+                for name, pat in TOPIC_PATTERNS_NL.items()}
 TOPIC_RES = {name: re.compile(pat, re.I) for name, pat in TOPIC_PATTERNS.items()}
 
 
 def topics_for(title, subjects, collection):
     text = " ".join([title, " ".join(subjects), collection])
-    return [name for name, rx in TOPIC_RES.items() if rx.search(text)]
+    found = {name for name, rx in TOPIC_RES.items() if rx.search(text)}
+    found |= {name for name, rx in TOPIC_RES_NL.items() if rx.search(text)}
+    return sorted(found)
 
 
 # Media that tend to mean "hand-drawn, and mostly blank paper".
@@ -683,8 +717,9 @@ def measure(entry):
         from PIL import Image, ImageFilter
     except ImportError:
         return None
-    url = "https://tile.loc.gov/image-services/iiif/{}/full/{}/0/gray.jpg".format(
-        entry["s"], MEASURE_SIZE)
+    base = (entry["s"] if "://" in entry["s"]
+            else "https://tile.loc.gov/image-services/iiif/" + entry["s"])
+    url = "{}/full/{}/0/gray.jpg".format(base, MEASURE_SIZE)
     delay = 3
     for attempt in range(3):
         try:
@@ -787,6 +822,290 @@ def render_rank(score):
 # harvest
 # ============================================================
 
+# ============================================================
+# the Rijksmuseum
+# ============================================================
+#
+# A second source, and the first that is not the Library of Congress.
+#
+# Why this one, out of everything an aggregator lists: the pool is 82%
+# maps of somewhere in the United States, because six of the ten
+# Library collections here are American by definition. Thinning that
+# share (see crowded_share in daily.py) redistributes what is there; it
+# cannot add Suriname.
+#
+# Europeana was the obvious place to look and turned out to be the wrong
+# one. It aggregates metadata, not images: its own thumbnails cap at
+# 400px, its IIIF manifests point back at whatever the provider hosts,
+# and the providers behind the biggest map collections serve fixed JPEGs
+# -- the National Library of Israel through a cache that 404s on nearly
+# half of them, the British Library through Flickr, whose CDN
+# rate-limits datacentre addresses. Both would have cost the panel the
+# thing that makes this recipe work, which is asking for the exact
+# derivative the screen needs.
+#
+# The Rijksmuseum serves real IIIF through Micrio, and the postcard
+# recipe already resolves it, so the path is known to work in
+# production rather than hoped to. Measured on the first map resolved
+# here: 8216x5544, and full/!800,480/0/gray.jpg comes back 711x480 at
+# 87KB.
+#
+# Dutch cartography also goes where this pool does not: Suriname,
+# Languedoc, Java, Senegal, north-west Africa, the Batavian Republic.
+
+RIJKS_SEARCH = "https://data.rijksmuseum.nl/search/collection"
+RIJKS_CACHE = os.path.join(HERE, "rijks.json")
+
+# The object types that are maps. "kaart" is the broad one and does mean
+# card in other contexts, but filed as an object type against an image
+# it is a map -- sampled, it gives Suriname, Languedoc, Haarlem and the
+# siege of Breda. "plattegrond" is a ground plan, which is this pool's
+# city-plans. "landkaart" and "atlas" exist and hold 27 between them,
+# which is not worth a pass of its own.
+RIJKS_TYPES = ("kaart", "plattegrond")
+
+# Linked Art points at Getty AAT numbers rather than naming its fields.
+AAT_PRIMARY_TITLE = "300404670"
+AAT_OBJECT_NUMBER = "300312355"
+
+RIJKS_IIIF_TAIL = re.compile(r"/full/[^/]+/\d+/\w+\.jpg$")
+RIJKS_WORKERS = 4
+
+# Resolving one map costs four requests -- object, visual item, digital
+# object, info.json -- so a run pays for a slice and remembers it. The
+# cache is committed, so the next monthly run starts where this one
+# stopped and the pool grows without ever re-asking.
+RIJKS_BUDGET = 400
+
+# A sheet of a set, in Dutch. The English equivalents are in
+# TITLE_REJECT already; these are the spellings this catalogue uses.
+# "blad linksboven" is the top-left sheet of a wall map, which is a
+# quarter of a map and reads as a fragment on a panel.
+RIJKS_TITLE_REJECT = re.compile(
+    r"\bblad\b|\bbladen\b|titelpagina|titelblad|omslag|achterzijde"
+    r"|\bkeerzijde\b|\bfragment\b|\bproefdruk\b", re.I)
+
+
+def rijks_fetch(url, accept="application/ld+json"):
+    """One Linked Art node, or None."""
+    req = urllib.request.Request(url, headers={"User-Agent": UA,
+                                               "Accept": accept})
+    for attempt in range(3):
+        try:
+            with urllib.request.urlopen(req, timeout=TIMEOUT) as resp:
+                return json.loads(resp.read().decode("utf-8", "replace"))
+        except Exception:
+            if attempt == 2:
+                return None
+            time.sleep(2 * (attempt + 1))
+    return None
+
+
+def la_names(node, aat=None):
+    """The `identified_by` strings on a Linked Art node, optionally by type."""
+    out = []
+    for name in node.get("identified_by") or []:
+        kinds = [c.get("id", "").rsplit("/", 1)[-1]
+                 for c in (name.get("classified_as") or [])]
+        if aat is None or aat in kinds:
+            content = name.get("content")
+            if content:
+                out.append(" ".join(str(content).split()))
+    return out
+
+
+def rijks_iiif(record):
+    """
+    The IIIF endpoint for a map, three records deep.
+
+      HumanMadeObject -> shows            -> VisualItem
+      VisualItem      -> digitally_shown_by -> DigitalObject
+      DigitalObject   -> access_point     -> the IIIF endpoint
+
+    The VisualItem's own `digitally_shown_by` entry carries only an id,
+    so the second hop is not optional. Stopping at the VisualItem's
+    `subject_of` is the tempting mistake -- that one is the catalogue
+    web page, not the image.
+    """
+    shows = (record.get("shows") or [{}])[0].get("id")
+    if not shows:
+        return None
+    visual = rijks_fetch(shows)
+    for shown in ((visual or {}).get("digitally_shown_by") or []):
+        for point in shown.get("access_point") or []:
+            if "iiif" in str(point.get("id") or ""):
+                return RIJKS_IIIF_TAIL.sub("", point["id"])
+        if not shown.get("id"):
+            continue
+        digital = rijks_fetch(shown["id"])
+        for point in ((digital or {}).get("access_point") or []):
+            if "iiif" in str(point.get("id") or ""):
+                return RIJKS_IIIF_TAIL.sub("", point["id"])
+    return None
+
+
+def rijks_dimensions(base):
+    """(width, height) from the IIIF service, which is the only place
+    this catalogue states the pixels -- the object record gives
+    millimetres of paper."""
+    info = rijks_fetch(base + "/info.json", accept="application/json")
+    if not isinstance(info, dict):
+        return None
+    try:
+        return int(info["width"]), int(info["height"])
+    except (KeyError, TypeError, ValueError):
+        return None
+
+
+def rijks_resolve(object_id, stats):
+    """One map, or None with the reason counted."""
+    record = rijks_fetch(object_id)
+    if not isinstance(record, dict):
+        stats["rijks: unreachable"] += 1
+        return None
+
+    title = (la_names(record, AAT_PRIMARY_TITLE) or la_names(record) or [""])[0]
+    title = clean_text(title, 300)
+    if not title:
+        stats["rijks: no title"] += 1
+        return None
+    if RIJKS_TITLE_REJECT.search(title) or TITLE_REJECT_RE.search(title):
+        stats["rijks: a sheet or a fragment"] += 1
+        return None
+    if any(word in title.lower() for word in TITLE_REJECT):
+        stats["rijks: rejected title"] += 1
+        return None
+
+    span = (record.get("produced_by") or {}).get("timespan") or {}
+
+    def year(key):
+        found = re.search(r"(\d{4})", str(span.get(key) or ""))
+        return int(found.group(1)) if found else None
+
+    y1, y2 = year("begin_of_the_begin"), year("end_of_the_end")
+    if y1 is None:
+        stats["rijks: no date"] += 1
+        return None
+    if not MIN_YEAR <= y1 <= MAX_YEAR:
+        stats["rijks: out of range"] += 1
+        return None
+
+    base = rijks_iiif(record)
+    if not base:
+        stats["rijks: no image"] += 1
+        return None
+    dims = rijks_dimensions(base)
+    if not dims:
+        stats["rijks: no dimensions"] += 1
+        return None
+    width, height = dims
+
+    # The same gates the Library's maps pass, for the same reasons: a
+    # scan under the panel's short side is upscaled before it is
+    # dithered, and a map far outside the panel's aspect is a stripe.
+    if min(width, height) < MIN_SHORT_SIDE or width * height < MIN_PIXELS:
+        stats["rijks: too small"] += 1
+        return None
+    aspect = width / float(height)
+    if not MIN_ASPECT <= aspect <= MAX_ASPECT:
+        stats["rijks: wrong shape"] += 1
+        return None
+
+    number = (la_names(record, AAT_OBJECT_NUMBER) or [""])[0]
+    entry = {
+        "id": "rijks:" + (number or object_id.rsplit("/", 1)[-1]),
+        "t": title,
+        "y": y1,
+        "c": "",
+        "p": "",
+        "d": "",
+        "m": "",
+        "pub": "",
+        "sc": "",
+        "subj": [],
+        "k": "world",
+        "col": "Rijksmuseum",
+        "g": topics_for(title, [], "Rijksmuseum"),
+        "s": base,
+        "w": width,
+        "h": height,
+        "u": object_id,
+    }
+    if y2 and y2 != y1:
+        entry["y2"] = y2
+    return entry
+
+
+def load_rijks():
+    try:
+        with open(RIJKS_CACHE) as fh:
+            cache = json.load(fh)
+    except (OSError, ValueError):
+        cache = {}
+    cache.setdefault("ids", [])
+    cache.setdefault("resolved", {})
+    cache.setdefault("done", False)
+    return cache
+
+
+def save_rijks(cache):
+    with open(RIJKS_CACHE, "w") as fh:
+        json.dump(cache, fh, separators=(",", ":"), sort_keys=True)
+        fh.write("\n")
+
+
+def rijks_maps(budget, stats, max_pages=MAX_PAGES):
+    """
+    Two passes, like the postcard recipe's: listing identifiers is one
+    cheap request per hundred and runs to completion, resolving them is
+    four requests each and runs to a budget.
+    """
+    cache = load_rijks()
+    if not cache["done"]:
+        seen = set(cache["ids"])
+        for kind in RIJKS_TYPES:
+            url = (RIJKS_SEARCH + "?"
+                   + urllib.parse.urlencode({"imageAvailable": "true",
+                                             "type": kind}))
+            page = 0
+            while url and page < max_pages:
+                data = rijks_fetch(url, accept="application/json")
+                if data is None:
+                    sys.stderr.write("  rijks: listing failed, pausing\n")
+                    break
+                if page == 0:
+                    total = (data.get("partOf") or {}).get("totalItems")
+                    sys.stderr.write("  rijks: {} of type {}\n".format(total,
+                                                                      kind))
+                for item in data.get("orderedItems") or []:
+                    if item.get("id") and item["id"] not in seen:
+                        seen.add(item["id"])
+                        cache["ids"].append(item["id"])
+                nxt = data.get("next")
+                url = nxt.get("id") if isinstance(nxt, dict) else nxt
+                page += 1
+                time.sleep(REQUEST_DELAY)
+        cache["done"] = True
+        save_rijks(cache)
+
+    todo = [i for i in cache["ids"] if i not in cache["resolved"]][:budget]
+    left = len([i for i in cache["ids"] if i not in cache["resolved"]])
+    if todo:
+        sys.stderr.write("  rijks: resolving {} of {} unresolved\n"
+                         .format(len(todo), left))
+        with ThreadPoolExecutor(max_workers=RIJKS_WORKERS) as pool:
+            for object_id, entry in zip(todo, pool.map(
+                    lambda i: rijks_resolve(i, stats), todo)):
+                cache["resolved"][object_id] = entry
+        save_rijks(cache)
+
+    kept = [e for e in cache["resolved"].values() if e]
+    sys.stderr.write("  rijks: {} maps from {} resolved ({} still to do)\n"
+                     .format(len(kept), len(cache["resolved"]),
+                             len(cache["ids"]) - len(cache["resolved"])))
+    return kept
+
+
 def harvest_collection(slug, category, label, max_pages, stats, extra=""):
     """Page through one collection, returning the entries that survive."""
     entries = []
@@ -820,9 +1139,16 @@ def harvest_collection(slug, category, label, max_pages, stats, extra=""):
     return entries
 
 
-def build_pool(max_pages):
+def build_pool(max_pages, rijks_budget=RIJKS_BUDGET):
     stats = Counter()
     by_id = {}
+    # The Rijksmuseum first, so that where the same map reaches the pool
+    # twice the Library's richer metadata wins on score below -- it
+    # carries a place, a creator and subject headings where this source
+    # carries a title and a date.
+    if rijks_budget:
+        for entry in rijks_maps(rijks_budget, stats, max_pages):
+            by_id[entry["id"]] = entry
     for category, slug, label, extra in SOURCES:
         for entry in harvest_collection(slug, category, label, max_pages,
                                         stats, extra):
@@ -921,11 +1247,17 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--pages", type=int, default=MAX_PAGES,
                         help="max pages per collection (100 records each)")
+    parser.add_argument("--rijks-budget", type=int, default=RIJKS_BUDGET,
+                        metavar="N",
+                        help="resolve at most N new Rijksmuseum maps this "
+                             "run; 0 skips the source. The listing is "
+                             "cached, so successive runs continue where "
+                             "the last stopped")
     parser.add_argument("--dry-run", action="store_true",
                         help="print stats without writing the pool")
     args = parser.parse_args()
 
-    entries, stats = build_pool(args.pages)
+    entries, stats = build_pool(args.pages, args.rijks_budget)
     if not entries:
         sys.stderr.write("harvested nothing; leaving the existing pool alone\n")
         return 1

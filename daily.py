@@ -463,8 +463,36 @@ def candidates_for(entries, category, day):
 # images
 # ============================================================
 
+LOC_IIIF = "https://tile.loc.gov/image-services/iiif/"
+
+
+LOC_ITEM = "https://www.loc.gov/item/"
+
+
+def item_url(entry):
+    """
+    Where a reader goes to see the thing itself.
+
+    The Library's ids slot into its own item path. A map from anywhere
+    else carries the URL it came from, because the Library has no page
+    for it -- without this every Rijksmuseum map linked to
+    loc.gov/item/rijks:NG-478/, which is a 404 with a credible shape.
+    """
+    return entry.get("u") or LOC_ITEM + str(entry["id"]) + "/"
+
+
 def iiif_base(service):
-    return "https://tile.loc.gov/image-services/iiif/" + service
+    """
+    Where a map's IIIF service lives.
+
+    The Library's service ids are bare ("service:gmd:gmd433:..."), so
+    they take the Library's prefix. A second source carries its own
+    endpoint instead -- the Rijksmuseum serves through Micrio -- and
+    says so by storing a whole URL. Asked this way rather than by a
+    source field because the answer is a property of the string: a
+    service id cannot begin with a scheme, and a URL always does.
+    """
+    return service if "://" in service else LOC_IIIF + service
 
 
 def iiif(service, box, quality="gray"):
@@ -1128,7 +1156,7 @@ def build_payload(entry, category, day, pool, checked, ink_bytes=0):
         "source": CREDIT,
         "rights": RIGHTS,
         "credit": "Library of Congress",
-        "item_url": "https://www.loc.gov/item/{}/".format(entry["id"]),
+        "item_url": item_url(entry),
         "item_id": entry["id"],
 
         "pool_size": pool["count"],
@@ -1435,7 +1463,7 @@ def review_manifest(entries, day, days, path):
                 "byline": byline(entry),
                 "thumb": iiif(entry["s"], (400, 400), "default"),
                 "full": iiif(entry["s"], WARM_BOX, WARM_QUALITY),
-                "item": "https://www.loc.gov/item/{}/".format(entry["id"]),
+                "item": item_url(entry),
                 "when": [],
             })
             row["when"].append({"day": that_day.isoformat(), "cell": topic})
@@ -1987,6 +2015,31 @@ def selftest(entries, day):
         if count < 200:
             failures.append("topic {} selects only {} maps"
                             .format(topic, count))
+
+    # 6g. A map from somewhere other than the Library builds its own
+    #     URLs. Both halves were written assuming one source: iiif_base
+    #     prepended the Library's prefix to every service, and item_url
+    #     put every id into loc.gov/item/ -- which for a Rijksmuseum map
+    #     is a 404 with a credible shape, the worst kind, because it
+    #     looks like a link that works.
+    outside = next((e for e in entries if "://" in str(e.get("s") or "")), None)
+    if outside is not None:
+        built = iiif(outside["s"], (800, 480))
+        if not built.startswith(outside["s"]):
+            failures.append(
+                "a map whose service is a whole URL got the Library's "
+                "prefix bolted on: " + built[:90])
+        if LOC_ITEM in item_url(outside):
+            failures.append(
+                "{} is not a Library map but links to {}"
+                .format(outside["id"], item_url(outside)))
+    # And the Library's own maps must still take the prefix.
+    inside = next((e for e in entries if "://" not in str(e.get("s") or "")), None)
+    if inside is not None:
+        if not iiif(inside["s"], (800, 480)).startswith(LOC_IIIF):
+            failures.append("a Library map lost its IIIF prefix")
+        if not item_url(inside).startswith(LOC_ITEM):
+            failures.append("a Library map lost its item URL")
 
     # 7. Every map can produce a payload a template can render.
     pool = {"count": total, "generated": ""}
