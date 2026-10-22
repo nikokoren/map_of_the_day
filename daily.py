@@ -205,8 +205,22 @@ STAR_MIN = 90
 # there, because catalogue titles run long: six topics is 184 stars,
 # 552 rows and 193KB, which lands almost exactly where the postcard
 # file does (201 stars, 603 rows, 190KB). Twelve would be 526KB.
-CURATE_CELLS = 6
+# Budgeted in rows rather than in topics, because the byte cost of a
+# topic depends on how far from the threshold it is, and that moves
+# every time somebody does a pass. Six topics was 552 rows and 190KB
+# with the nearest eleven and seventeen stars short; the postcard
+# recipe's fixed count went from 190KB to 382KB after one good pass,
+# which is how this was found.
+#
+# 520 rows because rows here average 358 bytes against the postcard
+# recipe's 208 -- that is about 185KB, the same file size from a
+# smaller number of them.
+CURATE_ROWS = 520
 CURATE_OFFER = 3
+
+# An upper bound as well, so a run that finds every topic one star
+# short offers a readable number rather than thirty sections of three.
+CURATE_CELLS = 12
 CELL_SEP = "__"
 
 
@@ -1581,7 +1595,9 @@ def curate_manifest(entries, day, path):
         if not progress[topic].get("on") and not progress[topic].get("capped"))
 
     chosen, rows, offered = [], {}, 0
-    for need, topic in short[:CURATE_CELLS]:
+    for need, topic in short:
+        if offered >= CURATE_ROWS or len(chosen) >= CURATE_CELLS:
+            break
         pool = maps_for(entries, topic)
         total = len(pool)
         if not total:
@@ -1589,7 +1605,11 @@ def curate_manifest(entries, day, path):
         cycle = day_index(day) // total
         free = [e for e in order_for(pool, topic, cycle)
                 if str(e["id"]) not in starred() and e["id"] not in vetoed()]
-        take = free[:need * CURATE_OFFER]
+        # Never past the budget, so the last topic in is trimmed rather
+        # than the file overrunning. A topic that only fits in part is
+        # still worth offering: its header says how many more it needs
+        # and the next build carries the rest.
+        take = free[:min(need * CURATE_OFFER, CURATE_ROWS - offered)]
         if not take:
             continue
         chosen.append({"cell": topic,
@@ -2189,6 +2209,10 @@ def selftest(entries, day):
         if any(len(c["ids"]) > c["need"] * CURATE_OFFER for c in offered):
             failures.append("a topic was offered more than CURATE_OFFER "
                             "times its shortfall")
+        asked_total = sum(len(c["ids"]) for c in offered)
+        if asked_total > CURATE_ROWS:
+            failures.append("curation queue is {} rows against a budget "
+                            "of {}".format(asked_total, CURATE_ROWS))
         # And the pool is untouched by any of it.
         topic = offered[0]["cell"]
         if CELL_SEP in topic:
