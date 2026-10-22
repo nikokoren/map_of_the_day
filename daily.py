@@ -85,6 +85,23 @@ WARM_TIMEOUT = 75
 
 MAX_SKIPS = 4
 
+# Stand-ins to look at before giving up on holding a map back.
+#
+# MAX_SKIPS is sized for a dead image, which is rare: four spares is
+# plenty when the thing being dodged affects one map in a thousand.
+# Holding back a share of an 82%-American pool is not rare at all --
+# with five candidates the odds that every one of them is American are
+# better than one in three, and the code then shows the held-back map
+# anyway. Measured at US_KEEP 0.35: 9.2% of days fell back like that
+# with four spares, 0.3% with twelve, none with more, and the capital's
+# share of the feed moved 7.4% -> 4.7% once they stopped.
+#
+# Safe to walk this far because every one of these is half a cycle from
+# the day it covers, exactly as the four are; a borrowed map's own
+# morning is still months away. Costs nothing on an ordinary day either,
+# since the image check stops at the first candidate that answers.
+BALANCE_SKIPS = 12
+
 # How far either side of a day a stand-in has to stay clear of that
 # day's scheduled map, so covering a dead image never reads as a repeat.
 # The feed itself is three days wide; this is wider than the window a
@@ -208,11 +225,73 @@ DC_PLACES = re.compile(
     r"washington|district of columbia|\bD\.?\s?C\.?\b|georgetown", re.I)
 DC_KEEP = 0.30
 
+# And the same argument one level out. Thinning Washington fixed the
+# share of one city; it did nothing about the country, because the
+# crowding is not really Washington's -- it is the Library's remit.
+# Measured over the pool: 4,085 of 4,971 maps are of somewhere in the
+# United States, 82%, and the broad feed came out at 74% US. Six of the
+# ten collections the pool draws on are American by definition --
+# Panoramic Maps, Civil War, Railroad Maps 1828-1900, American
+# Revolutionary War, National Parks, Cities and Towns -- and only the
+# World Digital Library pulls the other way.
+#
+# A reader who has chosen nothing is being shown the Library's
+# collecting policy rather than the world, so the same held-back share
+# applies to the country as to its capital.
+#
+# The states by name, and in the forms the catalogue's place field
+# actually writes them: "Adams (Mass.)", "West Chazy, N.Y",
+# "Bristol (R.I. : Town)". Matching only the full names missed ten
+# states outright -- New York and New Jersey among them -- and read the
+# pool as 60% American when it is 82%.
+_US_STATES = (
+    "alabama alaska arizona arkansas california colorado connecticut delaware florida "
+    "georgia hawaii idaho illinois indiana iowa kansas kentucky louisiana maine maryland "
+    "massachusetts michigan minnesota mississippi missouri montana nebraska nevada ohio "
+    "oklahoma oregon pennsylvania tennessee texas utah vermont virginia wisconsin wyoming"
+).split() + ["new hampshire", "new jersey", "new mexico", "new york", "north carolina",
+             "north dakota", "rhode island", "south carolina", "south dakota",
+             "west virginia"]
+
+_US_ABBR = (
+    r"Ala Ariz Ark Calif Colo Conn Del Fla Ga Ill Ind Kan Kans Ky La Md Mass Me Mich Minn "
+    r"Miss Mo Mont Neb Nebr Nev Okla Or Ore Pa Tenn Tex Vt Va Wash Wis Wyo D\.C "
+    r"R\.I S\.C S\.D S\.Dak N\.C N\.D N\.Dak N\.H N\.J N\.M N\.Mex N\.Y W\.Va"
+).split()
+
+# The catalogue's own region headings, which name no state at all.
+_US_REGIONS = [
+    "united states", "north america", "southern states", "middle atlantic states",
+    "northeastern states", "new england", "middle west", "western states",
+    "pacific states", "southwestern states", "northwestern states", "gulf states",
+    "atlantic states", "confederate states", "district of columbia", "great plains",
+    "great lakes"]
+
+US_PLACES = re.compile("|".join(
+    [r"\b%s\b" % re.escape(name) for name in _US_STATES + _US_REGIONS]
+    # Anchored on the punctuation that precedes them, so "Or" and "La"
+    # match "Portland (Or.)" and not every French article in the pool.
+    + [r"[(,]\s*%s\.?(?=[\s)\],:;.]|$)" % abbr for abbr in _US_ABBR]
+    + [r"\bU\.\s?S\.", r"\bUSA\b"]), re.I)
+
+# 0.35 rather than lower because the pool cannot pay for more: 886 maps
+# are of somewhere else, and at this share they already carry 47% of
+# 1,080 slots. Thinning harder buys a few points of share and starts
+# showing the same map of Lisbon round again. Measured: 73.1% US
+# untouched, 62.2% at 0.50, 53.2% at 0.35, and the curve is flat below.
+US_KEEP = 0.35
+
 
 def is_capital(entry):
     """Whether a map is one more of the Library's Washington holdings."""
     return bool(DC_PLACES.search(" ".join(
         str(entry.get(field) or "") for field in ("t", "p", "d", "col"))))
+
+
+def is_american(entry):
+    """Whether a map is of somewhere in the United States."""
+    return bool(US_PLACES.search(" ".join(
+        str(entry.get(field) or "") for field in ("p", "t"))))
 
 
 def is_land(entry):
@@ -221,8 +300,22 @@ def is_land(entry):
 
 
 def crowded_share(entry):
-    """How much of this map's group a broad selection keeps."""
-    return DC_KEEP if is_capital(entry) else 1.0
+    """
+    How much of this map's group a broad selection keeps.
+
+    Washington's share multiplies the country's rather than replacing
+    it, because a map of Washington is American twice over and the two
+    reasons to thin it both hold. Replacing instead of multiplying had
+    the shares the wrong way round the moment the country's was the
+    tighter of the two: at US_KEEP 0.20 against DC_KEEP 0.30, a
+    Washington map was *likelier* to be served than one of Ohio, and the
+    capital's share of the feed climbed from 6% to 16% -- the opposite
+    of what thinning it was for.
+    """
+    share = US_KEEP if is_american(entry) else 1.0
+    if is_capital(entry):
+        share *= DC_KEEP
+    return share
 
 
 def crowded_out(entry):
@@ -260,9 +353,11 @@ def held_back(entry, topic):
     Whether a map is kept out of a selection it was not chosen for.
 
     Two different rules, because the two groups are crowded in different
-    ways. Washington is a sixth of the Library's holdings and plenty of
-    it is worth seeing, so it is thinned to a share, and only where
-    nobody expressed an interest.
+    ways. The United States, and Washington within it, are thinned to a
+    share -- plenty of both is worth seeing, and 82% of the pool is
+    American, so dropping either would empty the feed rather than
+    balance it. Only where nobody expressed an interest: pick an era and
+    you still get what the era holds, which is mostly America.
 
     Land ownership is not thinned but set apart. Plat books and county
     atlases are a large, uniform block -- 375 maps, and one page of
@@ -355,7 +450,7 @@ def candidates_for(entries, category, day):
     ordered = order_for(entries, category, cycle)
     picks = [ordered[position]]
     gap = max(1, total // 2)
-    for offset in range(MAX_SKIPS):
+    for offset in range(max(MAX_SKIPS, BALANCE_SKIPS)):
         stand_in = (position + gap + offset) % total
         # Only reachable on a pool far smaller than any topic offered,
         # where half a cycle wraps back onto the day itself.
@@ -1709,6 +1804,76 @@ def selftest(entries, day):
         failures.append(
             "Washington is {:.0%} of what the general feed serves, barely "
             "down from {:.0%} of the pool".format(capital_share, raw_share))
+    # The country, on the broad feed as a whole rather than on "All
+    # Maps" alone. Sixty days of one topic cannot tell the two cases
+    # apart: it reads 50% American with no thinning at all and 38% with
+    # it, so a threshold between them is noise, not a test. Every broad
+    # selection over 120 days reads 73% against 56%, which is a gap a
+    # check can stand on.
+    broad_served = [pick(maps_for(entries, topic), topic,
+                         day + timedelta(days=n), False)[0]
+                    for topic in (t for t in all_topics(entries)
+                                  if is_broad(t))
+                    for n in range(3, 123)]
+    broad_served = [e for e in broad_served if e is not None]
+    us_share = sum(1 for e in broad_served if is_american(e)) / max(
+        1, len(broad_served))
+    us_raw = sum(1 for e in entries if is_american(e)) / max(1, len(entries))
+    if us_share > 0.65:
+        failures.append(
+            "the United States is {:.0%} of what the broad feed serves, "
+            "against {:.0%} of the pool; the thinning is not biting"
+            .format(us_share, us_raw))
+    # Washington's share must compound with the country's, not replace
+    # it. Asserted on the shares themselves rather than on what the feed
+    # happens to serve, because the fault is invisible at today's
+    # numbers and only bites once US_KEEP drops below DC_KEEP -- at
+    # which point a Washington map becomes likelier to be served than
+    # one of Ohio, and the capital's share of the feed climbs from 6% to
+    # 16%. A runtime share check cannot see that coming; this can.
+    washington = next((e for e in entries
+                       if is_capital(e) and not is_land(e)), None)
+    if washington is not None:
+        want = US_KEEP * DC_KEEP
+        got = crowded_share(washington)
+        if abs(got - want) > 1e-9:
+            failures.append(
+                "a Washington map keeps {:.3f}, not US_KEEP x DC_KEEP = "
+                "{:.3f}; the two shares replace instead of compounding, "
+                "which promotes the capital the moment US_KEEP < DC_KEEP"
+                .format(got, want))
+    # Thinning must have somewhere to fall through to. With four
+    # stand-ins against an 82% American pool, the odds that every
+    # candidate is American are better than one in three, and the code
+    # then serves the held-back map anyway.
+    exhausted = 0
+    checked = 0
+    for topic in (t for t in all_topics(entries) if is_broad(t)):
+        for n in range(3, 123):
+            d = day + timedelta(days=n)
+            cand = candidates_for(maps_for(entries, topic), topic, d)
+            checked += 1
+            if not [e for e in cand if e["id"] not in vetoed()
+                    and not held_back(e, topic)]:
+                exhausted += 1
+    if exhausted > checked * 0.01:
+        failures.append(
+            "{} of {} broad days had every candidate held back and served "
+            "one anyway; BALANCE_SKIPS is too small for this pool"
+            .format(exhausted, checked))
+    # A theme is a choice, and for most of them it is a choice of
+    # America whether the reader knows it or not: bird's-eye views has
+    # 15 non-American maps out of 1,224, roads-and-travel 6 of 589.
+    # Thinning inside one has nothing to swap in, so it must not.
+    for theme in ("birds-eye-views", "railroads", "civil-war"):
+        american = next((e for e in entries
+                         if theme in (e.get("g") or []) and is_american(e)
+                         and not is_land(e)), None)
+        if american is not None and held_back(american, theme):
+            failures.append(
+                theme + " thins American maps, but it has almost none of "
+                "anywhere else to show instead")
+
     # And the pool itself is untouched, whatever the topic. This is the
     # property that keeps a finished review finished.
     if len(maps_for(entries, "all")) != len(entries):
