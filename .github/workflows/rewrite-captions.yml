@@ -89,6 +89,42 @@ jobs:
           echo "::notice::#$number is open on $branch, so this run adds to it"\
                "rather than opening a second pull request for the same file."
           git checkout "$branch"
+          # And bring main with it. Standing on the branch alone was the
+          # whole of a six-day silent failure: pending_rewrites.py reads the
+          # flags and the corrections from the checkout, and the branch
+          # carries the flags as they were the day it opened. Every flag set
+          # after that was invisible, so the count came back zero, the
+          # writing step was skipped, and the run finished green having
+          # dropped four review passes and 115 captions. A run that does
+          # nothing is the worst shape a failure can take, because nothing
+          # asks to be looked at.
+          #
+          # -X ours keeps the branch's corrections.json wherever both sides
+          # touched the same entry: the branch holds the newer judgement of
+          # a caption, and main only changes this file when a rewrite is
+          # merged, which closes the very pull request this step just found.
+          git config user.name "GitHub Action"
+          git config user.email "action@github.com"
+          if ! git merge -X ours --no-edit origin/main \
+                 -m "Merge main into $branch"; then
+            echo "::error::cannot bring main into $branch; resolve it by hand"
+            git merge --abort || true
+            exit 1
+          fi
+          # Then prove it rather than trust it. The fault above was invisible
+          # precisely because every step reported success, so the inputs are
+          # now checked against main and the run stops if they differ --
+          # loudly, where a dropped review pass was silent.
+          flags_here="$(python3 -c 'import json; print(len(json.load(open("curation.json")).get("untranslate") or []))')"
+          flags_main="$(git show origin/main:curation.json \
+            | python3 -c 'import json,sys; print(len(json.load(sys.stdin).get("untranslate") or []))')"
+          if [ "$flags_here" != "$flags_main" ]; then
+            echo "::error::$branch sees $flags_here flagged captions where main"\
+                 "has $flags_main. The inputs are stale, so this run would"\
+                 "report nothing waiting and skip work that is waiting."
+            exit 1
+          fi
+          echo "$flags_here flagged captions, the same as main."
 
       - name: What is waiting
         id: waiting
