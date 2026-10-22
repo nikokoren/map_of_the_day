@@ -1,0 +1,301 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Curate</title>
+<style>
+:root{
+  --paper:#faf9f7; --card:#fff; --ink:#1b1a18; --muted:#6b6660; --rule:#ddd8d1;
+  --chip:#f0ece6; --star:#2f6f4f; --star-soft:#e3f0e8;
+  --veto:#8a2f2f; --veto-soft:#f6e7e7; --done:#2f6f4f;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --paper:#15140f; --card:#1e1c18; --ink:#f0ece4; --muted:#9a948a; --rule:#332f28;
+    --chip:#272420; --star:#7fc3a0; --star-soft:#1b2d23;
+    --veto:#d98b8b; --veto-soft:#2c1a1a; --done:#7fc3a0;
+  }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);
+  font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif}
+.wrap{max-width:1180px;margin:0 auto;padding:20px 16px 64px}
+h1{font-size:21px;margin:0 0 4px;letter-spacing:-.01em}
+.sub{color:var(--muted);font-size:13px;margin:0 0 14px;max-width:70ch}
+.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;
+  padding:10px 0;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule)}
+.count{font:12px/1.4 ui-monospace,monospace;color:var(--muted)}
+.count b{color:var(--ink)}
+button{font:inherit;font-size:12.5px;padding:5px 10px;border:1px solid var(--rule);
+  background:var(--card);color:var(--ink);border-radius:3px;cursor:pointer}
+button:hover{background:var(--chip)}
+#hand{margin-left:auto;font-weight:600}
+.cell{margin:26px 0 0}
+.cellhead{display:flex;flex-wrap:wrap;gap:10px;align-items:baseline;
+  padding:8px 0 6px;border-bottom:1px solid var(--rule);
+  position:sticky;top:0;background:var(--paper);z-index:2}
+.cellname{font-weight:600;font-size:15px}
+.cellkey{font:11px/1.4 ui-monospace,monospace;color:var(--muted)}
+.need{margin-left:auto;font:12px/1.4 ui-monospace,monospace;color:var(--muted)}
+.need b{color:var(--ink)}
+.cell[data-done="1"] .need b{color:var(--done)}
+.meter{height:3px;background:var(--chip);border-radius:2px;overflow:hidden;margin:0 0 10px}
+.meter i{display:block;height:100%;background:var(--star)}
+.grid{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(188px,1fr))}
+.card{position:relative;border:1px solid var(--rule);border-radius:4px;
+  background:var(--card);overflow:hidden;display:flex;flex-direction:column}
+.shot{border:0;padding:0;background:var(--chip);cursor:pointer;display:block;
+  aspect-ratio:4/3;overflow:hidden;border-radius:0}
+.shot img{width:100%;height:100%;object-fit:cover;display:block}
+.shot.dead::after{content:"no image";display:flex;align-items:center;
+  justify-content:center;height:100%;color:var(--muted);font-size:11px}
+.meta{padding:7px 9px 8px;display:flex;flex-direction:column;gap:3px;flex:1}
+.t{font-size:12.5px;line-height:1.35;display:-webkit-box;-webkit-line-clamp:3;
+  -webkit-box-orient:vertical;overflow:hidden}
+.by{font-size:11px;color:var(--muted)}
+.foot{margin-top:auto;font:10.5px/1.4 ui-monospace,monospace;color:var(--muted)}
+.acts{display:flex;border-top:1px solid var(--rule)}
+.acts button{flex:1;border:0;border-radius:0;padding:7px 4px;font-size:11.5px}
+.acts button+button{border-left:1px solid var(--rule)}
+.card[data-star="1"]{border-color:var(--star);background:var(--star-soft)}
+.card[data-star="1"] .acts .star{background:var(--star);color:#fff}
+.card[data-veto="1"]{border-color:var(--veto);background:var(--veto-soft)}
+.card[data-veto="1"] .shot img{opacity:.3;filter:grayscale(1)}
+.card[data-veto="1"] .t{text-decoration:line-through;text-decoration-color:var(--veto)}
+.card[data-veto="1"] .acts .veto{background:var(--veto);color:#fff}
+.note{font-size:12px;color:var(--muted);margin:26px 0 0;line-height:1.55;max-width:68ch}
+.other{font-size:12.5px;color:var(--muted);text-decoration:none;
+  border-bottom:1px dotted var(--rule);padding-bottom:1px}
+.other:hover{color:var(--ink)}
+.stale{background:var(--veto-soft);border:1px solid var(--veto);padding:8px 10px;
+  border-radius:3px;margin:10px 0 0;font-size:12.5px}
+dialog{border:1px solid var(--rule);border-radius:4px;background:var(--card);
+  color:var(--ink);max-width:min(680px,92vw);padding:0}
+dialog::backdrop{background:rgba(0,0,0,.45)}
+.dlg{padding:16px}
+textarea{width:100%;height:230px;font:11.5px/1.45 ui-monospace,monospace;
+  background:var(--paper);color:var(--ink);border:1px solid var(--rule);
+  border-radius:3px;padding:8px}
+</style>
+<div class="wrap">
+<header>
+  <h1 id="h1">Curate</h1>
+  <p class="sub" id="sub"></p>
+  <p class="stale" id="stale" hidden></p>
+  <div class="bar">
+    <span class="count"><b id="nstar">0</b> starred &middot;
+      <b id="nveto">0</b> vetoed &middot;
+      <b id="nclear">0</b> <span id="unitlabel">cells</span> cleared here</span>
+    <button id="hideDone" aria-pressed="false">Hide cleared</button>
+    <button id="hand">Hand over decisions</button>
+    <a class="other" href="index.html">&larr; This week's queue</a>
+  </div>
+</header>
+<div id="cells"></div>
+<p class="note" id="note"></p>
+</div>
+<dialog id="dlg"><div class="dlg">
+  <h2 style="margin:0 0 8px;font-size:15px">Paste this into the reminder issue</h2>
+  <p style="margin:0 0 10px;font-size:12.5px;color:var(--muted)">
+    Carries no review window, so it adds stars and vetoes without moving
+    how far the dated review has reached.</p>
+  <textarea id="out" readonly></textarea>
+  <div style="display:flex;gap:8px;margin-top:10px">
+    <button id="copy">Copy</button><button id="close">Close</button>
+  </div>
+</div></dialog>
+<script id="data" type="application/json">__DATA__</script>
+<script>
+(function(){
+  var D = JSON.parse(document.getElementById("data").textContent);
+  var L = D.labels || {};
+  var star = new Set(D.starred || []), veto = new Set(D.vetoed || []);
+  var byId = {}; (D.items||[]).forEach(function(i){ byId[i.id] = i; });
+
+  function put(id,t){ var e=document.getElementById(id); if(e) e.textContent=t; }
+  function pressed(id){ var e=document.getElementById(id);
+    return !!e && e.getAttribute("aria-pressed")==="true"; }
+
+  // The same store the dated review page uses, deliberately. A star is a
+  // star wherever it was given, and sharing the key means a pass done
+  // here and a pass done there hand over in one block instead of two
+  // that each overwrite the other's memory.
+  var KEY = "queue:" + (D.kind||"");
+  try {
+    var saved = JSON.parse(localStorage.getItem(KEY) || "{}");
+    (saved.star||[]).forEach(function(x){ star.add(x); });
+    (saved.veto||[]).forEach(function(x){ veto.add(x); });
+  } catch(e){}
+  function remember(){
+    try {
+      var was = JSON.parse(localStorage.getItem(KEY) || "{}");
+      localStorage.setItem(KEY, JSON.stringify(
+        {veto: Array.from(veto), star: Array.from(star),
+         flag: was.flag || []}));
+    } catch(e){}
+  }
+
+  // How many of this cell's offered cards are starred now, which is what
+  // turns the counter into something a person can finish.
+  function given(cell){
+    var n = 0;
+    cell.ids.forEach(function(id){ if (star.has(id)) n++; });
+    return n;
+  }
+  function cleared(cell){ return given(cell) >= cell.need; }
+
+  function counts(){
+    put("nstar", star.size); put("nveto", veto.size);
+    put("nclear", (D.cells||[]).filter(cleared).length);
+    (D.cells||[]).forEach(function(cell){
+      var el = document.getElementById("cell-" + cell.cell);
+      if (!el) return;
+      var got = given(cell), left = Math.max(0, cell.need - got);
+      el.setAttribute("data-done", left === 0 ? "1" : "0");
+      el.querySelector(".need").innerHTML = left === 0
+        ? "<b>cleared</b> — " + (cell.starred + got) + " starred, "
+          + D.star_min + " needed"
+        : "<b>" + left + " more</b> — " + (cell.starred + got)
+          + " of " + D.star_min;
+      el.querySelector(".meter i").style.width =
+        Math.min(100, 100*(cell.starred+got)/D.star_min) + "%";
+      if (pressed("hideDone")) el.hidden = (left === 0);
+    });
+  }
+
+  function card(it){
+    var el = document.createElement("div");
+    el.className = "card";
+    el.setAttribute("data-star", star.has(it.id)?"1":"0");
+    el.setAttribute("data-veto", veto.has(it.id)?"1":"0");
+    el.innerHTML =
+      '<button class="shot" type="button" aria-label="Star"></button>' +
+      '<span class="meta"><span class="t"></span><span class="by"></span>' +
+      '<span class="foot"></span></span>' +
+      '<span class="acts"><button type="button" class="star">Star</button>' +
+      '<button type="button" class="veto">Veto</button></span>';
+    if (it.thumb) {
+      var img = document.createElement("img");
+      img.loading="lazy"; img.decoding="async"; img.alt="";
+      var shot = el.querySelector(".shot");
+      img.onerror = function(){ shot.classList.add("dead"); img.remove(); };
+      img.src = it.thumb;
+      shot.appendChild(img);
+    }
+    el.querySelector(".t").textContent = it.title || "";
+    el.querySelector(".by").textContent =
+      [it.date, it.place].filter(Boolean).join(" · ");
+    el.querySelector(".foot").textContent =
+      (it.score == null ? "unmeasured" : it.score + " detail")
+      + (it.holding ? " · " + it.holding : "");
+    function mark(set, name, other, othername){
+      // A star and a veto are opposite answers, so taking one clears the
+      // other rather than leaving the card claiming both. The applier
+      // settles it the same way -- a veto wins -- but a card shown as
+      // kept and dropped at once is a card you cannot read.
+      if (!set.has(it.id) && other.has(it.id)) {
+        other.delete(it.id);
+        el.setAttribute("data-" + othername, "0");
+      }
+      if (set.has(it.id)) set.delete(it.id); else set.add(it.id);
+      el.setAttribute("data-" + name, set.has(it.id)?"1":"0");
+      counts(); remember();
+    }
+    function starIt(){ mark(star, "star", veto, "veto"); }
+    el.querySelector(".shot").addEventListener("click", starIt);
+    el.querySelector(".star").addEventListener("click", starIt);
+    el.querySelector(".veto").addEventListener("click", function(){
+      mark(veto, "veto", star, "star");
+    });
+    return el;
+  }
+
+  function render(){
+    var host = document.getElementById("cells");
+    host.textContent = "";
+    (D.cells||[]).forEach(function(cell){
+      var sec = document.createElement("section");
+      sec.className = "cell";
+      sec.id = "cell-" + cell.cell;
+      var head = document.createElement("div");
+      head.className = "cellhead";
+      head.innerHTML = '<span class="cellname"></span>' +
+        '<span class="cellkey"></span><span class="need"></span>';
+      head.querySelector(".cellname").textContent = cell.label;
+      head.querySelector(".cellkey").textContent =
+        cell.cell + " · " + cell.depth + " cards";
+      sec.appendChild(head);
+      var meter = document.createElement("div");
+      meter.className = "meter"; meter.innerHTML = "<i></i>";
+      sec.appendChild(meter);
+      var grid = document.createElement("div");
+      grid.className = "grid";
+      cell.ids.forEach(function(id){
+        if (byId[id]) grid.appendChild(card(byId[id]));
+      });
+      sec.appendChild(grid);
+      host.appendChild(sec);
+    });
+    counts();
+  }
+
+  document.title = L.curate_title || "Curate";
+  put("h1", L.curate_title || "Curate");
+  put("unitlabel", L.units || "cells");
+  put("sub", "The " + (D.cells||[]).length + " " + (L.units||"cells")
+      + " closest to serving only "
+      + "hand-picked cards, nearest first, with enough undecided cards in "
+      + "each to clear it. Click a picture to star it. " + D.switched
+      + " are already curated, " + D.short_cells + " are short, and "
+      + D.capped + " are too shallow to ever switch.");
+  put("note", "A " + (L.unit||"cell") + " serves only its starred "
+      + (L.nouns||"items") + " once it has "
+      + D.star_min + " of them, and keeps its whole pool until then, so "
+      + "none can collapse and the work pays off one at a time. "
+      + "Ordered by the " + (L.unit||"cell") + "'s own rotation rather "
+      + "than by how good the "
+      + "scans are, so what you are offered is what it will actually "
+      + "serve. Anything already starred or vetoed is left out. "
+      + "Stars given here share a store with the dated review page, so "
+      + "either page hands over both.");
+
+  (function stale(){
+    if (!D.generated) return;
+    var age = (Date.now() - Date.parse(D.generated)) / 86400000;
+    if (age < 2) return;
+    var el = document.getElementById("stale");
+    el.hidden = false;
+    el.textContent = "This page was built " + Math.floor(age) + " days ago."
+      + " The cells nearest their threshold have probably moved; rebuild"
+      + " before spending a long pass on it.";
+  })();
+
+  document.getElementById("hideDone").addEventListener("click", function(){
+    this.setAttribute("aria-pressed", pressed("hideDone")?"false":"true");
+    counts();
+  });
+  document.getElementById("hand").addEventListener("click", function(){
+    // No window: this queue is not a span of days, and sending one would
+    // move how far the dated review claims to have reached. The applier
+    // keeps the later of the two and leaves it alone when neither is
+    // given, which is exactly what is wanted here.
+    var block = {
+      queue: D.kind,
+      starred: Array.from(star).sort(),
+      vetoed: Array.from(veto).sort()
+    };
+    document.getElementById("out").value =
+      "```queue\n" + JSON.stringify(block, null, 1) + "\n```";
+    document.getElementById("dlg").showModal();
+  });
+  document.getElementById("close").addEventListener("click", function(){
+    document.getElementById("dlg").close();
+  });
+  document.getElementById("copy").addEventListener("click", function(){
+    var t = document.getElementById("out");
+    t.select();
+    try { navigator.clipboard.writeText(t.value); } catch(e){ document.execCommand("copy"); }
+    this.textContent = "Copied";
+  });
+  render();
+})();
+</script>

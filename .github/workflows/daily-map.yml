@@ -49,7 +49,22 @@ jobs:
         continue-on-error: true
         run: python3 daily.py --review 14
 
-      # And draw it, into docs/ where Pages serves it. The page carries
+      # The other queue: the topics nearest their starring threshold,
+      # with enough undecided maps in each to clear it. Six topics
+      # rather than the postcard recipe's twelve, because rows here
+      # average 358 bytes against 208 and twelve would be half a
+      # megabyte -- six is 184 stars of work and 190KB.
+      #
+      # After --review, because both read the same pool and this is the
+      # cheaper of the two to lose: a stale curation queue costs a pass
+      # aimed at topics that have since moved, where a stale review
+      # queue ships a bad map.
+      - name: Write the curation queue
+        continue-on-error: true
+        run: python3 daily.py --curate
+
+      # And draw them both, into docs/ where Pages serves them. The
+      # dated page carries
       # every thumbnail inline, so building it is a minute of fetching
       # -- which is exactly why it belongs on the schedule and not on
       # somebody remembering to ask.
@@ -63,7 +78,7 @@ jobs:
         run: |
           git config user.name "GitHub Action"
           git config user.email "action@github.com"
-          git add map.json today.json review.json docs
+          git add map.json today.json review.json curate.json docs
 
           if git diff --staged --quiet; then
             echo "Same map as the last run, nothing to commit"

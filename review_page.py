@@ -40,6 +40,7 @@ import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REVIEW = os.path.join(HERE, "review.json")
+CURATE = os.path.join(HERE, "curate.json")
 CURATION = os.path.join(HERE, "curation.json")
 OUT_DIR = os.path.join(HERE, "docs")
 
@@ -47,11 +48,17 @@ KIND = {
     "map-of-the-day": dict(
         title="Map Queue", noun="map", nouns="maps",
         measure="B/kpx", repo="map_of_the_day",
-        sort_label="Thinnest ink", near_label="Only near the bar"),
+        sort_label="Thinnest ink", near_label="Only near the bar",
+        # What a selection is called here. The two recipes divide their
+        # pools differently -- maps by theme and era, postcards also by
+        # orientation and region -- and one page draws both, so the word
+        # comes from the kind rather than being written into the shell.
+        unit="topic", units="topics", curate_title="Curate by Topic"),
     "postcard-of-the-day": dict(
         title="Postcard Queue", noun="card", nouns="cards",
         measure="detail", repo="postcard_of_the_day",
-        sort_label="Least detail", near_label="Only the mushiest"),
+        sort_label="Least detail", near_label="Only the mushiest",
+        unit="cell", units="cells", curate_title="Curate by Cell"),
 }
 
 
@@ -63,6 +70,45 @@ def seen_before():
             return set(json.load(fh))
     except (OSError, ValueError):
         return set()
+
+
+def draw_curate(curation, kind):
+    """
+    The by-cell page, beside the dated one.
+
+    Its own page rather than a mode on the review page because the two
+    answer different questions and are built by different steps: the
+    review queue is a week of the schedule and goes stale daily, this is
+    a working set of cells and only moves when a cell switches over.
+    Written only if curate.json exists, so a repository that has not
+    run the step yet is not a failure.
+    """
+    try:
+        with open(CURATE) as fh:
+            data = json.load(fh)
+    except (OSError, ValueError):
+        return
+    data = dict(data)
+    # The decisions already handed over, so the page can leave out what
+    # was judged in an earlier pass instead of asking again.
+    data["starred"] = sorted(curation.get("starred") or [])
+    data["vetoed"] = sorted(curation.get("vetoed") or [])
+    data["labels"] = kind
+    try:
+        with open(os.path.join(HERE, "curate_page.html")) as fh:
+            shell = fh.read()
+    except OSError:
+        sys.stderr.write("no curate_page.html, skipping the by-cell page\n")
+        return
+    payload = json.dumps(data, separators=(",", ":"))
+    out = os.path.join(OUT_DIR, "curate.html")
+    with open(out, "w") as fh:
+        fh.write(shell.replace("__DATA__", payload))
+    sys.stderr.write("{} {} across {} {} -> {}, {}KB\n".format(
+        len(data.get("items") or []), kind.get("nouns", "items"),
+        len(data.get("cells") or []), kind.get("units", "cells"),
+        os.path.relpath(out, os.getcwd()),
+        os.path.getsize(out) // 1024))
 
 
 def main():
@@ -136,6 +182,8 @@ def main():
         json.dump(sorted(i["id"] for i in items), fh)
     with open(os.path.join(OUT_DIR, ".nojekyll"), "w") as fh:
         fh.write("")
+
+    draw_curate(curation, kind)
 
     size = os.path.getsize(os.path.join(OUT_DIR, "index.html"))
     sys.stderr.write(

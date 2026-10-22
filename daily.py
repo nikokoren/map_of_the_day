@@ -186,6 +186,27 @@ CELL_MIN = 25
 # the thinnest cells here hold 25 maps and could never sustain a starred
 # rotation, so they are never asked to.
 STAR_MIN = 90
+
+# ============================================================
+# the curation queue
+# ============================================================
+#
+# review.json is a fortnight of the schedule, which is right for
+# catching a bad map before it ships and wrong for building a starred
+# set: a person starring from it stars whatever the fortnight served.
+#
+# Measured after 369 stars: 5 of 55 topics switched over, 31 short, 19
+# too shallow to ever switch. 1,908 stars outstanding in total, which is
+# not a number anyone finishes -- but era-1850-1869 is eleven short and
+# city-plans seventeen, and those two switch for 28.
+#
+# So the same working-set queue the postcard recipe uses, sized for this
+# pool rather than copied. Rows here average 358 bytes against 208
+# there, because catalogue titles run long: six topics is 184 stars,
+# 552 rows and 193KB, which lands almost exactly where the postcard
+# file does (201 stars, 603 rows, 190KB). Twelve would be 526KB.
+CURATE_CELLS = 6
+CURATE_OFFER = 3
 CELL_SEP = "__"
 
 
@@ -1538,6 +1559,86 @@ def review_manifest(entries, day, days, path):
 # self-test
 # ============================================================
 
+def curate_manifest(entries, day, path):
+    """
+    The topics nearest their starring threshold, and enough undecided
+    maps in each to clear it.
+
+    Ordered by the topic's own rotation rather than by how well the
+    scans render, so what is offered is what that topic will actually
+    serve, in the order it will serve it.
+
+    Rows carry the same field names the postcard recipe emits, so one
+    page shell draws both -- the same arrangement review_page.html
+    already has.
+    """
+    topics = all_topics(entries)
+    progress = star_progress(entries, topics)
+
+    short = sorted(
+        (STAR_MIN - progress[topic]["starred"], topic)
+        for topic in topics
+        if not progress[topic].get("on") and not progress[topic].get("capped"))
+
+    chosen, rows, offered = [], {}, 0
+    for need, topic in short[:CURATE_CELLS]:
+        pool = maps_for(entries, topic)
+        total = len(pool)
+        if not total:
+            continue
+        cycle = day_index(day) // total
+        free = [e for e in order_for(pool, topic, cycle)
+                if str(e["id"]) not in starred() and e["id"] not in vetoed()]
+        take = free[:need * CURATE_OFFER]
+        if not take:
+            continue
+        chosen.append({"cell": topic,
+                       "label": cell_label(topic),
+                       "starred": progress[topic]["starred"],
+                       "need": need,
+                       "depth": progress[topic]["depth"],
+                       "undecided": len(free),
+                       "ids": [e["id"] for e in take]})
+        offered += len(take)
+        for entry in take:
+            rows.setdefault(entry["id"], entry)
+
+    items = [{
+        "id": entry["id"],
+        "title": title_line(entry),
+        "date": str(entry.get("y") or ""),
+        "place": byline(entry),
+        "thumb": iiif(entry["s"], (400, 400), "default"),
+        "item": item_url(entry),
+        "holding": entry.get("col") or "",
+        # Left unmeasured rather than probed. The review queue measures
+        # ink because a mushy scan is the thing it exists to catch; this
+        # queue asks whether a map is worth showing, which is a judgement
+        # the picture makes for itself, and probing 552 images to put a
+        # number beside it would cost more than it tells anyone.
+        "score": None,
+    } for entry in rows.values()]
+
+    out = {
+        "kind": "map-of-the-day",
+        "generated": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "star_min": STAR_MIN,
+        "cells": chosen,
+        "items": items,
+        "short_cells": len(short),
+        "short_stars": sum(need for need, _ in short),
+        "switched": sum(1 for t in topics if progress[t].get("on")),
+        "capped": sum(1 for t in topics if progress[t].get("capped")),
+    }
+    write_json(path, out)
+    sys.stderr.write(
+        "{} maps across {} topics to curate, {} stars clears them "
+        "({} of {} short topics, {} stars outstanding overall)\n"
+        .format(offered, len(chosen), sum(c["need"] for c in chosen),
+                len(chosen), len(short), out["short_stars"]))
+    return 0
+
+
 def selftest(entries, day):
     """
     The properties the schedule has to have, checked against the real
@@ -2041,6 +2142,69 @@ def selftest(entries, day):
         if not item_url(inside).startswith(LOC_ITEM):
             failures.append("a Library map lost its item URL")
 
+    # 6h. The curation queue. Built here rather than read from disk, so
+    #     this tests the builder and not whatever the last run left.
+    import tempfile
+    with tempfile.NamedTemporaryFile("w+", suffix=".json",
+                                     delete=False) as tmp:
+        curate_path = tmp.name
+    curate_manifest(entries, day, curate_path)
+    with open(curate_path) as fh:
+        curated = json.load(fh)
+    os.unlink(curate_path)
+    topics_now = all_topics(entries)
+    prog_now = star_progress(entries, topics_now)
+    offered = curated.get("cells") or []
+    rows_by_id = {i["id"] for i in (curated.get("items") or [])}
+    if not offered:
+        failures.append("the curation queue offers nothing, so none of "
+                        "its properties are being tested")
+    else:
+        if len(offered) > CURATE_CELLS:
+            failures.append("curation queue offers {} topics against a "
+                            "limit of {}".format(len(offered), CURATE_CELLS))
+        decided = starred() | {str(i) for i in vetoed()}
+        asked = [i for c in offered for i in c["ids"]]
+        stale = [i for i in asked if str(i) in decided]
+        if stale:
+            failures.append(
+                "{} of {} maps offered to curate were already starred or "
+                "vetoed; asking twice is what makes a queue endless"
+                .format(len(stale), len(asked)))
+        orphan = [i for i in asked if i not in rows_by_id]
+        if orphan:
+            failures.append("{} offered ids have no row to draw"
+                            .format(len(orphan)))
+        wrong = [c["cell"] for c in offered
+                 if prog_now.get(c["cell"], {}).get("on")
+                 or prog_now.get(c["cell"], {}).get("capped")]
+        if wrong:
+            failures.append(
+                "curation queue offers " + ", ".join(wrong[:3])
+                + ", which are finished or can never switch")
+        needs = [c["need"] for c in offered]
+        if needs != sorted(needs):
+            failures.append("curation queue is not nearest-first: {}"
+                            .format(needs[:6]))
+        if any(len(c["ids"]) > c["need"] * CURATE_OFFER for c in offered):
+            failures.append("a topic was offered more than CURATE_OFFER "
+                            "times its shortfall")
+        # And the pool is untouched by any of it.
+        topic = offered[0]["cell"]
+        if CELL_SEP in topic:
+            theme, era = topic.split(CELL_SEP, 1)
+            want = [e for e in entries
+                    if theme in (e.get("g") or []) and in_era(e, era)]
+        elif topic.startswith("era-"):
+            want = [e for e in entries if in_era(e, topic)]
+        elif topic == "all":
+            want = entries
+        else:
+            want = [e for e in entries if topic in (e.get("g") or [])]
+        if len(maps_for(entries, topic)) != len(want):
+            failures.append("building the curation queue filtered the "
+                            "pool, which reshuffles every topic built on it")
+
     # 7. Every map can produce a payload a template can render.
     pool = {"count": total, "generated": ""}
     for entry in entries:
@@ -2124,6 +2288,10 @@ def main():
     parser.add_argument("--review", type=int, metavar="DAYS",
                         help="write review.json: every cell's pick for the "
                              "next DAYS days, worst-measured first")
+    parser.add_argument("--curate", action="store_true",
+                        help="write curate.json: the topics nearest their "
+                             "starring threshold, and enough undecided maps "
+                             "in each to clear it")
     parser.add_argument("--recompute", action="store_true",
                         help="choose every day afresh, ignoring what is "
                              "already published")
@@ -2146,6 +2314,10 @@ def main():
     if args.review:
         return review_manifest(entries, day, args.review,
                                os.path.join(HERE, "review.json"))
+
+    if args.curate:
+        return curate_manifest(entries, day,
+                               os.path.join(HERE, "curate.json"))
 
     if args.preview:
         for offset in range(args.preview):

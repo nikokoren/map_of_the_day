@@ -79,6 +79,11 @@ jobs:
             "" \
             "The queue page is at ${QUEUE_PAGE}" \
             "" \
+            "To star rather than veto -- picking the maps worth showing," \
+            "one topic at a time, nearest its threshold first -- the other" \
+            "page is at ${QUEUE_PAGE}curate.html. Stars given on either" \
+            "page hand over in the same block." \
+            "" \
             "The daily job rebuilds that page, and the page says so itself if" \
             "it is ever drawing a queue more than two days old." \
             "" \
