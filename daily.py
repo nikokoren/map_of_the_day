@@ -924,7 +924,7 @@ def label_aliases(topics, picks):
 
 # TRMNL refuses a polling response over 100KB, so the combined feed
 # carries only what markup cannot derive. Every image URL is a suffix on
-# image_base, the full description is a superset of description_short,
+# image_base is a prefix of every image URL,
 # and the credit lines are the same on every map -- so those ride once at
 # the top level, or not at all.
 # The feed carries three days, not one, and this is why.
@@ -948,9 +948,14 @@ DAY_SPAN = (-1, 0, 1)
 # names alone would cost about 20KB of the 95KB TRMNL allows. The order
 # is the contract with the markup, and selection.liquid unpacks it into
 # named variables so the layout stays readable.
+# The description and the credit are gone from here. Neither reached a
+# screen: the live markup draws the title and the byline, and the two
+# settings that guarded them were off. The description alone was 13.5KB
+# of a 78.9KB feed -- 17% of a payload with a hard 95KB ceiling, spent
+# on a line nobody saw.
 PICK_FIELDS = (
     "image", "title_short", "year", "byline",
-    "description_short", "place", "category_label", "item_id",
+    "place", "category_label", "item_id",
 )
 
 # Refuse to publish a feed TRMNL will reject. Failing loudly leaves
@@ -1196,7 +1201,6 @@ def build_payload(entry, category, day, pool, checked, ink_bytes=0):
         "place": place,
         "collection": entry.get("col", ""),
         "description": entry.get("d", ""),
-        "description_short": short_description(entry.get("d", "")),
         "medium": entry.get("m", ""),
         "published": entry.get("pub", ""),
         "scale": entry.get("sc", ""),
@@ -1228,7 +1232,6 @@ def build_payload(entry, category, day, pool, checked, ink_bytes=0):
 
         "source": CREDIT,
         "rights": RIGHTS,
-        "credit": "Library of Congress",
         "item_url": item_url(entry),
         "item_id": entry["id"],
 
@@ -2581,7 +2584,6 @@ def main():
             # Constant on every map, so said once rather than 48 times.
             "heading": "MAP OF THE DAY",
             "source": CREDIT,
-            "credit": "Library of Congress",
             "rights": RIGHTS,
             "item_url_prefix": "https://www.loc.gov/item/",
             # A fresh pick is a payload and gets slimmed to a row; a

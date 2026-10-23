@@ -46,22 +46,14 @@
 
 {% comment %}
   A boolean field arrives as the STRING "true" or "false", so it has to
-  be compared, not just tested -- {% raw %}{% if show_description %}{% endraw %} is true even
   when the reader turned it off.
 
   An untouched field may also arrive as nothing at all, so the default
   matters: the caption and its context line are on unless switched off,
-  and the credit is off unless switched on. A fresh install with nothing
   configured therefore shows a captioned map rather than a bare one.
 {% endcomment %}
 {% assign want_caption = true %}
 {% if settings.show_caption == "false" %}{% assign want_caption = false %}{% endif %}
-
-{% assign want_description = true %}
-{% if settings.show_description == "false" %}{% assign want_description = false %}{% endif %}
-
-{% assign want_credit = false %}
-{% if settings.show_credit == "true" %}{% assign want_credit = true %}{% endif %}
 
 {% comment %} Labels the person saw -> the keys this feed uses. {% endcomment %}
 {% assign theme_keys = "" %}
@@ -184,10 +176,9 @@
 {% assign map_title = pick[1] %}
 {% assign map_year = pick[2] %}
 {% assign map_byline = pick[3] %}
-{% assign map_description = pick[4] %}
-{% assign map_place = pick[5] %}
-{% assign map_category = pick[6] %}
-{% assign map_item_id = pick[7] %}
+{% assign map_place = pick[4] %}
+{% assign map_category = pick[5] %}
+{% assign map_item_id = pick[6] %}
 
 {% comment %}
   The image. Use map_image as it stands -- do NOT compose a size from
@@ -219,13 +210,10 @@
     map_title         trimmed title
     map_year          four digits
     map_byline        "by Seward Porter in Bath, Me., 1837"
-    map_description   a line of context, when the catalogue has one
     map_place         where it depicts
     map_category      "Railroads, 1850 - 1869"
     map_item_id       the LOC item number; append to item_url_prefix
     want_caption      whether to draw the caption block at all
-    want_description  whether that block includes a line of context
-    want_credit       whether to print the Library credit
 {% endcomment %}
 
 {% comment %} ---------- layout ---------- {% endcomment %}
@@ -260,13 +248,7 @@
 
           <span class="label label--small lg:label--base">{{ map_byline }}</span>
 
-          {% if want_description and map_description != "" %}
-            <span class="label label--small lg:label--base">{{ map_description }}</span>
-          {% endif %}
 
-          {% if want_credit %}
-            <span class="label label--small lg:label--base">{{ credit }}</span>
-          {% endif %}
         </div>
       </div>
     </div>

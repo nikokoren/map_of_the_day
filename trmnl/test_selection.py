@@ -31,7 +31,7 @@ print("parse ok")
 DAY = 20706
 TS = 1789031899          # a timestamp from a real device dump
 
-# image, title_short, year, byline, description_short, place,
+# image, title_short, year, byline, place,
 # category_label, item_id -- the same order daily.PICK_FIELDS names, and
 # the assertion below keeps it that way.
 def card(title, image):
@@ -69,7 +69,7 @@ feed = {
     },
     "themes": [], "eras": [],
     "pick_fields": ["image", "title_short", "year", "byline",
-                    "description_short", "place", "category_label", "item_id"],
+                    "place", "category_label", "item_id"],
     "days": days,
 }
 
@@ -119,13 +119,10 @@ CASES = [
     ("unknown value", {"themes": ["atlantis"]}),
     ("era that never existed", {"themes": ["railroads"],
                                 "eras": ["the_1700s"]}),
-    ("description off", {"show_description": "false"}),
-    ("credit on", {"show_credit": "true"}),
 ]
 
 probe = src + ("\n<<{{ chosen_key }}|{{ map_title }}|{{ map_image }}"
-               "|c{{ want_caption }}|d{{ want_description }}"
-               "|r{{ want_credit }}>>")
+               "|c{{ want_caption }}>>")
 checked = env.from_string(probe)
 
 bad = 0

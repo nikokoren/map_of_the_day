@@ -82,17 +82,3 @@ custom_fields:
     description: >-
       The title block over the map. Switch it off for the map alone,
       edge to edge, with nothing written on it.
-
-  - keyname: show_description
-    name: Show a line of context
-    field_type: boolean
-    description: >-
-      Adds one sentence about the map under the title. About 6% of maps
-      have none, so the line is simply absent on those days.
-
-  - keyname: show_credit
-    name: Show the Library of Congress credit
-    field_type: boolean
-    description: >-
-      Prints the credit line in the footer. Worth leaving on if you share
-      pictures of the screen.
