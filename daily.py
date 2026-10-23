@@ -158,7 +158,17 @@ THEMES = [
 ]
 
 ERAS = [
-    ("era-1700s",     "The 1700s",   1700, 1799),
+    # No floor, deliberately. The earliest era used to start at 1700,
+    # which left every map before it matching no era at all: 207 of the
+    # pool, and 353 of the first Rijksmuseum harvest, whose median year
+    # is 1682. A map outside every era is reachable only through "All
+    # Maps", so the oldest and least ordinary material in the pool was
+    # the hardest to find.
+    #
+    # Opened to zero rather than to the harvest's MIN_YEAR so the two
+    # cannot drift apart: if the harvest ever lets an earlier map in,
+    # this still has somewhere to put it.
+    ("era-pre-1800",  "Before 1800",    0, 1799),
     ("era-1800-1849", "1800 - 1849", 1800, 1849),
     ("era-1850-1869", "1850 - 1869", 1850, 1869),
     ("era-1870-1899", "1870 - 1899", 1870, 1899),
@@ -859,6 +869,20 @@ def short_description(text, limit=120):
     return text[:limit].rsplit(" ", 1)[0].rstrip(" ,;:.-") + "..."
 
 
+# What a setting used to be called, and the key it means now.
+#
+# A TRMNL select stores a value derived from the option's text, so
+# renaming an option orphans every install that had it: the stored
+# string matches nothing, the axis goes unconstrained, and the reader
+# silently gets every era instead of the one they picked. Nothing
+# surfaces that -- it looks like the feed working.
+LEGACY_LABELS = {
+    "The 1700s":  "era-pre-1800",
+    "the_1700s":  "era-pre-1800",
+    "era-1700s":  "era-pre-1800",
+}
+
+
 def label_aliases(topics, picks):
     """
     Every string a topic might arrive as, mapped to its key. Covers the
@@ -881,6 +905,9 @@ def label_aliases(topics, picks):
                       re.sub(r"_+", "_", re.sub(r"[^a-z0-9]+", "_", plain)),
                       topic):
             out[alias] = topic
+    for alias, topic in LEGACY_LABELS.items():
+        if topic in picks:
+            out.setdefault(alias, topic)
     return out
 
 
@@ -2229,6 +2256,47 @@ def selftest(entries, day):
             failures.append("building the curation queue filtered the "
                             "pool, which reshuffles every topic built on it")
 
+    # 6i. Every map lands in some era, and every era a reader may
+    #     already have chosen still resolves.
+    #
+    #     The eras used to start at 1700, so 207 maps matched none of
+    #     them and were reachable only through "All Maps" -- the oldest
+    #     material in the pool, hidden by an axis that did not reach it.
+    #
+    #     And renaming an option orphans the installs that stored the
+    #     old text: the string matches nothing, the axis goes
+    #     unconstrained, and the reader gets every era instead of the
+    #     one they picked. That failure looks exactly like the feed
+    #     working, so it is asserted rather than trusted.
+    homeless = [e for e in entries
+                if not any(in_era(e, slug) for slug, _, _, _ in ERAS)]
+    if homeless:
+        years = sorted({e.get("y") for e in homeless if e.get("y")})
+        failures.append(
+            "{} maps match no era at all, e.g. year {}; they are "
+            "reachable only through All Maps"
+            .format(len(homeless), years[:4]))
+    era_slugs = [slug for slug, _, _, _ in ERAS]
+    resolves = label_aliases(era_slugs, set(era_slugs))
+    known = set(era_slugs) | set(THEMES and dict(THEMES) or {})
+    for stored, meant in LEGACY_LABELS.items():
+        # The target still has to exist. Renaming an era a second time
+        # and leaving this table pointing at the old key is the
+        # realistic way this breaks, and it breaks silently.
+        if meant not in known:
+            failures.append(
+                "a setting stored as {!r} is mapped to {}, which is not a "
+                "selection any more".format(stored, meant))
+        elif resolves.get(stored) != meant:
+            failures.append(
+                "a setting stored as {!r} no longer resolves to {}; every "
+                "install that chose it silently gets all eras"
+                .format(stored, meant))
+    # Note on what this cannot do: the table is the only record of what
+    # was once shipped, so a check reading it cannot notice an entry
+    # being deleted outright. It catches the target going stale, which
+    # is the way this actually goes wrong.
+
     # 7. Every map can produce a payload a template can render.
     pool = {"count": total, "generated": ""}
     for entry in entries:
@@ -2494,8 +2562,9 @@ def main():
             "cells": [c for c in cells if c["key"] in picks],
             "cell_keys": [c["key"] for c in cells if c["key"] in picks],
             # A TRMNL select stores a value derived from the option a
-            # person picked, not the option itself: "The 1700s" arrives
-            # as "the_1700s" and "1800 - 1849" as "1800_-_1849". Ship
+            # person picked, not the option itself: "Before 1800"
+            # arrives as "before_1800" and "1800 - 1849" as
+            # "1800_-_1849". Ship
             # every spelling a setting might arrive as, so markup can
             # look one up without transforming anything.
             "keys_by_label": label_aliases(themes + eras, picks),

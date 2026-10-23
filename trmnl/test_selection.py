@@ -64,7 +64,9 @@ feed = {
         "railroads": "railroads", "Railroads": "railroads",
         "city_plans": "city-plans", "City Plans": "city-plans",
         "1850_-_1869": "era-1850-1869", "1850 - 1869": "era-1850-1869",
-        "the_1700s": "era-1700s",
+        "before_1800": "era-pre-1800",
+        # the option's old text, which installs still have stored
+        "the_1700s": "era-pre-1800",
     },
     "themes": [], "eras": [],
     "pick_fields": ["image", "title_short", "year", "byline",
@@ -117,7 +119,7 @@ CASES = [
     ("string not array", {"themes": "city_plans"}),
     ("unknown value", {"themes": ["atlantis"]}),
     ("era that never existed", {"themes": ["railroads"],
-                                "eras": ["the_1700s"]}),
+                                "eras": ["before_1800"]}),
     ("description off", {"show_description": "false"}),
     ("credit on", {"show_credit": "true"}),
 ]

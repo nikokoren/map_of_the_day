@@ -7,7 +7,7 @@
 # combine themes and eras without a file per combination.
 #
 # TRMNL stores a value derived from each option rather than the option
-# itself -- "The 1700s" is stored as "the_1700s" -- so the labels below
+# itself -- "Before 1800" is stored as "before_1800" -- so the labels below
 # can be edited freely: the feed ships every spelling each one could
 # arrive as, and the markup looks the value up rather than matching it.
 ---
@@ -67,9 +67,9 @@ custom_fields:
     multiple: true
     description: >-
       Which centuries to draw from. Leave empty for any era. Note that not
-      every combination exists -- there are no 1700s railroad maps.
+      every combination exists -- there are no pre-1800 railroad maps.
     options:
-      - The 1700s
+      - Before 1800
       - 1800 - 1849
       - 1850 - 1869
       - 1870 - 1899
