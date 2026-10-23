@@ -881,9 +881,34 @@ RIJKS_BUDGET = 400
 # TITLE_REJECT already; these are the spellings this catalogue uses.
 # "blad linksboven" is the top-left sheet of a wall map, which is a
 # quarter of a map and reads as a fragment on a panel.
+# A sheet of a set, in Dutch. The English equivalents are in
+# TITLE_REJECT already.
+#
+# The part designation is in brackets -- "(deel linksboven)",
+# "(onderste deel)" -- and that is what makes it safe to match on. The
+# same words run descriptively in perfectly good titles: "Kaart een
+# deel van de kust van Noorwegen", "Zeekaart van het oostelijk deel van
+# de Middellandse zee". Matching the bare word rejected 18 whole maps
+# along with the 70 fragments; matching it only inside brackets takes
+# the fragments and leaves the maps.
 RIJKS_TITLE_REJECT = re.compile(
-    r"\bblad\b|\bbladen\b|titelpagina|titelblad|omslag|achterzijde"
+    r"\([^)]*\b(?:deel|blad|bladen|stuk|gedeelte)\b[^)]*\)"
+    r"|\bblad\b|\bbladen\b|titelpagina|titelblad|omslag|achterzijde"
     r"|\bkeerzijde\b|\bfragment\b|\bproefdruk\b", re.I)
+
+
+def la_node(value):
+    """
+    One Linked Art node, whether the catalogue gave one or a list.
+
+    Most records carry produced_by.timespan as a single object and some
+    carry a list of them -- one in twenty-five in the first sample. The
+    difference is invisible until a record with a list arrives, and then
+    .get() raises on a list and takes the whole batch with it.
+    """
+    if isinstance(value, list):
+        return value[0] if value else {}
+    return value or {}
 
 
 def rijks_fetch(url, accept="application/ld+json"):
@@ -927,7 +952,7 @@ def rijks_iiif(record):
     `subject_of` is the tempting mistake -- that one is the catalogue
     web page, not the image.
     """
-    shows = (record.get("shows") or [{}])[0].get("id")
+    shows = la_node(record.get("shows")).get("id")
     if not shows:
         return None
     visual = rijks_fetch(shows)
@@ -976,7 +1001,7 @@ def rijks_resolve(object_id, stats):
         stats["rijks: rejected title"] += 1
         return None
 
-    span = (record.get("produced_by") or {}).get("timespan") or {}
+    span = la_node(la_node(record.get("produced_by")).get("timespan"))
 
     def year(key):
         found = re.search(r"(\d{4})", str(span.get(key) or ""))
@@ -1063,6 +1088,12 @@ def rijks_maps(budget, stats, max_pages=MAX_PAGES):
     cache = load_rijks()
     if not cache["done"]:
         seen = set(cache["ids"])
+        # Done only if every type paged all the way to the end. Marking
+        # it done regardless is what a --pages 1 smoke test did on the
+        # first run here: it listed 200 of 7,553 ids, wrote done, and
+        # every later run skipped the listing and resolved from a list
+        # that was 97% short. The budget made it look like progress.
+        finished = True
         for kind in RIJKS_TYPES:
             url = (RIJKS_SEARCH + "?"
                    + urllib.parse.urlencode({"imageAvailable": "true",
@@ -1072,6 +1103,7 @@ def rijks_maps(budget, stats, max_pages=MAX_PAGES):
                 data = rijks_fetch(url, accept="application/json")
                 if data is None:
                     sys.stderr.write("  rijks: listing failed, pausing\n")
+                    finished = False
                     break
                 if page == 0:
                     total = (data.get("partOf") or {}).get("totalItems")
@@ -1085,7 +1117,10 @@ def rijks_maps(budget, stats, max_pages=MAX_PAGES):
                 url = nxt.get("id") if isinstance(nxt, dict) else nxt
                 page += 1
                 time.sleep(REQUEST_DELAY)
-        cache["done"] = True
+            if url:
+                # Still a next page when the page budget ran out.
+                finished = False
+        cache["done"] = finished
         save_rijks(cache)
 
     todo = [i for i in cache["ids"] if i not in cache["resolved"]][:budget]
@@ -1093,9 +1128,23 @@ def rijks_maps(budget, stats, max_pages=MAX_PAGES):
     if todo:
         sys.stderr.write("  rijks: resolving {} of {} unresolved\n"
                          .format(len(todo), left))
+        # Per record, because one of them must not cost the rest. A
+        # single list-shaped timespan raised inside a worker, the
+        # exception came back out of pool.map, and 600 resolutions --
+        # 40 minutes of somebody else's API -- were thrown away without
+        # reaching save_rijks. A record that cannot be read is a record
+        # to count and skip, like every other rejection here.
+        def resolve(object_id):
+            try:
+                return rijks_resolve(object_id, stats)
+            except Exception as exc:
+                stats["rijks: unreadable record"] += 1
+                sys.stderr.write("  rijks: {} raised {}: {}\n".format(
+                    object_id, type(exc).__name__, str(exc)[:80]))
+                return None
+
         with ThreadPoolExecutor(max_workers=RIJKS_WORKERS) as pool:
-            for object_id, entry in zip(todo, pool.map(
-                    lambda i: rijks_resolve(i, stats), todo)):
+            for object_id, entry in zip(todo, pool.map(resolve, todo)):
                 cache["resolved"][object_id] = entry
         save_rijks(cache)
 
