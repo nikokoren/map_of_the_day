@@ -158,17 +158,29 @@ THEMES = [
 ]
 
 ERAS = [
-    # No floor, deliberately. The earliest era used to start at 1700,
-    # which left every map before it matching no era at all: 207 of the
-    # pool, and 353 of the first Rijksmuseum harvest, whose median year
-    # is 1682. A map outside every era is reachable only through "All
-    # Maps", so the oldest and least ordinary material in the pool was
-    # the hardest to find.
+    # The eras used to start at 1700, which left every map older than
+    # that matching none of them: 207 of the pool, including the 1450s
+    # and a run of sixteenth-century work. A map outside every era is
+    # reachable only through "All Maps", so the oldest and least
+    # ordinary material was the hardest to find.
     #
-    # Opened to zero rather than to the harvest's MIN_YEAR so the two
-    # cannot drift apart: if the harvest ever lets an earlier map in,
-    # this still has somewhere to put it.
-    ("era-pre-1800",  "Before 1800",    0, 1799),
+    # Widening "The 1700s" to "Before 1800" fixed that and was wrong in
+    # its own way: one option then covered 1450 to 1799, which reads as
+    # a century-by-century axis with a sack at one end, and it quietly
+    # changed what every install that had chosen "The 1700s" was
+    # selecting. A separate era keeps that one meaning what it always
+    # meant and gives the older material its own place.
+    #
+    # It needs the Rijksmuseum maps to be worth offering: 207 is seven
+    # months of daily use, under the bar the themes are held to, and
+    # only two themes pair with it above CELL_MIN. With them it is 534
+    # and five themes, so the two changes land together.
+    #
+    # No floor, rather than the harvest's MIN_YEAR, so the two cannot
+    # drift apart: if the harvest ever lets an earlier map in, this
+    # still has somewhere to put it.
+    ("era-pre-1700",  "Before 1700",    0, 1699),
+    ("era-1700s",     "The 1700s",   1700, 1799),
     ("era-1800-1849", "1800 - 1849", 1800, 1849),
     ("era-1850-1869", "1850 - 1869", 1850, 1869),
     ("era-1870-1899", "1870 - 1899", 1870, 1899),
@@ -869,18 +881,17 @@ def short_description(text, limit=120):
     return text[:limit].rsplit(" ", 1)[0].rstrip(" ,;:.-") + "..."
 
 
-# What a setting used to be called, and the key it means now.
+# A rename would go here. TRMNL stores a value derived from an
+# option's text, so changing one orphans every install that had it:
+# the stored string matches nothing, the axis goes unconstrained, and
+# the reader silently gets every era instead of the one they picked --
+# which looks exactly like the feed working.
 #
-# A TRMNL select stores a value derived from the option's text, so
-# renaming an option orphans every install that had it: the stored
-# string matches nothing, the axis goes unconstrained, and the reader
-# silently gets every era instead of the one they picked. Nothing
-# surfaces that -- it looks like the feed working.
-LEGACY_LABELS = {
-    "The 1700s":  "era-pre-1800",
-    "the_1700s":  "era-pre-1800",
-    "era-1700s":  "era-pre-1800",
-}
+# Empty because the one rename this recipe has made ("The 1700s" ->
+# "Before 1800") was reverted before any install saw it. Adding a new
+# era alongside an existing one is free; only renaming needs this. The
+# shape to use is in the commit that added it.
+LEGACY_LABELS = {}
 
 
 def label_aliases(topics, picks):
@@ -2562,9 +2573,8 @@ def main():
             "cells": [c for c in cells if c["key"] in picks],
             "cell_keys": [c["key"] for c in cells if c["key"] in picks],
             # A TRMNL select stores a value derived from the option a
-            # person picked, not the option itself: "Before 1800"
-            # arrives as "before_1800" and "1800 - 1849" as
-            # "1800_-_1849". Ship
+            # person picked, not the option itself: "The 1700s" arrives
+            # as "the_1700s" and "1800 - 1849" as "1800_-_1849". Ship
             # every spelling a setting might arrive as, so markup can
             # look one up without transforming anything.
             "keys_by_label": label_aliases(themes + eras, picks),

@@ -111,7 +111,7 @@ It holds three kinds of pick:
 - **themes** -- `railroads`, `nautical`, `city-plans`... (listed in
   `theme_options`, named that way so a setting keyed `themes` cannot
   collide with it)
-- **eras** -- `era-pre-1800`, `era-1850-1869`... (listed in `era_options`)
+- **eras** -- `era-pre-1700`, `era-1850-1869`... (listed in `era_options`)
 - **cells** -- a theme *and* an era together, keyed `railroads__era-1850-1869`
 
 Cells are what make a real multi-select work. Someone choosing three themes
@@ -166,7 +166,7 @@ established from a real instance rather than the docs:
 - Settings live at `trmnl.plugin_settings.custom_fields_values`, keyed by
   keyname -- not as top-level template variables.
 - A select stores a value *derived* from the option, not the option: `The
-  1800` arrives as `before_1800`, `1800 - 1849` as `1800_-_1849`. The feed's
+  1700s` arrives as `the_1700s`, `1800 - 1849` as `1800_-_1849`. The feed's
   `keys_by_label` carries every spelling a value might arrive as, so markup
   looks one up without transforming anything.
 - A `boolean` field arrives as the **string** `"true"` or `"false"`, so it
@@ -195,7 +195,7 @@ the map named beside it.
 
 The fallback chain is worth knowing: a combination that does not exist falls
 back to the chosen themes, and an empty selection falls back to the whole
-pool. Someone who picks *Railroads* and *Before 1800* has asked for something
+pool. Someone who picks *Railroads* and *The 1700s* has asked for something
 that never existed, and still gets a railroad map rather than a blank screen.
 
 ### The topics
@@ -220,7 +220,8 @@ at least one. Eras are read off the year, so they cannot be wrong.
 | `nautical` | Nautical Charts | ~255 | 8 months |
 | `exploration` | Exploration | ~270 | 9 months |
 | `world-and-hemispheres` | World & Hemispheres | ~710 | 1.9 years |
-| `era-pre-1800` | Before 1800 | ~1,090 | 1.9 years |
+| `era-pre-1700` | Before 1700 | ~530 | 1.5 years |
+| `era-1700s` | The 1700s | ~1,020 | 1.9 years |
 | `era-1800-1849` | 1800 - 1849 | ~360 | 1 year |
 | `era-1850-1869` | 1850 - 1869 | ~1200 | 3.3 years |
 | `era-1870-1899` | 1870 - 1899 | ~1650 | 4.5 years |
