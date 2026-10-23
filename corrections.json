@@ -203,5 +203,370 @@
   "was": "Carte de la Turquie D'Asie, de la Perse: de l'Afghanistan, du Belouchistan et de la grande Boukharie; avec une partie des Etats voisins",
   "title": "Map of Asiatic Turkey, Persia, Afghanistan, Baluchistan and Greater Bukhara, with part of the neighbouring states",
   "note": "Never translated. The pool's caption was re-catalogued to add 'avec une partie des Etats voisins', so 'was' is the new wording. Belouchistan = Baluchistan; 'la grande Boukharie' = Greater Bukhara (Great Bukharia), a historical region of Central Asia. Place names kept as names."
+ },
+ "2002622263": {
+  "was": "Amérique septentrion.lle [i.e. septentrionale] : composée, corigée, et augmētée, sur les iournaux, mémoires, et observations les plus justes qui en ón'́etes.tes en l'année 1685 & 1686, par plusieurs particuliés",
+  "title": "North America: composed, corrected and augmented from the most accurate journals, memoirs and observations that were made of it in the years 1685 & 1686, by several individuals",
+  "note": "The translator mangled the French word by word: corigée became 'corrigerated', augmētée (macron for n) became 'aggmated', 'iournaux' (i for j) was left as 'iurnals', septentrionale ('northern', here North America) was left half French, and the rendering stopped at 'memoirs', dropping the rest. The archive's text is itself garbled in 'qui en ón'́etes.tes'; read here as 'qui en ont été faites' (that were made of it), which is a reconstruction."
+ },
+ "2002623130": {
+  "was": "A mapp of Virginia discovered to ye hills, and in it's latt. from 35 deg. & 1/2 neer Florida to 41 deg. bounds of New England",
+  "title": "A map of Virginia discovered to the hills, and in its latitude from 35½ degrees near Florida to 41 degrees, the bounds of New England",
+  "note": "Already English but never rendered readable: 'mapp', 'ye' (= the, from the thorn abbreviation) and 'it's' are period spelling. 'deg. & 1/2' is 35½ degrees. The pool's caption was re-catalogued with the latitudes, so 'was' is the new wording."
+ },
+ "2003623401": {
+  "was": "Havana op 't Eyland Cvba",
+  "title": "Havana on the island of Cuba",
+  "note": "Never translated. Dutch 'op 't Eyland' = on the island; 'Cvba' is Cuba in the classical u/v spelling, not a word. Havana is the city and Cuba the island; both kept as names."
+ },
+ "2003626426": {
+  "was": "Universalis cosmographia secundum Ptholomaei traditionem et Americi Vespucii alioru[m]que lustrationes",
+  "title": "Universal cosmography according to the tradition of Ptolemy and the voyages of Amerigo Vespucci and others",
+  "note": "Never translated. Latin 'lustrationes' is surveys or journeys of exploration (lustrare, to traverse), not 'purifications'. Ptholomaei is Ptolemy; Americi Vespucii is Amerigo Vespucci. The pool's caption was re-catalogued with 'alioru[m]que' (editorial brackets for a missing m), so 'was' is the new wording."
+ },
+ "2003627035": {
+  "was": "Übersichts-Blatt Afghanistan und den Ländern an der Nord-West Grenze Von Indien",
+  "title": "Overview sheet of Afghanistan and the countries on the north-west frontier of India",
+  "note": "German 'Übersichts-Blatt' is an overview (index) sheet. The old rendering dropped the genitive: 'Afghanistan und den Ländern' is 'of Afghanistan and of the countries', and 'Grenze' on a colonial map is the frontier. India's 'Von' is capitalised only by cataloguing."
+ },
+ "2004629175": {
+  "was": "Expeditionis Hispanorum in Angliam vera descriptio. Anno Do: M D LXXXVIII",
+  "title": "True depiction of the Spanish expedition against England. In the year of the Lord 1588",
+  "note": "Never translated. 'Anno Do:' abbreviates Anno Domini, and 'M D LXXXVIII' is 1588 (the Armada), so it is the date, not a name. 'Hispanorum' = of the Spaniards; 'in Angliam' = against/into England."
+ },
+ "2005625331": {
+  "was": "L'Afrique, ou Lybie ulterieure : ou font le Saara, or desért, le pays des Negres, la Guinee, et les pays circonv., tirée en partie de Sanut, et de l'Arabe du Nubie : en partie de diverses cartes veues, jusques a present : la coste de Negres, et Guinee, &c. est apres les observations de Samuel Blomart",
+  "title": "Africa, or Further Libya: where lie the Sahara, or desert, the land of the Negroes, Guinea and the neighbouring countries, drawn partly from Sanut and from the Arabic of the Nubian, partly from various maps seen up to now; the coast of the Negroes and Guinea, &c., is after the observations of Samuel Blomart",
+  "note": "Several faults. The long-s 'ſont' (are) was read as 'font' and rendered 'make'; 'Lybie ulterieure' is Libya Ulterior, Further Libya, not 'later Libya'; 'circonv.' abbreviates circonvoisins (neighbouring); 'Sanut' is the geographer Sanudo and 'l'Arabe du Nubie' the Arabic text of the Nubian (Nubian geographer), both names. The translation stopped after 'circonv. countries', dropping the sources and Samuel Blomart. 'Negres' is the period term in the source and is kept as written."
+ },
+ "2006627252": {
+  "was": "Orbis terrarum nova et accuratissima tabula",
+  "title": "New and most accurate map of the world",
+  "note": "Never translated. 'Orbis terrarum' = the circle of the lands, i.e. the world; 'tabula' = map (table, plate), 'accuratissima' = most accurate."
+ },
+ "2006627324": {
+  "was": "Direction des Iles du Vent, Ile de Tabago, 1er germinal an 11 : plan du fort Scarborough ci-devant de Castries, tel qu'il a été livre'aux troupes françaises, par les Anglais, le 15. vendémiaire an 11",
+  "title": "Windward Islands Directorate, Island of Tobago, 1 Germinal Year 11: plan of Fort Scarborough, formerly Fort Castries, as it was handed over to the French troops by the English, 15 Vendémiaire Year 11",
+  "note": "Translation stopped after '1st germinal year 11', dropping the plan, the fort and the handover. Germinal and Vendémiaire are months of the French Republican calendar (Year 11 is 1802-03) and are kept as names. 'Iles du Vent' = Windward Islands; 'ci-devant de Castries' = formerly (called) Castries; Scarborough and Castries are names."
+ },
+ "2007628530": {
+  "was": "Xizang quan tu",
+  "title": "Complete map of Xizang (Tibet)",
+  "note": "The source is pinyin, Xizang quan tu (Tibet, complete map), mis-detected as Vietnamese; the translator invented 'Xizang Yuan'. Xizang is the Chinese name of Tibet, kept as a name. 'quan tu' read as 'complete map' (full-sheet map); this is the standard reading of those syllables, with no characters in the record to confirm."
+ },
+ "2008628167": {
+  "was": "[Portolan chart of the Pacific coast from Mexico to northern Chile]",
+  "title": "Portolan chart of the Pacific coast from Mexico to northern Chile",
+  "note": "Already English. The only issue was the cataloguer's square brackets, which mark a supplied title rather than one on the map; they are dropped from the displayed caption."
+ },
+ "2010592453": {
+  "was": "Exquisita & magno aliquot mensium periculo lustrata et iam retecta Freti Magellanici facies : eijgentlicke asbeeldinghe der Magellanischer Strate die nu met veel gevaers eitelijeke Maenden doorsien van nieus ondecktis",
+  "title": "Choice view of the Strait of Magellan, surveyed at great risk over several months and now newly uncovered: true depiction of the Strait of Magellan, which with much danger over some months has been examined and newly discovered",
+  "note": "Never translated. Latin and Dutch say the same thing: 'Exquisita...facies' = a choice/excellent aspect (view); 'lustrata' = surveyed; 'retecta' = uncovered; Dutch 'eijgentlicke asbeeldinghe' = true depiction (afbeelding), 'doorsien' = examined, 'van nieus ondecktis' = newly discovered. Strait of Magellan kept as a place name. The pool's caption was re-catalogued with the Dutch half, so 'was' is the new wording."
+ },
+ "2017585967": {
+  "was": "Nova Belgica et Anglia Nova",
+  "title": "New Netherland and New England",
+  "note": "Latin names left as Latin. Nova Belgica is New Netherland (Belgica for the Low Countries), and Anglia Nova is New England; both are places, so the reader needs the English names."
+ },
+ "2021668427": {
+  "was": "A Chart of Magellan by the Route of Tierra del Fuego.",
+  "title": "A Chart of Magellan by the Route of Tierra del Fuego",
+  "note": "Already English; only the trailing catalogue full stop is dropped. Tierra del Fuego kept as a name."
+ },
+ "2021668433": {
+  "was": "The Drawing of the Modern Geography of the Whole Africa.",
+  "title": "The Drawing of the Modern Geography of the Whole of Africa",
+  "note": "Already English; the trailing catalogue full stop is dropped and 'of the Whole Africa' made grammatical."
+ },
+ "2021668617": {
+  "was": "A Map of North Western Arabia and Nejd.",
+  "title": "A Map of North Western Arabia and Nejd",
+  "note": "Already English; only the trailing catalogue full stop is dropped. Nejd (Najd) kept as a name."
+ },
+ "2021668649": {
+  "was": "Map for the Clarification of Land Titles in New France, 1678.",
+  "title": "Map for the Clarification of Land Titles in New France, 1678",
+  "note": "Already English; only the trailing catalogue full stop is dropped."
+ },
+ "2021668692": {
+  "was": "Geographic Description of the Travels of the Apostles and the Journeys of Paul, Together with the Countries and Empires Where They First Preached the Gospel.",
+  "title": "Geographic Description of the Travels of the Apostles and the Journeys of Paul, Together with the Countries and Empires Where They First Preached the Gospel",
+  "note": "Already English; only the trailing catalogue full stop is dropped. The pool's caption was re-catalogued to add the 'Together with the Countries...' clause, so 'was' is the new wording."
+ },
+ "2021668719": {
+  "was": "Nautical Atlas of the World, Folio 5 Recto, Southwestern Atlantic Ocean with Brazil.",
+  "title": "Nautical Atlas of the World, Folio 5 Recto: Southwestern Atlantic Ocean with Brazil",
+  "note": "Already English; the catalogue's full stop after 'Recto' made it read as two sentences, so it becomes a colon and the closing full stop is dropped."
+ },
+ "74690804": {
+  "was": "Carte réduite de l'isle de Cube",
+  "title": "Reduced chart of the island of Cuba",
+  "note": "'isle de Cube' is the French spelling of Cuba's name, which the translator took for the geometric word 'Cube' and then reversed into 'Cube Isle'. 'Carte réduite' is a reduced (Mercator) chart, a nautical term."
+ },
+ "74691148": {
+  "was": "Plan du port du Cap dans l'isle de St. Domingue",
+  "title": "Plan of the harbour of Le Cap on the island of Saint-Domingue",
+  "note": "'Le Cap' on Saint-Domingue is Cap-Français (now Cap-Haïtien), not Cape Town; the translator read the cape as the South African city. Saint-Domingue is the French colony on Hispaniola, kept as a name."
+ },
+ "85690919": {
+  "was": "Vniversale descrittione di tvtta la terra conoscivta fin qvi",
+  "title": "Universal description of the whole earth known up to now",
+  "note": "Never translated. Italian 'Vniversale' (u/v spelling) = universal, 'descrittione' = description, 'tvtta la terra conoscivta' = the whole known earth, 'fin qvi' = up to here, i.e. up to now."
+ },
+ "86694260": {
+  "was": "Map of Persia and adjacent countries, for Sir John Malcolm's History of Persia",
+  "title": "Map of Persia and adjacent countries, for Sir John Malcolm's History of Persia",
+  "note": "Already English and correct: no translation was needed, so this entry only replaces the flag. Sir John Malcolm and History of Persia are names, kept as written."
+ },
+ "97683561": {
+  "was": "Novi Belgii Novaeque Angliae : nec non partis Virginiae tabula multis in locis emendata",
+  "title": "Map of New Netherland and New England, and also of part of Virginia, corrected in many places",
+  "note": "Never translated. Novi Belgii = of New Netherland (Belgium for the Low Countries) and Novae Angliae = of New England; 'nec non' = and also; 'emendata' = corrected. Places kept as names."
+ },
+ "97683562": {
+  "was": "Leo Belgicus",
+  "title": "Leo Belgicus (the Belgian Lion)",
+  "note": "Never translated. Leo Belgicus is the traditional name of maps that draw the Low Countries as a lion; the Latin is the title, with the English alongside for the reader."
+ },
+ "97683568": {
+  "was": "Venezuela, cum parte Auftrali Novae Andalausiae",
+  "title": "Venezuela, with the southern part of New Andalusia",
+  "note": "Never translated. Latin 'cum parte Australi' = with the southern part; the source's 'Auftrali' is a long-s misreading of 'Australi' and 'Andalausiae' a spelling slip for Andalusiae. Venezuela and New Andalusia (Nova Andalusia) are names."
+ },
+ "99447845": {
+  "was": "Karta I︠A︡kutskoĭ oblasti chasti Olekminskago okruga i Irkutskoĭ gubernīĭ Kirenskogo [sic] chastʹ okruga s pokazanīem zolotosoderzhashchikh prīĭskov razrabatyvaemyi︠a︡ : gg. chastno promyshlinikami [sic]",
+  "title": "Map of the Yakutsk Oblast, part of the Olekminsk District and of the Irkutsk Governorate, the Kirensk part of the district, showing the gold-bearing mines worked by Messrs. private industrialists",
+  "note": "Never translated: a Library of Congress style romanisation of Russian. 'zolotosoderzhashchikh priiskov' = gold-bearing mines/claims, 'razrabatyvaemykh' = being worked, 'gg.' = gentlemen (Messrs.), 'chastno promyshlennikami' = private industrialists. [sic] marks are cataloguer's. The pool's caption was re-catalogued to the full title, so 'was' is the new wording."
+ },
+ "gm71002176": {
+  "was": "Siege d'York, 1781. Plan d'York en Virginie avec les attaques et les campemens de l'Armée combinée de France et d'Amérique",
+  "title": "Siege of York, 1781. Plan of York in Virginia with the attacks and encampments of the combined army of France and America",
+  "note": "'campemens' (old spelling of campements, encampments) was copied through untranslated, and 'Siege d'York' was left in French. 'York' is Yorktown, kept as the name the archive gives."
+ },
+ "map49000970": {
+  "was": "Americae sive qvartae orbis partis nova et exactissima descriptio",
+  "title": "New and most exact description of America, or the fourth part of the world",
+  "note": "Never translated. 'qvartae orbis partis' (u/v spelling) = of the fourth part of the world, the period way of saying America as the fourth continent. 'nova et exactissima descriptio' = new and most exact description."
+ },
+ "rijks:NG-43": {
+  "was": "Paskaart van het Vlie en de Marsdiep",
+  "title": "Sea chart of the Vlie and the Marsdiep",
+  "note": "Never translated; the archive's own Dutch, rendered. 'Paskaart' is a sea chart (pilot chart). Vlie and Marsdiep are the tidal channels by Texel and Vlieland, kept as names."
+ },
+ "rijks:NG-501-11": {
+  "was": "Kaart van graafschap Holland",
+  "title": "Map of the county of Holland",
+  "note": "Never translated; the archive's own Dutch, rendered. 'graafschap' = county."
+ },
+ "rijks:NG-501-27": {
+  "was": "Kaart van de Vlaamse kust tussen Duinkerke en Grevelingen",
+  "title": "Map of the Flemish coast between Dunkirk and Gravelines",
+  "note": "Never translated; the archive's own Dutch, rendered. Duinkerke is Dunkirk and Grevelingen is Gravelines, the English forms of those towns."
+ },
+ "rijks:NG-501-36": {
+  "was": "Zeekaart van het Kanaal",
+  "title": "Sea chart of the Channel",
+  "note": "Never translated; the archive's own Dutch, rendered. 'Kanaal' is the English Channel."
+ },
+ "rijks:NG-501-41": {
+  "was": "Kaart van het Vorstendom Orange en het Comtat Venaissin",
+  "title": "Map of the Principality of Orange and the Comtat Venaissin",
+  "note": "Never translated; the archive's own Dutch, rendered. Orange and Comtat Venaissin are names (the latter left in French as the English also does)."
+ },
+ "rijks:NG-501-50": {
+  "was": "Kaart van de Balearen en Pityusen en kust van Spanje",
+  "title": "Map of the Balearic Islands and the Pityuses and the coast of Spain",
+  "note": "Never translated; the archive's own Dutch, rendered. 'Balearen en Pityusen' = the Balearic and Pityusic islands."
+ },
+ "rijks:NG-501-59": {
+  "was": "Paskaart van de noordwestkust van Afrika",
+  "title": "Sea chart of the north-west coast of Africa",
+  "note": "Never translated; the archive's own Dutch, rendered. 'Paskaart' is a sea chart."
+ },
+ "rijks:NG-501-63": {
+  "was": "Kaart van het Turkse Rijk",
+  "title": "Map of the Turkish Empire",
+  "note": "Never translated; the archive's own Dutch, rendered. 'Turkse Rijk' = Turkish Empire."
+ },
+ "rijks:RP-P-1878-A-734": {
+  "was": "Plan van het kamp van de Geallieerden voor Maastricht, 1703",
+  "title": "Plan of the camp of the Allies before Maastricht, 1703",
+  "note": "Never translated; the archive's own Dutch, rendered. 'Geallieerden' = the Allies; Maastricht is a name."
+ },
+ "rijks:RP-P-1885-A-9822": {
+  "was": "Vreugdevuren te Den Haag bij de Vrede van Westminster, 1674",
+  "title": "Bonfires in The Hague at the Peace of Westminster, 1674",
+  "note": "Never translated; the archive's own Dutch, rendered. 'Vreugdevuren' = bonfires of joy; Den Haag is The Hague, and Westminster a name."
+ },
+ "rijks:RP-P-1887-A-12273": {
+  "was": "Kaart van Antwerpen met de stelling der Vijandelijke Armee, van den 12 December 1832",
+  "title": "Map of Antwerp with the position of the enemy army, 12 December 1832",
+  "note": "Never translated; the archive's own Dutch, rendered. 'stelling' = position; 'Vijandelijke Armee' = the enemy army. Not expanded further than the caption does."
+ },
+ "rijks:RP-P-1889-A-15245": {
+  "was": "Wereldkaart met het koloniale Britse Rijk, 1886",
+  "title": "World map with the colonial British Empire, 1886",
+  "note": "Never translated; the archive's own Dutch, rendered. 'Wereldkaart' = world map; 'met' = with."
+ },
+ "rijks:RP-P-1896-A-19368-1071": {
+  "was": "Plattegrond van Zierikzee",
+  "title": "Plan of Zierikzee",
+  "note": "Never translated; the archive's own Dutch, rendered. 'Plattegrond' = ground plan; Zierikzee is a name."
+ },
+ "rijks:RP-P-1896-A-19368-220": {
+  "was": "Plattegrond van de stad Groningen tijdens het beleg van 1594",
+  "title": "Plan of the city of Groningen during the siege of 1594",
+  "note": "Never translated; the archive's own Dutch, rendered. 'beleg' = siege."
+ },
+ "rijks:RP-P-1905-280": {
+  "was": "Kaart van de slag bij Landen, 1693",
+  "title": "Map of the Battle of Landen, 1693",
+  "note": "Never translated; the archive's own Dutch, rendered. 'slag' = battle; Landen is a name."
+ },
+ "rijks:RP-P-1909-376": {
+  "was": "Kaart van het beleg van Arras door de Fransen, 1640",
+  "title": "Map of the siege of Arras by the French, 1640",
+  "note": "Never translated; the archive's own Dutch, rendered. 'beleg' = siege; 'Fransen' = the French."
+ },
+ "rijks:RP-P-1909-388": {
+  "was": "Plattegrond van de citadel van Rijssel, 1708",
+  "title": "Plan of the citadel of Lille (Rijssel), 1708",
+  "note": "Never translated; the archive's own Dutch, rendered. Rijssel is the Dutch name for Lille; both given since the map is a Dutch one."
+ },
+ "rijks:RP-P-1909-484": {
+  "was": "Slag bij Steenkerke, 1692",
+  "title": "Battle of Steenkerke, 1692",
+  "note": "Never translated; the archive's own Dutch, rendered. 'Slag bij' = battle of; Steenkerke is a name."
+ },
+ "rijks:RP-P-1937-1685": {
+  "was": "Kaart van beleg en verovering van Sas-van-Gent, 1644",
+  "title": "Map of the siege and capture of Sas van Gent, 1644",
+  "note": "Never translated; the archive's own Dutch, rendered. 'beleg en verovering' = siege and conquest; Sas van Gent is a name."
+ },
+ "rijks:RP-P-1939-1428": {
+  "was": "Plattegrond van Alkmaar, 1597",
+  "title": "Plan of Alkmaar, 1597",
+  "note": "Never translated; the archive's own Dutch, rendered. Alkmaar is a name."
+ },
+ "rijks:RP-P-1956-131": {
+  "was": "Plattegrond van Rouen",
+  "title": "Plan of Rouen",
+  "note": "Never translated; the archive's own Dutch, rendered. Rouen is a name."
+ },
+ "rijks:RP-P-AO-11-35": {
+  "was": "Plattegrond van Overschie",
+  "title": "Plan of Overschie",
+  "note": "Never translated; the archive's own Dutch, rendered. Overschie is a name (a former village by Rotterdam)."
+ },
+ "rijks:RP-P-AO-15-8": {
+  "was": "Kaart van Zeeland",
+  "title": "Map of Zeeland",
+  "note": "Never translated; the archive's own Dutch, rendered. Zeeland is the Dutch province, kept as a name."
+ },
+ "rijks:RP-P-AO-16-127-1": {
+  "was": "Beleg van Maastricht, 1632 (plaat 1)",
+  "title": "Siege of Maastricht, 1632 (plate 1)",
+  "note": "Never translated; the archive's own Dutch, rendered. 'plaat' = plate (sheet of a series)."
+ },
+ "rijks:RP-P-AO-16-131": {
+  "was": "Beleg en verovering van Hulst door Frederik Hendrik, 1645",
+  "title": "Siege and capture of Hulst by Frederik Hendrik, 1645",
+  "note": "Never translated; the archive's own Dutch, rendered. Frederik Hendrik is the Prince of Orange, a person, so his name is kept in the archive's Dutch form; Hulst is a town."
+ },
+ "rijks:RP-P-AO-20-13": {
+  "was": "Plattegrond van Amsterdam, 1482-1601",
+  "title": "Plan of Amsterdam, 1482-1601",
+  "note": "Never translated; the archive's own Dutch, rendered. Plattegrond = ground plan."
+ },
+ "rijks:RP-P-AO-20-27A": {
+  "was": "Plattegrond van Amsterdam, 1612",
+  "title": "Plan of Amsterdam, 1612",
+  "note": "Never translated; the archive's own Dutch, rendered. Plattegrond = ground plan."
+ },
+ "rijks:RP-P-AO-20-3": {
+  "was": "Plattegrond van Amsterdam met stadsgezicht, 1300",
+  "title": "Plan of Amsterdam with a view of the city, 1300",
+  "note": "Never translated; the archive's own Dutch, rendered. 'stadsgezicht' = view of the town. The date 1300 is the archive's."
+ },
+ "rijks:RP-P-AO-20-50": {
+  "was": "Plattegrond van Amsterdam",
+  "title": "Plan of Amsterdam",
+  "note": "Never translated; the archive's own Dutch, rendered. Plattegrond = ground plan."
+ },
+ "rijks:RP-P-AO-20-50B": {
+  "was": "Plattegrond van Amsterdam",
+  "title": "Plan of Amsterdam",
+  "note": "Never translated; the archive's own Dutch, rendered. Plattegrond = ground plan."
+ },
+ "rijks:RP-P-AO-20-72": {
+  "was": "Plattegrond van Amsterdam met een allegorie op de stad",
+  "title": "Plan of Amsterdam with an allegory of the city",
+  "note": "Never translated; the archive's own Dutch, rendered. 'allegorie op de stad' = allegory on the city."
+ },
+ "rijks:RP-P-AO-20-8": {
+  "was": "Plattegrond van Amsterdam, 1482",
+  "title": "Plan of Amsterdam, 1482",
+  "note": "Never translated; the archive's own Dutch, rendered. Plattegrond = ground plan."
+ },
+ "rijks:RP-P-AO-20-89": {
+  "was": "Plattegrond van Amsterdam met stadsgezicht",
+  "title": "Plan of Amsterdam with a view of the city",
+  "note": "Never translated; the archive's own Dutch, rendered. 'stadsgezicht' = view of the town."
+ },
+ "rijks:RP-P-AO-20-9B": {
+  "was": "Plattegrond van Amsterdam, 1482",
+  "title": "Plan of Amsterdam, 1482",
+  "note": "Never translated; the archive's own Dutch, rendered. Plattegrond = ground plan."
+ },
+ "rijks:RP-P-AO-9-41": {
+  "was": "Kaart met een ontwerp voor de bedijking van de Haarlemmermeer, 1641",
+  "title": "Map with a design for the embankment of the Haarlemmermeer, 1641",
+  "note": "Never translated; the archive's own Dutch, rendered. 'bedijking' = enclosing with dikes (reclamation); Haarlemmermeer is a name."
+ },
+ "rijks:RP-P-OB-50.151": {
+  "was": "Kaart van de kusten van Vlaanderen, Normandië en Engeland",
+  "title": "Map of the coasts of Flanders, Normandy and England",
+  "note": "Never translated; the archive's own Dutch, rendered. Normandië is Normandy."
+ },
+ "rijks:RP-P-OB-52.496": {
+  "was": "Kaart van Palestina",
+  "title": "Map of Palestine",
+  "note": "Never translated; the archive's own Dutch, rendered. Palestina is Palestine."
+ },
+ "rijks:RP-P-OB-52.500": {
+  "was": "Kaart van Palestina",
+  "title": "Map of Palestine",
+  "note": "Never translated; the archive's own Dutch, rendered. Palestina is Palestine."
+ },
+ "rijks:RP-P-OB-7090": {
+  "was": "Plan van het legerkamp en de slagorde van de Geallieerden bij Augsburg, 1704",
+  "title": "Plan of the army camp and the order of battle of the Allies at Augsburg, 1704",
+  "note": "Never translated; the archive's own Dutch, rendered. 'legerkamp' = army camp, 'slagorde' = order of battle."
+ },
+ "rijks:RP-P-OB-77.067": {
+  "was": "Beleg van Schenckenschans door de Fransen, 1672",
+  "title": "Siege of Schenckenschans by the French, 1672",
+  "note": "Never translated; the archive's own Dutch, rendered. Schenckenschans is the fortress, kept in its archive spelling."
+ },
+ "rijks:RP-P-OB-77.078": {
+  "was": "Zeven vestingplattegronden en een gezicht op Het Tolhuis bij Lobit",
+  "title": "Seven fortress plans and a view of the Tolhuis at Lobith",
+  "note": "Never translated; the archive's own Dutch, rendered. 'vestingplattegronden' = fortress plans. The archive spells the place 'Lobit'; Lobith is the modern spelling and Het Tolhuis the toll house."
+ },
+ "rijks:RP-P-OB-77.246": {
+  "was": "Kaart met de posities van de geallieerden en de Fransen bij het beleg van Namen, 1695",
+  "title": "Map with the positions of the Allies and the French at the siege of Namur, 1695",
+  "note": "Never translated; the archive's own Dutch, rendered. Namen is the Dutch name of Namur."
+ },
+ "rijks:RP-P-OB-77.248": {
+  "was": "Beleg van Namen, 1695",
+  "title": "Siege of Namur, 1695",
+  "note": "Never translated; the archive's own Dutch, rendered. Namen is the Dutch name of Namur."
+ },
+ "rijks:RP-P-OB-77.252": {
+  "was": "Ingekleurde kaart van de versterkingen van Namen bij het beleg in 1695",
+  "title": "Coloured map of the fortifications of Namur during the siege of 1695",
+  "note": "Never translated; the archive's own Dutch, rendered. 'Ingekleurde' = coloured (hand-coloured); Namen is Namur."
  }
 }
