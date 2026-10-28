@@ -92,15 +92,17 @@ MAX_SKIPS = 4
 # Holding back a share of an 82%-American pool is not rare at all --
 # with five candidates the odds that every one of them is American are
 # better than one in three, and the code then shows the held-back map
-# anyway. Measured at US_KEEP 0.35: 9.2% of days fell back like that
-# with four spares, 0.3% with twelve, none with more, and the capital's
-# share of the feed moved 7.4% -> 4.7% once they stopped.
+# anyway. Twelve spares were enough for the earlier pool, but the
+# current pool and vetoes exhaust them on 13 of 2,562 broad-topic days
+# sampled over a year from 2026-10-28. Twenty-four leave an eligible
+# candidate on every sampled day, including the review selftest's
+# 120-day window. Keep that check: later curation can change the odds.
 #
 # Safe to walk this far because every one of these is half a cycle from
 # the day it covers, exactly as the four are; a borrowed map's own
 # morning is still months away. Costs nothing on an ordinary day either,
 # since the image check stops at the first candidate that answers.
-BALANCE_SKIPS = 12
+BALANCE_SKIPS = 24
 
 # How far either side of a day a stand-in has to stay clear of that
 # day's scheduled map, so covering a dead image never reads as a repeat.
