@@ -578,5 +578,85 @@
   "was": "Mapa maritimo del Golfo de Mexico e islas de la America, para el uso de los navegantes en esta parte del mundo, construido sobre las mexores memorias, y observaciones astronomicas de longitudes, y latitudes",
   "title": "Maritime map of the Gulf of Mexico and the islands of America, for the use of navigators in this part of the world, constructed upon the best memoirs and astronomical observations of longitudes and latitudes",
   "note": "Never translated; the archive's own Spanish, rendered. 'mexores' is an old spelling of 'mejores' (best); 'memorias' here means memoirs/reports, not memories. 'Mapa maritimo' = sea chart."
+ },
+ "2006626081": {
+  "was": "Bermuda Hundred. [1864-1865]",
+  "title": "Bermuda Hundred, 1864–1865",
+  "note": "Never translated; English already. The archive re-catalogued the title with the date in square brackets ('[1864-1865]', a cataloguer-supplied date of the campaign, not part of the map's own title). Bermuda Hundred is a place name (the Virginia peninsula at the James and Appomattox rivers), kept as a name. Bracket dropped for display."
+ },
+ "2008626932": {
+  "was": "Carte du Lac Champlain depuis le Fort Chambly jusqu'a celuyde St. Fréderic",
+  "title": "Map of Lake Champlain from Fort Chambly to that of St. Frédéric",
+  "note": "'celuyde' is 'celuy de' (old spelling of 'celui de', 'that of') run together; the translator left it as if it were a place. It stands for the fort of St. Frédéric, so 'that of St. Frédéric'. Fort Chambly and St. Frédéric are names, kept."
+ },
+ "2013593005": {
+  "was": "Marittima Italiana : Linea di Bombay",
+  "title": "Marittima Italiana: Bombay Line",
+  "note": "'Marittima Italiana' is the name of an Italian shipping company (founded 1936, per the record's description), not a phrase to translate. The translator rendered it 'Italian Maritime'. 'Linea di Bombay' = Bombay Line."
+ },
+ "2017585659": {
+  "was": "Mappe-monde, carte universelle de la terre : dressee sur les relations les plus nouvelles soumises aux observations astronomiques les plus recentes ou sont marqueés les nouvelles découvertes",
+  "title": "World map, universal map of the earth: drawn up from the newest accounts, subject to the most recent astronomical observations, in which the new discoveries are marked",
+  "note": "Two faults. 'Mappe-monde' is 'world map' (the translator produced 'Mappe-world'), and 'relations' here means accounts/reports, not 'relationships'. 'dressee' = drawn up, not 'sets up'. The published line was also cut off before 'ou sont marqueés les nouvelles découvertes' (in which the new discoveries are marked); 'ou' is 'où'."
+ },
+ "2021668269": {
+  "was": "Qing nei fu yu di tu suo mo ben",
+  "title": "Qing nei fu yu di tu suo mo ben (Reduced Copy of the Qing Imperial Household Maps of the Realm)",
+  "note": "Chinese in pinyin, mis-tagged as Italian, so the translator split it into English-looking syllables ('Qing in the yu fu of you his mo well'). Read as pinyin (Qing neifu yudi tu suomo ben): Qing = the dynasty, neifu = Imperial Household, yudi tu = maps of the land, suomo ben = reduced copy/facsimile. The characters are not in the record, so this reading is from the romanisation; the romanisation is kept so it can be checked."
+ },
+ "73695752": {
+  "was": "Partie de l'Amérique septent? qui comprend la Nouvelle France ou le Canada,",
+  "title": "Part of North America which includes New France or Canada",
+  "note": "Source is truncated by the catalogue: 'septent?' stands for 'septentrionale' (northern), so 'North America'. The earlier rendering was right in sense but gave no sign the source was cut off. New France is a name, kept."
+ },
+ "73696225": {
+  "was": "Plan de la ville de Louisbourg dans l'Isle Royale",
+  "title": "Plan of the town of Louisbourg on Île Royale",
+  "note": "'Plan' is a town plan, not a 'map'. Louisbourg and Île Royale (French name for Cape Breton Island) are names; the translator anglicised Île Royale to 'Isle Royale', which is a different place (in Lake Superior)."
+ },
+ "74690808": {
+  "was": "Carte du Golphe du Méxique et des isles de l'Amérique. Pour servir à l'Histoire générale des voyages",
+  "title": "Map of the Gulf of Mexico and the islands of America. To accompany the Histoire générale des voyages",
+  "note": "'Golphe' is old French for 'golfe' (gulf); the translator read it as 'Golf'. 'Histoire générale des voyages' is the title of a published work (Prévost's collection of voyages), not a phrase meaning 'general travel history', so it is kept as a title. 'Pour servir à' = to accompany/serve."
+ },
+ "74693106": {
+  "was": "Carte réduite des côtes orientales de l'Amérique septentrionale. Contenant celles des provinces de New-York et de la Nouvelle Angleterre, celles de l'Acadie ou Nouvelle Ecosse de l'Île Royale de l'Île St. Jean avec l'intérieur du pays",
+  "title": "Reduced chart of the eastern coasts of North America. Containing those of the provinces of New York and New England, those of Acadia or Nova Scotia, Île Royale and Île Saint-Jean, with the interior of the country",
+  "note": "The published line stopped after 'New England' and dropped Acadia or Nova Scotia, Île Royale, Île St. Jean and the interior. 'Carte réduite' is a nautical term for a chart on a reduced (Mercator) projection, so 'chart'. Place names kept."
+ },
+ "74695307": {
+  "was": "Amérique septentrionale, dressée sur les relations les plus modernes des voyageurs et navigateurs, et divisée suivant les differentes possessions des européens",
+  "title": "North America, drawn up from the most recent accounts of travellers and navigators, and divided according to the different possessions of the Europeans",
+  "note": "'dressée' = drawn up, not 'built'; 'relations' = accounts/reports, not 'relations'; 'modernes' = recent. The published line was cut off before 'and divided according to the different possessions of the Europeans'."
+ },
+ "96687322": {
+  "was": "Carte de la riviere Longue : et de quelques autres, qui se dechargent dans le grand fleuve de Missisipi [sic] ... ; Carte que les Gnacsitares : ont dessine sur des paux de cerfs",
+  "title": "Map of the Long River, and of some others which empty into the great river Mississippi [sic] ...; Map that the Gnacsitares drew on deerskins",
+  "note": "'se dechargent dans' = flow/empty into, not 'is set in'. 'paux de cerfs' is the catalogue's slip for 'peaux de cerfs', deerskins. 'Gnacsitares' is the name of a people (Lahontan's invented/recorded nation), kept as a name. The second map, the one drawn by the Gnacsitares, was dropped from the published line."
+ },
+ "99446218": {
+  "was": "Egypt and Arabia petræa",
+  "title": "Egypt and Arabia Petraea",
+  "note": "Never translated; already English. The archive's 'petræa' uses the æ ligature, spelled 'Petraea' for display (Arabia Petraea, the Roman province, a name). Flag only brought the same text back, so this is the replacement."
+ },
+ "2001622423": {
+  "was": "Mapa de toda la frontera de los dominios del rey en la America septentrional",
+  "title": "Map of the whole frontier of the King's dominions in North America",
+  "note": "'frontera' is frontier, not 'border', and 'de los dominios del rey' = of the King's dominions; the published line dropped the article and made it 'King's domains'. 'America septentrional' = North America. The record's description places this in New Spain."
+ },
+ "73691837": {
+  "was": "Carte de l'isle de la Jamaique",
+  "title": "Map of the Island of Jamaica",
+  "note": "Barely wrong: 'Isle' is the old French form of 'île' and reads as a name fragment in English, and 'Jamaique' is Jamaica. Rendered as 'Island of Jamaica'."
+ },
+ "74694520": {
+  "was": "Plan of the Isle aux Noix, in the River Richelieu, and Province of Canada",
+  "title": "Plan of the Isle aux Noix, in the River Richelieu, and Province of Canada",
+  "note": "Already English; the language detector was misled by the French place names. Isle aux Noix and the Richelieu are names and stay. Text is unchanged on purpose; the correction records that it was checked."
+ },
+ "75572478": {
+  "was": "Korte beschryvinge van de landschappen des werelts enz",
+  "title": "Short description of the regions of the world, etc.",
+  "note": "Dutch. 'werelts' is the old genitive of 'wereld' (world); the translator read it as 'past'. 'landschappen' = regions/provinces, not 'landscapes'. 'Korte beschryvinge' = short description; 'enz' = etc."
  }
 }
