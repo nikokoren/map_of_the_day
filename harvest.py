@@ -46,8 +46,17 @@ UA = "mission-control-trmnl/1.0 (github.com/nikokoren/mission_control)"
 # endpoint; this is well under the slowest of them and a monthly job has
 # no reason to be in a hurry.
 REQUEST_DELAY = 2.0
+# The Library of Congress asks for no more than 20 requests a minute on
+# its search endpoints, and blocks hard once it has had enough. Two
+# seconds a page is 30 a minute, and on 1 November it cost us the whole
+# harvest: one page of panoramic-maps answered, then every request after
+# it came back 429 and eleven collections in a row gave up at page 1.
+LOC_DELAY = 4.0
+RETRY_CEILING = 120     # no single backoff longer than this
+# How much of the pool may go missing before a harvest is refused.
+POOL_FLOOR = 0.6
 TIMEOUT = 60
-RETRIES = 4
+RETRIES = 6
 
 # The collections we harvest, and the category each one feeds. Categories
 # become the user-selectable setting in TRMNL, so a category is only worth
@@ -167,6 +176,25 @@ MEASURE_SIZE = "!800,480"
 # http
 # ============================================================
 
+def retry_after(error, fallback):
+    """
+    How long the server asked us to wait, when it bothered to say.
+
+    The Library of Congress sends Retry-After on a 429 and it is
+    routinely longer than any backoff we would have guessed. Honouring
+    it is both politer and faster than guessing: the alternative is
+    spending the whole retry budget inside the window it just named,
+    which is what happened on 1 November.
+    """
+    value = (error.headers or {}).get("Retry-After") if hasattr(
+        error, "headers") else None
+    try:
+        asked = int(str(value).strip())
+    except (TypeError, ValueError):
+        return fallback
+    return min(max(asked, fallback), RETRY_CEILING)
+
+
 def fetch_json(url):
     """GET a loc.gov URL, with backoff. Returns None if it never works."""
     delay = 5
@@ -183,6 +211,8 @@ def fetch_json(url):
             # 429 means we are going too fast, 5xx means LOC is having a
             # moment. Both are worth waiting out. A 404 is not.
             if e.code in (429, 500, 502, 503, 504):
+                if e.code == 429:
+                    delay = retry_after(e, delay)
                 sys.stderr.write(f"  http {e.code}, retry in {delay}s\n")
             else:
                 sys.stderr.write(f"  http {e.code} on {url}\n")
@@ -194,7 +224,7 @@ def fetch_json(url):
             sys.stderr.write(f"  {type(e).__name__}: {e}, retry in {delay}s\n")
         if attempt < RETRIES - 1:
             time.sleep(delay)
-            delay *= 2
+            delay = min(delay * 2, RETRY_CEILING)
     return None
 
 
@@ -1155,16 +1185,59 @@ def rijks_maps(budget, stats, max_pages=MAX_PAGES):
     return kept
 
 
+def carry_forward(by_id, silent, previous):
+    """
+    Put back the maps a collection that stopped answering used to hold.
+
+    Returns how many were restored; `by_id` is updated in place. A map
+    this harvest found is never replaced -- the fresh record wins -- so
+    this only fills gaps the silence left.
+
+    By category rather than by collection, because an entry records the
+    category it was filed under and not the collection it came from.
+    Three collections share "military", so one of them going quiet holds
+    the other two's maps for a month as well. That is the wrong way
+    round from losing all three: these are maps already in the pool,
+    already measured, already on somebody's schedule.
+    """
+    held = {category for category, slug, _label, _extra in SOURCES
+            if slug in silent}
+    carried = 0
+    for entry in previous:
+        if entry.get("id") not in by_id and entry.get("k") in held:
+            by_id[entry["id"]] = entry
+            carried += 1
+    return carried
+
+
+def previous_entries():
+    """The pool as it stands, or nothing if there is not one to read."""
+    try:
+        with open(POOL_PATH) as fh:
+            return json.load(fh).get("maps") or []
+    except (OSError, ValueError):
+        return []
+
+
 def harvest_collection(slug, category, label, max_pages, stats, extra=""):
-    """Page through one collection, returning the entries that survive."""
+    """
+    Page through one collection.
+
+    Returns (entries, answered). `answered` is false when the Library
+    stopped talking to us part way -- which is not the same as a
+    collection having nothing more to give, and the caller keeps last
+    month's maps for it rather than treating them as withdrawn.
+    """
     entries = []
     page = 1
+    answered = True
     while page <= max_pages:
         url = ("https://www.loc.gov/collections/{}/?fo=json&c={}&sp={}"
                "&at=results,pagination{}".format(slug, PER_PAGE, page, extra))
         data = fetch_json(url)
         if data is None:
             sys.stderr.write(f"  giving up on {slug} at page {page}\n")
+            answered = False
             break
 
         results = data.get("results") or []
@@ -1184,8 +1257,8 @@ def harvest_collection(slug, category, label, max_pages, stats, extra=""):
         if total_pages and page >= total_pages:
             break
         page += 1
-        time.sleep(REQUEST_DELAY)
-    return entries
+        time.sleep(LOC_DELAY)
+    return entries, answered
 
 
 def build_pool(max_pages, rijks_budget=RIJKS_BUDGET):
@@ -1198,16 +1271,35 @@ def build_pool(max_pages, rijks_budget=RIJKS_BUDGET):
     if rijks_budget:
         for entry in rijks_maps(rijks_budget, stats, max_pages):
             by_id[entry["id"]] = entry
+    silent = []
     for category, slug, label, extra in SOURCES:
-        for entry in harvest_collection(slug, category, label, max_pages,
-                                        stats, extra):
+        found, answered = harvest_collection(slug, category, label, max_pages,
+                                             stats, extra)
+        if not answered:
+            silent.append(slug)
+        for entry in found:
             # A map in two collections (a Civil War map is also a military
             # campaign map) keeps whichever entry scored higher, so the
             # better metadata wins and it can only be picked once.
             existing = by_id.get(entry["id"])
             if existing is None or score(entry) > score(existing):
                 by_id[entry["id"]] = entry
-        time.sleep(REQUEST_DELAY)
+        time.sleep(LOC_DELAY)
+
+    # A collection that stopped answering has not been withdrawn, so
+    # last month's maps from it stay in the pool. Without this a bad
+    # afternoon at loc.gov reads as the collection vanishing, the pool
+    # collapses, the shrink guard refuses the run, and a month's worth
+    # of everything else -- new records, new measurements -- is thrown
+    # away with it. Only ids missing from this harvest are restored, so
+    # a collection that answered properly still gets to drop what it no
+    # longer holds.
+    if silent:
+        carried = carry_forward(by_id, silent, previous_entries())
+        sys.stderr.write(
+            "{} collection(s) stopped answering ({}); kept {} maps from "
+            "the current pool\n".format(len(silent), ", ".join(silent),
+                                        carried))
 
     # Measure how the survivors render, cheapest-first: anything already
     # measured costs nothing, and a run only pays for MEASURE_BUDGET new
@@ -1292,8 +1384,140 @@ def build_pool(max_pages, rijks_budget=RIJKS_BUDGET):
     return kept, stats
 
 
+def selftest():
+    """
+    The rules that decide whether a bad afternoon at loc.gov costs us a
+    month. Each of these was written after one did.
+    """
+    failures = []
+
+    def check(name, ok, detail=""):
+        if not ok:
+            failures.append(name)
+        print(("  ok   " if ok else "  FAIL ") + name +
+              (f"  {detail}" if detail and not ok else ""))
+
+    class Refused:
+        def __init__(self, value):
+            self.headers = {"Retry-After": value} if value is not None else {}
+
+    check("a Retry-After is honoured", retry_after(Refused("45"), 5) == 45)
+    check("and whitespace around it does not matter",
+          retry_after(Refused(" 45 "), 5) == 45)
+    check("a missing one leaves the backoff alone",
+          retry_after(Refused(None), 5) == 5)
+    check("and so does a date, which we cannot parse",
+          retry_after(Refused("Wed, 21 Oct 2026 07:28:00 GMT"), 5) == 5)
+    check("a shorter one does not speed us up",
+          retry_after(Refused("1"), 5) == 5)
+    check("and an hour-long one is capped, not waited out",
+          retry_after(Refused("3600"), 5) == RETRY_CEILING)
+    check("the cap is shorter than the job", RETRY_CEILING < 600)
+    check("and loc.gov is paced under its 20 a minute",
+          60.0 / LOC_DELAY <= 20, f"{60.0 / LOC_DELAY:.0f} a minute")
+
+    # And that fetch_json actually asks. Checking retry_after on its own
+    # leaves the one line that calls it untested, which is how a guard
+    # comes to be correct and unreached.
+    waits = []
+
+    def refuse(request, timeout=None):
+        raise urllib.error.HTTPError(
+            request.full_url, 429, "Too Many Requests",
+            {"Retry-After": "45"}, None)
+
+    real_open, real_sleep = urllib.request.urlopen, time.sleep
+    real_retries, globals()["RETRIES"] = RETRIES, 3
+    urllib.request.urlopen = refuse
+    time.sleep = waits.append
+    try:
+        answer = fetch_json("https://www.loc.gov/collections/x/?fo=json")
+    finally:
+        urllib.request.urlopen, time.sleep = real_open, real_sleep
+        globals()["RETRIES"] = real_retries
+    check("a refused fetch gives up rather than inventing a page",
+          answer is None)
+    check("and waits as long as the Library asked", waits[:1] == [45],
+          "waited {}".format(waits))
+    check("and keeps honouring it on the way down",
+          all(w >= 45 for w in waits), "waited {}".format(waits))
+
+    # That a collection cut off mid-crawl says so. The carry-forward
+    # rules below are worth nothing if nothing ever reports a silence.
+    def paged(pages):
+        """fetch_json that serves `pages` and then stops answering."""
+        served = []
+
+        def answer(url):
+            if len(served) >= len(pages):
+                return None
+            served.append(url)
+            return pages[len(served) - 1]
+        return answer
+
+    one_map = {"results": [], "pagination": {"total": 9}}
+    real_fetch, real_sleep = fetch_json, time.sleep
+    globals()["fetch_json"] = paged([{"results": [], "pagination":
+                                      {"total": 9}}])
+    time.sleep = lambda _s: None
+    try:
+        _rows, answered = harvest_collection(
+            "x", "military", "X", 5, Counter())
+        check("a collection that runs out of records has answered",
+              answered)
+        globals()["fetch_json"] = paged([])
+        _rows, answered = harvest_collection(
+            "x", "military", "X", 5, Counter())
+        check("one that stops answering on the first page has not",
+              not answered,
+              "a rate limit would read as a withdrawn collection")
+    finally:
+        globals()["fetch_json"], time.sleep = real_fetch, real_sleep
+
+    # Carrying forward. The pool stands in for itself: whatever is in it
+    # is what a silent collection would have to be holding.
+    previous = [
+        {"id": "a", "k": "military"}, {"id": "b", "k": "military"},
+        {"id": "c", "k": "panoramas"}, {"id": "d", "k": "cities"},
+    ]
+    military = [slug for category, slug, _l, _e in SOURCES
+                if category == "military"]
+    check("three collections share the military category",
+          len(military) >= 2, f"{len(military)} do")
+
+    by_id = {"a": {"id": "a", "k": "military", "fresh": True}}
+    carried = carry_forward(by_id, [military[0]], previous)
+    check("a silent collection's maps come back", carried == 1
+          and "b" in by_id, f"carried {carried}")
+    check("and a map this harvest found is not overwritten",
+          by_id["a"].get("fresh") is True,
+          "last month's record replaced a fresh one")
+    check("and a category nothing went quiet in is left alone",
+          "c" not in by_id and "d" not in by_id,
+          "maps restored for collections that answered")
+
+    by_id = {}
+    check("nothing is carried when every collection answered",
+          carry_forward(by_id, [], previous) == 0 and not by_id)
+
+    # And the whole-pool floor, which is what refused 1 November.
+    check("the shrink floor would have refused 774 of 5484",
+          774 < 5484 * POOL_FLOOR)
+    check("and would not refuse a run a tenth down",
+          4935 >= 5484 * POOL_FLOOR)
+
+    print()
+    if failures:
+        print(f"{len(failures)} failed")
+        return 1
+    print("all good")
+    return 0
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--selftest", action="store_true",
+                        help="check the rate-limit and carry-forward rules")
     parser.add_argument("--pages", type=int, default=MAX_PAGES,
                         help="max pages per collection (100 records each)")
     parser.add_argument("--rijks-budget", type=int, default=RIJKS_BUDGET,
@@ -1305,6 +1529,9 @@ def main():
     parser.add_argument("--dry-run", action="store_true",
                         help="print stats without writing the pool")
     args = parser.parse_args()
+
+    if args.selftest:
+        return selftest()
 
     entries, stats = build_pool(args.pages, args.rijks_budget)
     if not entries:
@@ -1331,7 +1558,7 @@ def main():
                 previous = json.load(fh).get("maps") or []
         except (OSError, ValueError):
             previous = []
-        if previous and len(entries) < len(previous) * 0.6:
+        if previous and len(entries) < len(previous) * POOL_FLOOR:
             sys.stderr.write(
                 "harvest returned {} maps vs {} in the current pool; "
                 "refusing to shrink it\n".format(len(entries), len(previous)))

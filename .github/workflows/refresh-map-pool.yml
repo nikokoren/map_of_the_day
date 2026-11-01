@@ -34,6 +34,12 @@ jobs:
       - name: Install Pillow, and the offline translator
         run: pip install --quiet pillow argostranslate langdetect
 
+      # Before the crawl, not after: these are the rules that decide
+      # what the crawl is allowed to do to the pool, and an hour of
+      # paging is a long time to find out one of them is broken.
+      - name: Check the rate-limit and carry-forward rules
+        run: python3 harvest.py --selftest
+
       - name: Harvest map pool from the Library of Congress
         run: python3 harvest.py --pages "${{ github.event.inputs.pages || 25 }}"
 
@@ -43,6 +49,12 @@ jobs:
         # harvest, which is the expensive part.
         continue-on-error: true
         run: python3 translate.py --budget 5000
+
+      # The daily job reads this pool the moment it is pushed, so the
+      # schedule is checked against the new one here rather than being
+      # discovered by tomorrow's run.
+      - name: Prove the schedule still behaves
+        run: python3 daily.py --selftest
 
       - name: Commit and push
         run: |
