@@ -658,5 +658,155 @@
   "was": "Korte beschryvinge van de landschappen des werelts enz",
   "title": "Short description of the regions of the world, etc.",
   "note": "Dutch. 'werelts' is the old genitive of 'wereld' (world); the translator read it as 'past'. 'landschappen' = regions/provinces, not 'landscapes'. 'Korte beschryvinge' = short description; 'enz' = etc."
+ },
+ "2004629150": {
+  "was": "Colton's Japan : Nippon, Kiusiu, Sikok, Yesso and the Japanese Kuriles",
+  "title": "Colton's Japan: Nippon, Kiusiu, Sikok, Yesso and the Japanese Kuriles",
+  "note": "Already English. The spacing before the colon is tidied. Nippon, Kiusiu, Sikok and Yesso are the period spellings of Honshu, Kyushu, Shikoku and Hokkaido as lettered on the map; kept as names, not modernised."
+ },
+ "2006629341": {
+  "was": "[Manuṣyaloka, map of the world of man, according to Jain cosomological traditions]",
+  "title": "[Manuṣyaloka, map of the world of man, according to Jain cosmological traditions]",
+  "note": "Already English and never translated; the only fault is the archive's typo 'cosomological', corrected to 'cosmological'. Manuṣyaloka is the Jain 'world of man' and is kept as a name. Brackets are the cataloguer's, marking a supplied title."
+ },
+ "2008621654": {
+  "was": "Carte de l'Indo-Chine",
+  "title": "Map of Indo-China",
+  "note": "French, never translated, so the flag left French on the panel. Indo-China is the French colonial region (Vietnam, Laos, Cambodia), kept hyphenated as the source has it."
+ },
+ "2021668280": {
+  "was": "Map of Ezo.",
+  "title": "Map of Ezo.",
+  "note": "Already English; the flag recorded no reason. Ezo is the old name for Hokkaido and its surrounding lands, kept as a name."
+ },
+ "2021668292": {
+  "was": "Division of the Land of Israel Within its Borders: Copied from the Great Luminary, the Famous and Pious Gaon, Our Teacher and Rabbi, Rabbi Eliyahu from Vilna, the Capital.",
+  "title": "Division of the Land of Israel Within its Borders: Copied from the Great Luminary, the Famous and Pious Gaon, Our Teacher and Rabbi, Rabbi Eliyahu from Vilna, the Capital.",
+  "note": "Already English; the flag recorded no reason. Left as catalogued: 'Gaon' is a title, and the person is Rabbi Eliyahu of Vilna (the Vilna Gaon), so no name is altered."
+ },
+ "2021668533": {
+  "was": "European Turkey and Part of Asian Turkey, Divided into Large Provinces and Governorships.",
+  "title": "European Turkey and Part of Asian Turkey, Divided into Large Provinces and Governorships.",
+  "note": "Already English; the flag recorded no reason. Left as catalogued."
+ },
+ "2021668643": {
+  "was": "Port of Louisbourg on Île Royale.",
+  "title": "Port of Louisbourg on Île Royale.",
+  "note": "Already English; the flag recorded no reason. Louisbourg and Île Royale (now Cape Breton Island) are names, left as catalogued."
+ },
+ "2024592846": {
+  "was": "Apographon descriptionis Orbis terrae, figuris et narratinunculis distinctae, manu Germanica opere nigelliari discolorio circa medium saec. XV. Tabulae aeneae Musei Borgiani Velitris consignatae, quod Camillus Joh. Paulii F. Borgia, Cruce Hieros. ornatus, ab intimo cubiculo Electoris Bavarici, Patrui Cardinalis exempla imitatus, summa fide, maximoque artificio expressum, recognitumque eruditis spectandum proponit A.C. MDCCXCVII",
+  "title": "Copy of a description of the world, set out in figures and little narratives, in a German hand, in varicoloured niello work, around the middle of the 15th century. Preserved on the bronze plates of the Borgia Museum at Velletri; Camillo, son of Giovanni Paolo Borgia, decorated with the Cross of Jerusalem, of the private chamber of the Elector of Bavaria, imitating the examples of his uncle the Cardinal, sets it before the learned to behold, rendered with the greatest fidelity and artistry and revised. AD 1797",
+  "note": "Latin, never translated. 'Apographon' is a copy of an original; 'opere nigelliari discolorio' is niello (black-inlay) work in varied colours; 'patrui Cardinalis' is the uncle Cardinal (Stefano Borgia); 'A.C. MDCCXCVII' is the year 1797. Borgia, Velletri, Bavaria and the Cross of Jerusalem kept as names. Reading of 'tabulae aeneae' as bronze plates and of the Latin's clause order is a best reading; check against the original if it matters."
+ },
+ "73696674": {
+  "was": "Vorstellung einiger Gegenden und Plaetze in Nord-America unter Franzoesisch und Englische Jurisdiction gehoerig",
+  "title": "View of some regions and places in North America belonging under French and English jurisdiction",
+  "note": "German (old spelling: Franzoesisch, Englische, gehoerig). 'Vorstellung' is a depiction or view, not a 'presentation', and 'gehoerig' (belonging to) was dropped."
+ },
+ "73697197": {
+  "was": "Carta reducida de las islas Lucayas, ò de los Lucayos",
+  "title": "Reduced chart of the Lucayas Islands, or the Lucayos",
+  "note": "Spanish. 'Carta reducida' is a reduced (Mercator) sea chart, not a small letter; the accented 'ò' is the old 'o' meaning 'or' but was left as a stray character; and 'islas' was lost. Lucayas/Lucayos are two names for the same islands (the Bahamas), so they are kept, not translated."
+ },
+ "86692266": {
+  "was": "Chart of the coast of Maine",
+  "title": "Chart of the coast of Maine",
+  "note": "Already English; the flag recorded no reason. Left as catalogued."
+ },
+ "98687117": {
+  "was": "Central-Afrika nach den neuesten Forschungen bearbeitet von Dr. Joseph Chavanne",
+  "title": "Central Africa, compiled from the latest research by Dr. Joseph Chavanne",
+  "note": "German, 'Central-Afrika nach den neuesten Forschungen bearbeitet von Dr. Joseph Chavanne'. 'Bearbeitet' is compiled/revised (a cartographer working from others' explorations) rather than 'edited'; the earlier rendering also lost the comma. Joseph Chavanne is the Austrian geographer, kept as a name."
+ },
+ "99446169": {
+  "was": "Carte réduite des découvertes des Russes, entre l'Asie et l'Amerique",
+  "title": "Reduced chart of the Russian discoveries between Asia and America",
+  "note": "French. 'Carte réduite' is a technical term for a Mercator sea chart, not a map that has been shrunk; the earlier version translated it as 'Reduced map'."
+ },
+ "rijks:NG-1994-33-1": {
+  "was": "Kaart van West-Java",
+  "title": "Map of West Java",
+  "note": "Dutch, never translated. 'Kaart van West-Java'; West Java is a place name."
+ },
+ "rijks:NG-1998-9": {
+  "was": "Kaart van de aanval op Elmina, 1828",
+  "title": "Map of the attack on Elmina, 1828",
+  "note": "Dutch, never translated. Elmina is the Dutch Gold Coast fort-town (now in Ghana), kept as a name."
+ },
+ "rijks:NG-501-39": {
+  "was": "Kaart van Franse kust bij La Rochelle en de eilanden Ré en Oleron",
+  "title": "Map of the French coast near La Rochelle and the islands of Ré and Oléron",
+  "note": "Dutch, never translated. La Rochelle, Ré and Oléron are places; 'Oleron' is given its French accent."
+ },
+ "rijks:RP-P-1905-214": {
+  "was": "Plattegrond van het fundament en de kelders van het Hotel des Invalides te Parijs",
+  "title": "Ground plan of the foundations and cellars of the Hôtel des Invalides in Paris",
+  "note": "Dutch, never translated. 'Plattegrond' is a ground plan, not a 'flat ground'. Hôtel des Invalides is a building and a name, not 'hotel'."
+ },
+ "rijks:RP-P-1909-375": {
+  "was": "Beleg van Breda, 1637",
+  "title": "Siege of Breda, 1637",
+  "note": "Dutch, never translated. Breda is a city name."
+ },
+ "rijks:RP-P-1909-436": {
+  "was": "Kaart van het beleg van Breda, 1624-1625",
+  "title": "Map of the siege of Breda, 1624–1625",
+  "note": "Dutch, never translated. Breda is a city name; the date range is the siege of 1624–25."
+ },
+ "rijks:RP-P-1910-2195": {
+  "was": "Kaart van het fort Crèvecoeur, veroverd door de Fransen in 1672",
+  "title": "Map of Fort Crèvecoeur, captured by the French in 1672",
+  "note": "Dutch, never translated. Crèvecoeur is the name of the fort and is not to be rendered as 'heartbreak'."
+ },
+ "rijks:RP-P-1910-2226": {
+  "was": "Vestingplattegrond van Brussel, gebombardeerd door het Franse leger in 1695",
+  "title": "Fortification plan of Brussels, bombarded by the French army in 1695",
+  "note": "Dutch, never translated. 'Vestingplattegrond' is a plan of a fortified town. Brussels is a name; 1695 is the French bombardment."
+ },
+ "rijks:RP-P-1911-2909": {
+  "was": "Kaart van Java met een plattegrond van Batavia",
+  "title": "Map of Java with a plan of Batavia",
+  "note": "Dutch, never translated. Batavia is the Dutch colonial name for Jakarta, kept as catalogued."
+ },
+ "rijks:RP-P-1939-1429": {
+  "was": "Kaart van de Zuidengelse kust tussen de Isle of Wight en Dover",
+  "title": "Map of the south coast of England between the Isle of Wight and Dover",
+  "note": "Dutch, never translated. 'Zuidengelse' means southern English; Isle of Wight and Dover are names."
+ },
+ "rijks:RP-P-AO-2-15C": {
+  "was": "Kaart van Friesland en Groningen",
+  "title": "Map of Friesland and Groningen",
+  "note": "Dutch, never translated. Friesland and Groningen are Dutch provinces, kept as names."
+ },
+ "rijks:RP-P-AO-20-68": {
+  "was": "Plattegrond van Amsterdam en omstreken",
+  "title": "Plan of Amsterdam and surroundings",
+  "note": "Dutch, never translated. 'Plattegrond' is a town plan."
+ },
+ "rijks:RP-P-AO-20-69": {
+  "was": "Plattegrond van Amsterdam en omstreken",
+  "title": "Plan of Amsterdam and surroundings",
+  "note": "Dutch, never translated. 'Plattegrond' is a town plan."
+ },
+ "rijks:RP-P-AO-20-7B": {
+  "was": "Plattegrond van Amsterdam, 1400",
+  "title": "Plan of Amsterdam, 1400",
+  "note": "Dutch, never translated. 'Plattegrond' is a town plan; the 1400 is the state of the city shown, not a publication date."
+ },
+ "rijks:RP-P-OB-50.152": {
+  "was": "Kaart van de kust van Zweden tussen Kalmar en Stockholm",
+  "title": "Map of the Swedish coast between Kalmar and Stockholm",
+  "note": "Dutch, never translated. Kalmar and Stockholm are places."
+ },
+ "rijks:RP-P-OB-77.076": {
+  "was": "Kaart van de provincies Holland, Utrecht en Gelderland met de vestingen en forten gebouwd tijdens de oorlog in 1672",
+  "title": "Map of the provinces of Holland, Utrecht and Gelderland with the fortresses and forts built during the war in 1672",
+  "note": "Dutch, never translated. 'Vestingen' are fortified towns/fortresses, 'forten' forts. Holland, Utrecht and Gelderland are provinces; 1672 is the Rampjaar."
+ },
+ "rijks:RP-T-AO-7-9": {
+  "was": "Paskaart van het Marsdiep tussen Den Helder en Texel",
+  "title": "Sailing chart of the Marsdiep between Den Helder and Texel",
+  "note": "Dutch, never translated. 'Paskaart' is a sea or pilot chart; Marsdiep is the tidal channel, a name, not 'march deep'. Den Helder and Texel are places."
  }
 }
