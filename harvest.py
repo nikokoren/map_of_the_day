@@ -53,6 +53,32 @@ REQUEST_DELAY = 2.0
 # it came back 429 and eleven collections in a row gave up at page 1.
 LOC_DELAY = 4.0
 RETRY_CEILING = 120     # no single backoff longer than this
+
+# And a bound on what one page may cost in total. Honouring Retry-After
+# is right and it made the failure worse: loc.gov names 120 seconds, we
+# have six retries, so a page that will not load burns twelve minutes
+# and eleven collections burn the whole job. The 2 November run spent
+# its ninety minutes in backoff and was cancelled mid-crawl, which threw
+# away 889 Rijksmuseum resolutions that had already succeeded.
+#
+# A server asking for two minutes, twice, is telling us something we
+# should believe the first time.
+# One honouring of a 120-second window, then move on. A server that
+# asks for two minutes and asks again after we have waited them is not
+# rate-limiting us, it is refusing us, and the next page is a better bet
+# than the fifth retry of this one.
+MAX_WAIT_PER_FETCH = 130
+
+# The crawl gets a slice of the job rather than all of it. Measuring
+# comes after it and needs the rest, and a run that does not reach its
+# commit step keeps nothing -- which is the difference between a bad
+# harvest and a lost one.
+CRAWL_MINUTES = 35
+_started = time.time()
+
+
+def crawl_seconds_left(budget_minutes=CRAWL_MINUTES):
+    return budget_minutes * 60 - (time.time() - _started)
 # How much of the pool may go missing before a harvest is refused.
 POOL_FLOOR = 0.6
 TIMEOUT = 60
@@ -198,6 +224,7 @@ def retry_after(error, fallback):
 def fetch_json(url):
     """GET a loc.gov URL, with backoff. Returns None if it never works."""
     delay = 5
+    waited = 0
     for attempt in range(RETRIES):
         try:
             req = urllib.request.Request(url, headers={
@@ -223,7 +250,12 @@ def fetch_json(url):
             # long paged crawl; treat them like a 503 and try again.
             sys.stderr.write(f"  {type(e).__name__}: {e}, retry in {delay}s\n")
         if attempt < RETRIES - 1:
+            if waited + delay > MAX_WAIT_PER_FETCH:
+                sys.stderr.write(
+                    "  {}s of waiting on one page is enough\n".format(waited))
+                return None
             time.sleep(delay)
+            waited += delay
             delay = min(delay * 2, RETRY_CEILING)
     return None
 
@@ -1232,6 +1264,11 @@ def harvest_collection(slug, category, label, max_pages, stats, extra=""):
     page = 1
     answered = True
     while page <= max_pages:
+        if crawl_seconds_left() <= 0:
+            sys.stderr.write(
+                "  out of crawl time at {} page {}\n".format(slug, page))
+            answered = False
+            break
         url = ("https://www.loc.gov/collections/{}/?fo=json&c={}&sp={}"
                "&at=results,pagination{}".format(slug, PER_PAGE, page, extra))
         data = fetch_json(url)
@@ -1273,6 +1310,12 @@ def build_pool(max_pages, rijks_budget=RIJKS_BUDGET):
             by_id[entry["id"]] = entry
     silent = []
     for category, slug, label, extra in SOURCES:
+        if crawl_seconds_left() <= 0:
+            # Not "this collection is empty" but "we never asked", which
+            # is what carry_forward below is for.
+            sys.stderr.write(f"  out of crawl time, skipping {slug}\n")
+            silent.append(slug)
+            continue
         found, answered = harvest_collection(slug, category, label, max_pages,
                                              stats, extra)
         if not answered:
@@ -1473,6 +1516,53 @@ def selftest():
               "a rate limit would read as a withdrawn collection")
     finally:
         globals()["fetch_json"], time.sleep = real_fetch, real_sleep
+
+    # The wait cap, which is what turned a bad harvest into a lost one.
+    slow = []
+
+    def refuse_forever(request, timeout=None):
+        raise urllib.error.HTTPError(
+            request.full_url, 429, "Too Many Requests",
+            {"Retry-After": "120"}, None)
+
+    real_open2, real_sleep2 = urllib.request.urlopen, time.sleep
+    urllib.request.urlopen = refuse_forever
+    time.sleep = slow.append
+    try:
+        fetch_json("https://www.loc.gov/collections/x/?fo=json")
+    finally:
+        urllib.request.urlopen, time.sleep = real_open2, real_sleep2
+    check("a page that keeps being refused is given up on",
+          sum(slow) <= MAX_WAIT_PER_FETCH,
+          "waited {}s in total: {}".format(sum(slow), slow))
+    check("but the window is honoured once first",
+          slow and slow[0] == 120, "waited {}".format(slow))
+
+    # The crawl's slice of the job. Eleven collections at twelve minutes
+    # of backoff each is more than ninety minutes, and a run that does
+    # not reach its commit step keeps nothing -- not even the
+    # Rijksmuseum resolutions that had already succeeded.
+    check("the crawl is time-boxed", CRAWL_MINUTES > 0)
+    check("and leaves the job room to measure and commit",
+          CRAWL_MINUTES < 60,
+          "{} minutes of a 90-minute job".format(CRAWL_MINUTES))
+    check("and a budget already spent stops the crawl",
+          crawl_seconds_left(0) <= 0)
+    check("while a fresh one does not",
+          crawl_seconds_left(CRAWL_MINUTES) > 0)
+
+    # Out of time reads as silence, not as a withdrawn collection, so
+    # the maps it holds are carried forward rather than dropped.
+    real_left = crawl_seconds_left
+    globals()["crawl_seconds_left"] = lambda *a, **k: -1
+    try:
+        rows, answered = harvest_collection("x", "military", "X", 5,
+                                            Counter())
+        check("running out of crawl time is not a withdrawn collection",
+              not answered and not rows,
+              "a timed-out collection would lose its maps")
+    finally:
+        globals()["crawl_seconds_left"] = real_left
 
     # Carrying forward. The pool stands in for itself: whatever is in it
     # is what a silent collection would have to be holding.

@@ -43,6 +43,37 @@ jobs:
       - name: Harvest map pool from the Library of Congress
         run: python3 harvest.py --pages "${{ github.event.inputs.pages || 25 }}"
 
+      # The Rijksmuseum resolutions are the expensive part of this job
+      # and they come first, so a run that dies in the loc.gov crawl has
+      # already earned something. On 2 November it had resolved 889 maps
+      # when the job was cancelled, and kept none of them.
+      #
+      # `failure()` is false for a cancelled job, and a job cancelled at
+      # its timeout is exactly the case this is for -- hence the
+      # explicit cancelled(). The crawl is time-boxed now so this should
+      # not be needed; it is here because the last time I was sure of
+      # that, 889 resolutions went in the bin.
+      - name: Keep what the run resolved, even if it was cut short
+        if: failure() || cancelled()
+        run: |
+          git config user.name "GitHub Action"
+          git config user.email "action@github.com"
+          for cache in rijks.json quality.json translations.json; do
+            [ -f "$cache" ] && git add "$cache"
+          done
+          if git diff --staged --quiet; then
+            echo "No progress to keep"
+          else
+            git commit -m "Keep harvest progress from a cut-short run [$(date -u +'%Y-%m-%d')]"
+            for attempt in 1 2 3; do
+              git push && exit 0
+              git pull --rebase origin "$GITHUB_REF_NAME" || exit 1
+              sleep $((attempt * 5))
+            done
+            echo "Could not push the progress"
+            exit 1
+          fi
+
       - name: Put more captions into English
         # Offline, no key. Budgeted and cached forever, so each refresh
         # covers more of the pool; a failure here must not cost the
