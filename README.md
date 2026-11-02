@@ -215,7 +215,6 @@ at least one. Eras are read off the year, so they cannot be wrong.
 | `railroads` | Railroads | ~690 | 1.9 years |
 | `roads-and-travel` | Roads & Travel | ~610 | 1.7 years |
 | `revolution` | Revolutionary War | ~475 | 1.3 years |
-| `land-ownership` | Land & Property | ~395 | 1.1 years |
 | `battles-and-forts` | Battles & Forts | ~340 | 11 months |
 | `nautical` | Nautical Charts | ~255 | 8 months |
 | `exploration` | Exploration | ~270 | 9 months |
@@ -242,10 +241,30 @@ The theme-by-era matrix, for reference (the blanks are cells under 25 maps):
 | Railroads | - | 77 | 304 | 279 | 33 |
 | Roads & Travel | - | 73 | 264 | 261 | - |
 | Revolutionary War | 466 | - | - | - | - |
-| Land & Property | 54 | 73 | 86 | 137 | 43 |
 | Battles & Forts | 57 | - | 180 | 68 | - |
 | Nautical Charts | 124 | 27 | 70 | - | - |
 | Exploration | 58 | 62 | 47 | - | - |
+
+### Land & Property, removed
+
+Plat books, county atlas pages and estate surveys -- 399 maps once the
+title rule is counted. They had an option of their own, then they did
+not, because a topic in the settings is also a topic in the review
+queue: 399 maps nobody had chosen to see were still being put in front
+of somebody to look at every week.
+
+They are held back from every selection rather than cut from the pool.
+Cutting them is the one version of this that would cost something --
+the schedule is `divmod` by the pool's length over a hash of its
+membership, so removing 399 maps reshuffles all seventeen topics and
+voids the review already done against them. Held back, they keep their
+slots and a stand-in is served in their place.
+
+An install that still has "Land & Property" selected finds nothing by
+that name in the feed, so its theme axis goes unconstrained and it
+reads as All Maps. That is the benign end of the orphaned-setting
+problem and it was the reason to think twice before deleting the
+option; the recipe's own Liquid test covers it as "unknown value".
 
 One topic is still **left out** for repeating too fast to be worth offering:
 national parks, at 99 maps and a quarterly loop. World maps and hemispheres

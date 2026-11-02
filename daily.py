@@ -152,7 +152,6 @@ THEMES = [
     ("railroads",         "Railroads"),
     ("roads-and-travel",  "Roads & Travel"),
     ("revolution",        "Revolutionary War"),
-    ("land-ownership",    "Land & Property"),
     ("battles-and-forts", "Battles & Forts"),
     ("nautical",          "Nautical Charts"),
     ("exploration",       "Exploration"),
@@ -444,19 +443,25 @@ def held_back(entry, topic):
     balance it. Only where nobody expressed an interest: pick an era and
     you still get what the era holds, which is mostly America.
 
-    Land ownership is not thinned but set apart. Plat books and county
-    atlases are a large, uniform block -- 375 maps, and one page of
-    parcel outlines looks much like the next on a panel -- so they
-    appear under "Land & Property" and nowhere else. That matters more
-    than it sounds: 373 of the 375 also carry another group, 322 of them
-    city-plans, so leaving them in the themes would have let most of
-    them back in through the side door this was meant to close.
+    Land ownership is not thinned but dropped. Plat books, county atlas
+    pages and estate surveys are a large, uniform block -- 399 maps, and
+    one page of parcel outlines looks much like the next on a panel.
+    They had an option of their own until nobody wanted it: a topic in
+    the settings is also a topic in the review queue, so 399 maps that
+    were never going to be served were still being put in front of
+    somebody to look at. The option is gone and so is the obligation.
 
-    Asked at pick time and never used to build a pool -- see crowded_out
-    for what filtering the pool costs.
+    Held back from everything rather than cut from the pool, which is
+    the one thing that would have cost something. The schedule is divmod
+    by the pool's length over a hash of its membership, so dropping 399
+    maps reshuffles every topic and voids the review already done
+    against them. These keep their slots and a stand-in is served
+    instead -- see crowded_out for the longer version of that argument.
+
+    Asked at pick time and never used to build a pool.
     """
     if is_land(entry):
-        return topic != "land-ownership"
+        return True
     return is_broad(topic) and crowded_out(entry)
 
 
@@ -477,14 +482,6 @@ def maps_for(entries, topic):
                 if theme in (e.get("g") or []) and in_era(e, era)]
     if topic.startswith("era-"):
         return [e for e in entries if in_era(e, topic)]
-    if topic == "land-ownership":
-        # One definition, used by both ends. held_back keeps a parcel
-        # survey out of every other selection, so if this topic selected
-        # only on the harvest's group the 24 it recognises by title
-        # would be held back from everywhere and reachable from nowhere
-        # -- in the pool and never served. A reader who asks for Land &
-        # Property should get all of them.
-        return [e for e in entries if is_land(e)]
     return [e for e in entries if topic in (e.get("g") or [])]
 
 EPOCH = date(1970, 1, 1)
@@ -1482,9 +1479,14 @@ def pick(entries, category, day, check):
         # Every stand-in vetoed too. Rather than leave the cell empty,
         # show the day's map and say so; the review will come round to
         # it again.
+        #
+        # Land ownership is excepted, because this is the one path that
+        # could still serve one: it has no option of its own any more,
+        # so a parcel survey reaching a panel through here would be a
+        # map nobody can ask for arriving where nobody asked.
         sys.stderr.write("  {} {}: every candidate is vetoed\n"
                          .format(category, day.isoformat()))
-        candidates = scheduled
+        candidates = [e for e in scheduled if not is_land(e)] or scheduled
     if not check or budget_left() <= 0:
         return candidates[0], "skipped", 0
     for entry in candidates:
@@ -2114,24 +2116,27 @@ def selftest(entries, day):
         whole = [e for e in entries if theme in (e.get("g") or [])]
         if len(maps_for(entries, theme)) != len(whole):
             failures.append(theme + " is filtered, but it was chosen")
-    land = maps_for(entries, "land-ownership")
-    whole = [e for e in entries if is_land(e)]
-    if len(land) != len(whole):
-        failures.append("land-ownership is filtered, but it was chosen")
-    tagged = [e for e in entries if "land-ownership" in (e.get("g") or [])]
-    if len(land) < len(tagged):
-        failures.append("land-ownership has lost maps the harvest filed "
-                        "under it")
-    # Nothing held back from every topic at once: a parcel survey the
-    # title rule caught must still be reachable under its own option,
-    # or it sits in the pool and is never served.
-    reachable = {e["id"] for e in land}
-    stranded = [e["id"] for e in entries if is_land(e)
-                and e["id"] not in reachable]
-    if stranded:
+    # Land ownership is gone as a choice, and that is the point: a topic
+    # in the settings is a topic in the review queue, so an option
+    # nobody wanted was still costing somebody an afternoon.
+    if any(slug == "land-ownership" for slug, _label in THEMES):
+        failures.append("land-ownership is still offered as a theme")
+    if "land-ownership" in all_topics(entries):
+        failures.append("land-ownership is still a topic, so the review "
+                        "queue will still ask about parcel surveys")
+
+    # But still in the pool, which is the part that costs nothing.
+    # Dropping 399 maps would reshuffle every topic and void the review
+    # already done; held back from everything, they keep their slots and
+    # a stand-in is served.
+    parcels = [e for e in entries if is_land(e)]
+    if len(parcels) < 300:
         failures.append(
-            "{} parcel maps are held back from everywhere and reachable "
-            "from nowhere, e.g. {}".format(len(stranded), stranded[0]))
+            "only {} parcel surveys recognised -- the rule that reads "
+            "them has stopped working".format(len(parcels)))
+    if len(maps_for(entries, "all")) != len(entries):
+        failures.append("the parcel rule has reached the pool, which "
+                        "reshuffles every topic built on it")
     # Set apart, not merely thinned: under its own option and nowhere
     # else. Checked across every topic, not just the general feed,
     # because 373 of the 375 also carry another group -- 322 of them
@@ -2147,8 +2152,9 @@ def selftest(entries, day):
         strays = [e["id"] for e in shown if is_land(e)]
         if strays:
             failures.append(
-                "land ownership should appear only under its own option, "
-                "but {} of {} maps served for {} carry it, e.g. {}".format(
+                "a parcel survey should never be served now that the "
+                "option is gone, but {} of {} maps served for {} is one, "
+                "e.g. {}".format(
                     len(strays), len(shown), topic, strays[0]))
     # The sampling above serves 30 maps a topic, and the parcel surveys
     # the title rule catches are 24 in 5,484 -- too rare to turn up in a
@@ -2166,11 +2172,7 @@ def selftest(entries, day):
                 "a parcel survey is served under All Maps: {} ({})".format(
                     (entry.get("t") or "")[:60], entry["id"]))
             break
-        if held_back(entry, "land-ownership"):
-            failures.append(
-                "a parcel survey is held back from its own option too: "
-                + entry["id"])
-            break
+
 
     # And still there for the reader who asks for it.
     chosen = [pick(maps_for(entries, "land-ownership"), "land-ownership",
@@ -2240,16 +2242,9 @@ def selftest(entries, day):
     #     put 72 unreviewed maps in front of a reader four hours after
     #     they had finished. Everything that holds a map back now does
     #     it at pick time, where the cost is one slot.
-    for topic in ("all", "era-1800-1849", "land-ownership", "city-plans"):
+    for topic in ("all", "era-1800-1849", "city-plans", "railroads"):
         subset = maps_for(entries, topic)
         expected = (entries if topic == "all"
-                    # land-ownership is defined by is_land rather than by
-                    # the harvest's group alone, so that a parcel survey
-                    # recognised by its title is reachable somewhere.
-                    # Still no filtering: the test is that the topic
-                    # returns everything it covers, not fewer.
-                    else [e for e in entries if is_land(e)]
-                    if topic == "land-ownership"
                     else [e for e in entries
                           if (in_era(e, topic) if topic.startswith("era-")
                               else topic in (e.get("g") or []))])
