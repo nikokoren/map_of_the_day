@@ -123,6 +123,42 @@ hundred items, which needs no API at all after the initial pass.
 | Internet Archive | No key, enormous, but no reliable way to tell an interesting plate from a scanned page of text. Selection quality is the whole problem and it does not solve it. |
 | Historical advertisements / posters | Content is ideal for the screen. No single good API; would come from LOC's poster collections, which is the same harvester with a different `SOURCES` list -- probably the cheapest second recipe of all. |
 
+### 7. Austrian National Library (ÖNB) — looked at for maps, not viable
+
+Asked for alongside the postcard recipe, where the same library is the
+best candidate source we have found. For maps it is the opposite, and
+the reason is worth recording so nobody prices it twice.
+
+The postcard side, AKON, publishes 34,846 cleared cards as a single
+4.3MB RDF dump with Public Domain Mark on every record and IIIF Level 2
+images. None of that machinery covers maps.
+
+The map holdings are about 300,000 sheets, of which the digitised,
+publicly navigable set is **"Die Vermessung der Welt" on onb.digital:
+roughly 1,400 maps**. Against the five bars this recipe uses:
+
+| bar | AKON (postcards) | onb.digital (maps) |
+| --- | --- | --- |
+| machine readable | 4.3MB RDF dump, no key | no documented API, no dump |
+| no credential | none needed | n/a |
+| openly licensed | PDM 1.0 per record | nothing stated per object |
+| resizable images | IIIF 2 Level 2 | no IIIF manifests advertised |
+| a title worth printing | 100% titled, 100% dated | unknown |
+
+Two of those are hard stops. There is no stated licence on the map
+objects -- the portal's terms defer to per-collection conditions that
+are not published, and the library's other digitised material (Austrian
+Books Online) is offered for **non-commercial** use, which this recipe
+does not take. And there is no documented interface, so a harvest would
+mean scraping a JSF portal that advertises nothing.
+
+1,400 maps behind an undocumented portal with unsettled rights is not
+worth the work when loc.gov alone holds 5,484 that are clean. If the ÖNB
+extends the AKON treatment to the Kartensammlung -- a dump, a rights
+statement per record, IIIF -- it becomes interesting immediately, and
+the postcard harvester's reader would mostly transfer. Worth re-checking
+once a year rather than building against now.
+
 ## Recommended order
 
 1. **Ship Map of the Day.** It is built, keyless and legally clean.

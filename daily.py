@@ -353,9 +353,35 @@ def is_american(entry):
         str(entry.get(field) or "") for field in ("p", "t"))))
 
 
+# A parcel survey the harvest did not file as one. The topic groups come
+# from LOC's own subject headings, and 24 maps that are plainly estate
+# or plat surveys carry something else instead -- "world-and-hemispheres"
+# for the Caribbean plantation plans, "revolution" for the Rosalij
+# Estate series, "city-plans" for a slate quarry. They were being served
+# under "All Maps" because nothing had told the recipe what they are.
+#
+# Read off the title at pick time rather than written into the pool's
+# groups, for the usual reason: `maps_for` selects on those groups, so
+# retagging shrinks a topic's pool and reshuffles the schedule built on
+# it. This changes what a broad selection serves and nothing else.
+#
+# Narrow on purpose. A bare "belonging to" matched five copies of "An
+# accurate map of North America ... Dominions belonging to the Crown",
+# which is not a parcel survey, so the possessive has to be attached to
+# something a person could own.
+PARCEL_TITLE = re.compile(
+    r"\bplat\b|\bplats\b|\bparcels?\b|\bproperty of\b"
+    r"|\b(?:lands?|lots?|property|premises|farms?|estates?) belonging to\b"
+    r"|\bestates? of\b|\bestates?,|\bestate call(?:ed|'d)\b"
+    r"|\bsubdivision\b|building lots\b|\bfarm lines?\b"
+    r"|real estate\b|\bsequestred\b|\ballotments?\b", re.I)
+
+
 def is_land(entry):
-    """Whether this is a plat book or county atlas page."""
-    return "land-ownership" in (entry.get("g") or [])
+    """Whether this is a plat book, county atlas page or estate survey."""
+    if "land-ownership" in (entry.get("g") or []):
+        return True
+    return bool(PARCEL_TITLE.search(entry.get("t") or ""))
 
 
 def crowded_share(entry):
@@ -451,6 +477,14 @@ def maps_for(entries, topic):
                 if theme in (e.get("g") or []) and in_era(e, era)]
     if topic.startswith("era-"):
         return [e for e in entries if in_era(e, topic)]
+    if topic == "land-ownership":
+        # One definition, used by both ends. held_back keeps a parcel
+        # survey out of every other selection, so if this topic selected
+        # only on the harvest's group the 24 it recognises by title
+        # would be held back from everywhere and reachable from nowhere
+        # -- in the pool and never served. A reader who asks for Land &
+        # Property should get all of them.
+        return [e for e in entries if is_land(e)]
     return [e for e in entries if topic in (e.get("g") or [])]
 
 EPOCH = date(1970, 1, 1)
@@ -2071,10 +2105,33 @@ def selftest(entries, day):
     if len(maps_for(entries, "all")) != len(entries):
         failures.append("the general pool is being filtered, which "
                         "reshuffles every cell built on it")
-    for theme in ("land-ownership", "city-plans"):
+    # A topic chosen by name gets everything it covers. For most that
+    # is the harvest's own group; land-ownership also covers the parcel
+    # surveys recognised by title, since held_back keeps those out of
+    # everywhere else and a map reachable from nowhere is worse than one
+    # filed under the wrong heading.
+    for theme in ("city-plans", "railroads"):
         whole = [e for e in entries if theme in (e.get("g") or [])]
         if len(maps_for(entries, theme)) != len(whole):
             failures.append(theme + " is filtered, but it was chosen")
+    land = maps_for(entries, "land-ownership")
+    whole = [e for e in entries if is_land(e)]
+    if len(land) != len(whole):
+        failures.append("land-ownership is filtered, but it was chosen")
+    tagged = [e for e in entries if "land-ownership" in (e.get("g") or [])]
+    if len(land) < len(tagged):
+        failures.append("land-ownership has lost maps the harvest filed "
+                        "under it")
+    # Nothing held back from every topic at once: a parcel survey the
+    # title rule caught must still be reachable under its own option,
+    # or it sits in the pool and is never served.
+    reachable = {e["id"] for e in land}
+    stranded = [e["id"] for e in entries if is_land(e)
+                and e["id"] not in reachable]
+    if stranded:
+        failures.append(
+            "{} parcel maps are held back from everywhere and reachable "
+            "from nowhere, e.g. {}".format(len(stranded), stranded[0]))
     # Set apart, not merely thinned: under its own option and nowhere
     # else. Checked across every topic, not just the general feed,
     # because 373 of the 375 also carry another group -- 322 of them
@@ -2093,6 +2150,28 @@ def selftest(entries, day):
                 "land ownership should appear only under its own option, "
                 "but {} of {} maps served for {} carry it, e.g. {}".format(
                     len(strays), len(shown), topic, strays[0]))
+    # The sampling above serves 30 maps a topic, and the parcel surveys
+    # the title rule catches are 24 in 5,484 -- too rare to turn up in a
+    # sample, which is how they were being served for a month without
+    # anything noticing. Asked directly instead.
+    by_title = [e for e in entries
+                if PARCEL_TITLE.search(e.get("t") or "")
+                and "land-ownership" not in (e.get("g") or [])]
+    if not by_title:
+        failures.append("no parcel survey is recognised by its title, so "
+                        "the rule that reads them is not being exercised")
+    for entry in by_title[:40]:
+        if not held_back(entry, "all"):
+            failures.append(
+                "a parcel survey is served under All Maps: {} ({})".format(
+                    (entry.get("t") or "")[:60], entry["id"]))
+            break
+        if held_back(entry, "land-ownership"):
+            failures.append(
+                "a parcel survey is held back from its own option too: "
+                + entry["id"])
+            break
+
     # And still there for the reader who asks for it.
     chosen = [pick(maps_for(entries, "land-ownership"), "land-ownership",
                    day + timedelta(days=n), False)[0] for n in range(3, 33)]
@@ -2161,9 +2240,16 @@ def selftest(entries, day):
     #     put 72 unreviewed maps in front of a reader four hours after
     #     they had finished. Everything that holds a map back now does
     #     it at pick time, where the cost is one slot.
-    for topic in ("all", "era-1800-1849", "land-ownership"):
+    for topic in ("all", "era-1800-1849", "land-ownership", "city-plans"):
         subset = maps_for(entries, topic)
         expected = (entries if topic == "all"
+                    # land-ownership is defined by is_land rather than by
+                    # the harvest's group alone, so that a parcel survey
+                    # recognised by its title is reachable somewhere.
+                    # Still no filtering: the test is that the topic
+                    # returns everything it covers, not fewer.
+                    else [e for e in entries if is_land(e)]
+                    if topic == "land-ownership"
                     else [e for e in entries
                           if (in_era(e, topic) if topic.startswith("era-")
                               else topic in (e.get("g") or []))])
