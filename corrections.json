@@ -808,5 +808,115 @@
   "was": "Paskaart van het Marsdiep tussen Den Helder en Texel",
   "title": "Sailing chart of the Marsdiep between Den Helder and Texel",
   "note": "Dutch, never translated. 'Paskaart' is a sea or pilot chart; Marsdiep is the tidal channel, a name, not 'march deep'. Den Helder and Texel are places."
+ },
+ "2001620482": {
+  "was": "Venezia",
+  "title": "Venice",
+  "note": "Venezia is the Italian name of Venice, left untranslated. The map is a Wagner & Debes plate of the city (Baedeker guidebook maps), so the English place name is Venice."
+ },
+ "2003623388": {
+  "was": "Amérique septentrionale",
+  "title": "North America",
+  "note": "Amérique septentrionale is French for North America. 'Septentrionale' (from septentrio, the north) was rendered as 'Northern', which drops the continent's name: 'Northern America' is not an English term and is not what the map shows."
+ },
+ "2003627092": {
+  "was": "Carte de la découverte faite l'an 1673 dans l'Amérique septentrionale",
+  "title": "Map of the discovery made in 1673 in North America",
+  "note": "The published English was already accurate ('Amérique septentrionale' is North America); it was flagged because the same phrase was mistranslated as 'Northern America' on sibling map 2003623388. This is Marquette's chart of the 1673 Mississippi voyage, so the title is kept as translated and the correction just pins it."
+ },
+ "2004629037": {
+  "was": "Persia, Afghanistan and Baluchistan",
+  "title": "Persia, Afghanistan and Baluchistan",
+  "note": "The title is already English, but language detection guessed Indonesian and 'translated' it, turning Persia into 'Persian'. The archive's own words are correct as they stand."
+ },
+ "2005630228": {
+  "was": "Noua, et integra uniuersi orbis descriptio",
+  "title": "Noua, et integra uniuersi orbis descriptio",
+  "note": "Latin title of Oronce Fine's 1531 world map (u for v, Noua for Nova). Detected as Catalan and machine-translated, which turned 'et' into 'you' and 'integra' into 'integrate'. Latin is kept as published; in English: 'A new and complete description of the whole world'."
+ },
+ "2008621655": {
+  "was": "Kusae : auf grundlage der brit. u. deutsch. seekarte",
+  "title": "Kosrae: based on the British and German sea charts",
+  "note": "Kusae is the German spelling of Kosrae, the Micronesian island; the translator treated 'brit. u. deutsch.' as sentence-ending abbreviations ('British. u. German.'). 'u.' is 'und' (and), 'brit.' and 'deutsch.' are adjectives, and 'seekarte' is a sea (nautical) chart."
+ },
+ "2013593004": {
+  "was": "Theatrum historicum ad annum Christi quadringentesimum : in quo tum Imperii Romani tum Barbarorum circum incolentium status ob oculosponitur pars orientalis",
+  "title": "Historical theatre for the year of Christ 400, in which the state of the Roman Empire and of the barbarians dwelling around it is set before the eyes: eastern part",
+  "note": "Latin, never translated. The re-catalogued title in the pool is 'Theatrum historicum ad annum Christi quadringentesimum : in quo tum Imperii Romani tum Barbarorum circum incolentium status ob oculosponitur pars orientalis'. 'oculosponitur' is the archive's run-together 'oculos ponitur' (is placed before the eyes). Guillaume de L'Isle's map, published by Senex."
+ },
+ "2013593006": {
+  "was": "Vorder-Asien",
+  "title": "Western Asia",
+  "note": "Vorder-Asien is German for Western Asia (literally 'Fore-Asia', the German term for the Near East / Southwest Asia). Heinrich Kiepert map, Berlin 1855."
+ },
+ "2021668585": {
+  "was": "Colonia Agrippina (Present-Day Cologne) Accurately Described in the Year 1571.",
+  "title": "Colonia Agrippina (Present-Day Cologne) Accurately Described in the Year 1571",
+  "note": "Already English, but flagged only because it was never translated; nothing to translate. Colonia Agrippina is the Roman and Latin name of Cologne and is kept as a name. Only the trailing full stop is dropped."
+ },
+ "2021668721": {
+  "was": "Nautical Planisphere.",
+  "title": "Nautical Planisphere",
+  "note": "Already English; the flag was only that nothing was translated. Trailing catalogue full stop dropped. This is the Caverio chart of c. 1506, so the title stays as the archive gives it."
+ },
+ "73695756": {
+  "was": "Carte des pays connus sous le nom de Canada, dans laquelle sont distinguées les possessions françoises, & angl?",
+  "title": "Map of the countries known by the name of Canada, in which the French and English possessions are distinguished",
+  "note": "French, truncated by the archive at 'angl?' (the title is cut off, almost certainly for 'angloises'). The old translation copied the truncation into 'English?', which reads as a doubtful query. 'Canada' is a name and stays. The final word is completed as 'English' because the cut-off stem is plainly 'angl-' next to 'françoises'."
+ },
+ "rijks:NG-1172": {
+  "was": "Plan van de slag bij Waterloo, 1815",
+  "title": "Plan of the Battle of Waterloo, 1815",
+  "note": "Dutch, never translated. Waterloo is a place name."
+ },
+ "rijks:RP-P-1878-A-729X": {
+  "was": "Plattegrond van de stad Goes",
+  "title": "Plan of the town of Goes",
+  "note": "Dutch 'Plattegrond' is a ground plan or town plan. Goes is a town in Zeeland, a name and not the English verb."
+ },
+ "rijks:RP-P-1892-A-17232": {
+  "was": "Kaart van Middlesex",
+  "title": "Map of Middlesex",
+  "note": "Dutch, never translated. Middlesex is the English county, a name."
+ },
+ "rijks:RP-P-1905-6760": {
+  "was": "Plan van het beleg van Tournai, 1709",
+  "title": "Plan of the siege of Tournai, 1709",
+  "note": "Dutch, never translated. Tournai is the Belgian city (Doornik in Dutch) and kept as in the archive's own title."
+ },
+ "rijks:RP-P-1937-190": {
+  "was": "Plattegrond van de stad Goes",
+  "title": "Plan of the town of Goes",
+  "note": "Dutch 'Plattegrond' is a ground plan or town plan. Goes is a town in Zeeland, a name and not the English verb."
+ },
+ "rijks:RP-P-AO-20-23": {
+  "was": "Plattegrond van Amsterdam, 1612",
+  "title": "Plan of Amsterdam, 1612",
+  "note": "Dutch, never translated. Plattegrond is a ground plan."
+ },
+ "rijks:RP-P-AO-20-26-2": {
+  "was": "Plattegrond van Amsterdam, 1612",
+  "title": "Plan of Amsterdam, 1612",
+  "note": "Dutch, never translated. Plattegrond is a ground plan."
+ },
+ "rijks:RP-P-OB-50.147": {
+  "was": "Kaart van de noordkust van Engeland bij Newcastle upon Tyne",
+  "title": "Map of the north coast of England near Newcastle upon Tyne",
+  "note": "Dutch, never translated. Newcastle upon Tyne is already English and kept as a name."
+ },
+ "rijks:RP-P-OB-52.493": {
+  "was": "Kaart van Palestina",
+  "title": "Map of Palestine",
+  "note": "Dutch, never translated."
+ },
+ "rijks:RP-P-OB-77.245": {
+  "was": "Kaart met de posities van de geallieerden en de Fransen bij het beleg van Namen, 1695",
+  "title": "Map showing the positions of the Allies and the French at the siege of Namur, 1695",
+  "note": "Dutch, never translated. Namen is the Dutch name of Namur."
+ },
+ "rijks:RP-P-OB-77.255": {
+  "was": "Kaart met de posities van de geallieerden onder Willem III bij het beleg van Namen, 1695",
+  "title": "Map showing the positions of the Allies under William III at the siege of Namur, 1695",
+  "note": "Dutch, never translated. Namen is the Dutch name of Namur; Willem III is William III."
  }
 }
