@@ -60,7 +60,13 @@ jobs:
         run: |
           git config user.name "GitHub Action"
           git config user.email "action@github.com"
-          git add pool.json quality.json translations.json
+          # rijks.json is the Rijksmuseum listing and what has been
+          # resolved from it: 4,813 ids, 612 resolved, 400 a run. Left
+          # out of this list, a refresh resolved 889 of them and threw
+          # the record away, so the next run started from the same place
+          # and resolved the same ones again. The source cannot finish
+          # until its progress is kept.
+          git add pool.json quality.json translations.json rijks.json
 
           if git diff --staged --quiet; then
             echo "Pool unchanged, nothing to commit"
