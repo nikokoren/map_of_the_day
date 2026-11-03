@@ -918,5 +918,125 @@
   "was": "Kaart met de posities van de geallieerden onder Willem III bij het beleg van Namen, 1695",
   "title": "Map showing the positions of the Allies under William III at the siege of Namur, 1695",
   "note": "Dutch, never translated. Namen is the Dutch name of Namur; Willem III is William III."
+ },
+ "00552972": {
+  "was": "Atlas général de la Chine, de la Tartarie chinoise, et du Tibet : pour servir aux différentes descriptions et histoires de cet empire",
+  "title": "General Atlas of China, Chinese Tartary, and Tibet: to serve for the various descriptions and histories of this empire",
+  "note": "Never translated: the archive's French was published as is. Re-catalogued with a longer subtitle, so this is written against the current text. Tartarie chinoise is Chinese Tartary, the historical region, not a modern country."
+ },
+ "2003623128": {
+  "was": "Les costes aux environs de la rivière de Misisipi : découvertes par Mr. de la Salle en 1683 et reconnues par Mr. le Chevallier d'Iberville en 1698 et 1699",
+  "title": "The coasts around the Misisipi River: discovered by Mr. de La Salle in 1683 and explored by the Chevalier d'Iberville in 1698 and 1699",
+  "note": "Three faults. 'Costes' (old French for côtes, coasts) was left untranslated; 'reconnues' means explored or surveyed, not 'recognized'; and the caption was cut off at 'Iberville…', dropping the dates 1698 and 1699. The map's own spelling Misisipi is kept as a name."
+ },
+ "2003623374": {
+  "was": "[Mapa del Golfo y costa de la Nueva España : desde el Río de Panuco hasta el cabo de Santa Elena ...]",
+  "title": "[Map of the Gulf and coast of New Spain: from the Río de Panuco to Cape Santa Elena ...]",
+  "note": "'Cabo de Santa Elena' is a cape on the coast, named for St. Helen(a) as a place name; the translator rendered it 'Cape of St. Helena', which reads as the South Atlantic island. Cape Santa Elena and Río de Panuco are names and stay as the archive has them. Square brackets kept: the title is supplied by the cataloguer."
+ },
+ "2003623398": {
+  "was": "De Eylanden en Vastelanden van Westindien",
+  "title": "The Islands and Mainlands of the West Indies",
+  "note": "Never translated: Dutch was published as is. 'Eylanden' is islands and 'Vastelanden' is mainlands (as opposed to islands), not 'continents'."
+ },
+ "2003623407": {
+  "was": "Caert vande Svydt Rivier in Niew Nederland",
+  "title": "Chart of the South River in New Netherland",
+  "note": "Two faults. 'Caert' (chart) was left untranslated and 'Svydt' (zuid, south) was half-copied as 'River' with the wrong word order left over; and the colony is New Netherland, singular, not 'Niew Netherlands'. The South River is the Delaware."
+ },
+ "2004629174": {
+  "was": "La herdike enterprinse faict par le Signeur Draeck D'Avoir cirquit toute la Terre",
+  "title": "The heroic enterprise carried out by Sir Drake, of having circled the whole Earth",
+  "note": "Never translated: 16th-century French was published as is. 'herdike' is a misspelling of héroïque, 'Signeur' of seigneur (lord, here Sir), 'faict' is made/carried out, and 'cirquit' is circuit: to have gone all the way round the Earth. Drake is a person's name and stays."
+ },
+ "2006627675": {
+  "was": "Croquis de l'Afrique Équatoriale : contenant les dernier renseignements recueillis par les agents de l'Association Internationale du Congo",
+  "title": "Sketch of Equatorial Africa: containing the latest information gathered by the agents of the International Association of the Congo",
+  "note": "Two faults. 'Croquis' is a single sketch, not 'Sketches'; and the caption was cut off at 'International Association of…', losing 'the Congo', which is the name of the body."
+ },
+ "2013593001": {
+  "was": "Etats du Grand-Seigneur en Asie : Empire de Perse, Pays des Usbecs, Arabie et Egypte",
+  "title": "Dominions of the Grand Signior in Asia: Empire of Persia, Land of the Uzbeks, Arabia and Egypt",
+  "note": "'Grand-Seigneur' was rendered 'Great Lord'. It is the standard European title for the Ottoman Sultan (Grand Signior), so it is a title, not a description. 'Usbecs' is the Uzbeks and 'Pays' is land, not 'Countries'."
+ },
+ "2021668534": {
+  "was": "China, with Korea and Parts of Tartarstan: the Closest Parts, from the Maps Drawn by Jesuit Missionaries in the Years 1708 to 1717.",
+  "title": "China, with Korea and Parts of Tartary: the Closest Parts, from the Maps Drawn by Jesuit Missionaries in the Years 1708 to 1717.",
+  "note": "Already English but wrong: 'Tartarstan' is not a place. The region is Tartary, the old European name for inner and northern Asia; '-stan' was modernised on by mistake, which also reads as Tatarstan. Rest of the caption left as the archive has it."
+ },
+ "2021668715": {
+  "was": "Nautical Atlas of the World, Folio 6 Recto, North Atlantic Ocean.",
+  "title": "Nautical Atlas of the World, Folio 6 Recto: North Atlantic Ocean.",
+  "note": "Already English, so nothing was mistranslated; the only fault was the comma splicing the folio number to the subject, which reads as a list of three things. Wording otherwise unchanged; no detail added."
+ },
+ "2024597441": {
+  "was": "Isle de Sable",
+  "title": "Sable Island",
+  "note": "Sable here is the name, not the French word for sand. The cartographic record places it at Sable Island, Nova Scotia; 'Isle of Sand' translated a name as vocabulary."
+ },
+ "89690209": {
+  "was": "Karte derer englischen Unternehmungen zur See auf denen französischen Küsten desgleichen in denen französischen Colonien in Africa und dem mitternæchtlichen America : aus denen beste Relationen u. bosondern Nachrichten gezogen ... u. mit historischen Anmerckunge erläutert",
+  "title": "Map of the English naval enterprises against the French coasts, likewise in the French colonies in Africa and North America: drawn from the best reports and special accounts ... and explained with historical notes",
+  "note": "Three faults. The caption was cut off after 'French coasts', losing the colonies in Africa and North America; 'derer englischen Unternehmungen' is 'of the English enterprises', which was garbled into 'of their English enterprises'; and 'mitternæchtlichen' is an old spelling of nördlich, northern. Typos in the archive's German (bosondern, Anmerckunge) are read as besondern and Anmerckungen."
+ },
+ "99446210": {
+  "was": "L'hydrographie françoise : recueil des cartes générales et particulières qui ont éte faites pour le service des vaisseaux du roy, par ordre des Ministres de la marine, depuis 1737, jusqu'en 1765",
+  "title": "The French Hydrography: collection of general and particular charts made for the service of the King's ships, by order of the Ministers of the Navy, from 1737 to 1765",
+  "note": "Two faults. The caption was cut off at 'Royal', losing 'by order of the Ministers of the Navy' and the dates; and 'cartes' in a nautical collection are charts, not maps. 'Vaisseaux du roy' is the King's ships."
+ },
+ "rijks:NG-501-33": {
+  "was": "Zeekaart van de Golf van Biskaje",
+  "title": "Sea chart of the Bay of Biscay",
+  "note": "Never translated: Dutch was published as is. 'Zeekaart' is sea chart; 'Golf van Biskaje' is the Bay of Biscay, an old Dutch spelling of a place name."
+ },
+ "rijks:NG-501-52": {
+  "was": "Zeekaart van het oostelijk deel van de Middellandse zee",
+  "title": "Sea chart of the eastern part of the Mediterranean",
+  "note": "Never translated: Dutch was published as is. 'Middellandse zee' is the Mediterranean Sea."
+ },
+ "rijks:NG-NM-10388-50-A": {
+  "was": "Aanvang van het beleg van de Citadel van Antwerpen door het Fransche leger in December 1832",
+  "title": "Start of the siege of the Citadel of Antwerp by the French army in December 1832",
+  "note": "Never translated: Dutch was published as is. 'Aanvang' is start; Antwerpen is Antwerp."
+ },
+ "rijks:RP-P-1896-A-19368-939": {
+  "was": "Plattegrond van Amsterdam met stadsgezicht, 1300",
+  "title": "Plan of Amsterdam with a view of the city, 1300",
+  "note": "Never translated: Dutch was published as is. 'Plattegrond' is a ground plan of a town, 'stadsgezicht' a view of the city."
+ },
+ "rijks:RP-P-1908-2394": {
+  "was": "Plattegrond van de stad Gent, 1838",
+  "title": "Plan of the city of Ghent, 1838",
+  "note": "Never translated: Dutch was published as is. 'Gent' is Ghent, the Belgian city, and stays a name."
+ },
+ "rijks:RP-P-AO-16-110": {
+  "was": "Beleg van Breda, 1624-1625",
+  "title": "Siege of Breda, 1624-1625",
+  "note": "Never translated: Dutch was published as is. 'Beleg' is siege; Breda is the Dutch city."
+ },
+ "rijks:RP-P-AO-2-17": {
+  "was": "Kaart van Friesland en Groningen",
+  "title": "Map of Friesland and Groningen",
+  "note": "Never translated: Dutch was published as is. Both are Dutch provinces, kept as names."
+ },
+ "rijks:RP-P-AO-20-6": {
+  "was": "Plattegrond van Amsterdam, 1400",
+  "title": "Plan of Amsterdam, 1400",
+  "note": "Never translated: Dutch was published as is. 'Plattegrond' is a ground plan."
+ },
+ "rijks:RP-P-AO-20-79-1": {
+  "was": "Vestingplattegrond van Amsterdam",
+  "title": "Plan of the fortifications of Amsterdam",
+  "note": "Never translated: Dutch was published as is. 'Vestingplattegrond' is a plan of a fortified town: vesting is fortress or fortifications."
+ },
+ "rijks:RP-P-AO-20-7A": {
+  "was": "Plattegrond van Amsterdam, 1400",
+  "title": "Plan of Amsterdam, 1400",
+  "note": "Never translated: Dutch was published as is. 'Plattegrond' is a ground plan."
+ },
+ "rijks:RP-P-OB-77.014A": {
+  "was": "Kaart van het beleg van Diksmuide (bovenblad), 1647",
+  "title": "Map of the siege of Diksmuide (upper sheet), 1647",
+  "note": "Never translated: Dutch was published as is. 'Beleg' is siege, 'bovenblad' the upper sheet of a two-sheet print; Diksmuide is the Flemish town."
  }
 }
