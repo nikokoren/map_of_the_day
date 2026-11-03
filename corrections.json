@@ -1038,5 +1038,50 @@
   "was": "Kaart van het beleg van Diksmuide (bovenblad), 1647",
   "title": "Map of the siege of Diksmuide (upper sheet), 1647",
   "note": "Never translated: Dutch was published as is. 'Beleg' is siege, 'bovenblad' the upper sheet of a two-sheet print; Diksmuide is the Flemish town."
+ },
+ "2003623129": {
+  "was": "La Floride",
+  "title": "Florida",
+  "note": "Never translated: the archive's French title 'La Floride' was published as-is. It is simply 'Florida' (Sanson's map of the coast from Secotan in Virginia to Planuco in Mexico)."
+ },
+ "2004629170": {
+  "was": "Nova et exacta delineatio Americae partis avstralis. qve est : Brasilia, Caribana, Gviana regnũm noũũm, Castilia del Oro, Nicaragva, insũlae Antillas et Perv. Et sub Tropico Capricorni, Chile, Rio della Plata, Patagonṽ, & Fretṽ Magellanicv̄",
+  "title": "New and exact delineation of the southern part of America, which is: Brasilia, Caribana, Guiana, the New Kingdom, Castilia del Oro, Nicaragua, the islands of the Antilles, and Peru. And below the Tropic of Capricorn, Chile, Rio della Plata, Patagonia, and the Strait of Magellan",
+  "note": "Latin title (Hulsius, Nuremberg 1602), never translated. The catalogue transcribes the printer's abbreviation marks and u/v spellings (regnũm noũũm = regnum novum, 'Fretṽ Magellanicv̄' = Fretum Magellanicum); read through those. 'Avstralis' is australis, 'southern'. Place names kept as printed: Caribana, Castilia del Oro, Rio della Plata."
+ },
+ "73694435": {
+  "was": "Plan de l'île d'Amelia à la côte de la Floride orientale, tiré de la carte de la Georgie et de la Caroline méridionale de De Brahm, et assujeti pour le port de l'entrée de la riviere de Nassau, rédigé d'après la carte du W. Fuller. Plan de la barre et du port d'Amelia, à la côte de la Floride orientale, levé en janvier 1775, par Jacob Blamey",
+  "title": "Plan of the island of Amelia on the coast of East Florida, taken from De Brahm's map of Georgia and South Carolina, and adapted for the harbour at the entrance of the Nassau River, drawn up after the map of W. Fuller. Plan of the bar and harbour of Amelia, on the coast of East Florida, surveyed in January 1775 by Jacob Blamey",
+  "note": "Published text stopped after 'De Brahm', dropping the rest of a two-part title: the Nassau River entrance, Fuller as the source map, and the second plan (bar and harbour of Amelia, surveyed January 1775 by Jacob Blamey). Also 'Plan' was rendered 'Map'; these are harbour plans. 'Assujeti' = adapted/fitted to. Names kept: Amelia, De Brahm, Nassau, W. Fuller, Jacob Blamey."
+ },
+ "73694637": {
+  "was": "Carte geographiqve de la novvelle Franse",
+  "title": "Geographical map of New France",
+  "note": "Thoreau's manuscript spells it 'novvelle Franse': v for u (period lettering) and an unusual s for c. The translator treated it as an unknown word and published 'novelle Franse'. It is 'nouvelle France', New France; the proper name should be translated, not left half-French."
+ },
+ "73696323": {
+  "was": "Plan du port de Chibouctou à la côte de l'Acadie avec les côtes voisines",
+  "title": "Plan of the harbour of Chibouctou on the coast of Acadia, with the neighbouring coasts",
+  "note": "'Plan' is a harbour plan, not a 'map'; 'port' is harbour. Chibouctou (Chebucto) is the place name and is kept as written. The old text was close but loose ('at the coast', 'nearby'); this is the literal reading of the French."
+ },
+ "74693105": {
+  "was": "Carte réduite des côtes orientales de l'Amérique septentrionale. Contenant celles des provinces de New-York et de la Nouvelle Angleterre, celles de l'Acadie ou Nouvelle Ecosse, de l'Île Royale de l'Île St. Jean, avec l'intérieur du pays",
+  "title": "Reduced chart of the eastern coasts of North America. Containing those of the provinces of New York and New England, those of Acadia or Nova Scotia, of Île Royale and Île St. Jean, with the interior of the country",
+  "note": "Published text stopped mid-title after 'New England', dropping Acadia/Nova Scotia, Île Royale, Île St. Jean and the interior. 'Carte réduite' is a nautical chart on a reduced (Mercator) scale, so 'chart' rather than 'map'. Island names kept as printed."
+ },
+ "74696151": {
+  "was": "Archipelague du Mexique ou sont les isles de Cuba, Espagnole, Ìamaïque, &c",
+  "title": "Archipelago of Mexico, in which are the islands of Cuba, Hispaniola, Jamaica, &c",
+  "note": "'Espagnole' is Hispaniola (the 'Spanish island'), a place name, but was rendered as the adjective 'Spanish'. 'Ìamaïque' (I for J, with a stray accent) is Jamaica, but was published as 'American'. Also 'ou sont' = 'in which are', not 'or are'; 'ou' here is 'where', not 'or'."
+ },
+ "98688431": {
+  "was": "From the Humboldt Mountains to the Mud Lakes",
+  "title": "From the Humboldt Mountains to the Mud Lakes",
+  "note": "False alarm: the archive's title is already English and correct (Egloffstein, Pacific Railroad Survey map no. 3). It was flagged only because no language was detected. Kept as is."
+ },
+ "rijks:RP-P-1909-374": {
+  "was": "Belegering van Maastricht, 1632",
+  "title": "Siege of Maastricht, 1632",
+  "note": "Dutch, never translated. 'Belegering' = siege. Maastricht is a place name and stays."
  }
 }
