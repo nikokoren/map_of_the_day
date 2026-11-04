@@ -1083,5 +1083,20 @@
   "was": "Belegering van Maastricht, 1632",
   "title": "Siege of Maastricht, 1632",
   "note": "Dutch, never translated. 'Belegering' = siege. Maastricht is a place name and stays."
+ },
+ "2004627237": {
+  "was": "Carta de la Provincia de Quito y de sus adjacentes",
+  "title": "Map of the Province of Quito and its adjacent areas",
+  "note": "Spanish (Maldonado, 1750). 'Carta' here is a chart/map, not a letter, and 'adjacentes' is 'adjacent' (old spelling of 'adyacentes'), not 'deputies' -- the translator seems to have reached for 'adjuntos'. Quito stays a place name."
+ },
+ "rijks:RP-P-1909-394": {
+  "was": "Belegering van Bergen, 1709",
+  "title": "Siege of Bergen, 1709",
+  "note": "Dutch, never translated. 'Belegering' = siege. Bergen is kept as the archive has it; note that in 1709 it is most likely Mons (Bergen in Dutch), not Bergen op Zoom, so do not 'expand' it to Bergen op Zoom."
+ },
+ "rijks:RP-P-AO-16-122-1": {
+  "was": "Loopgraven van het Staatse leger bij de forten Isabella en Sint-Anthonie tijdens het beleg van Den Bosch, 1629",
+  "title": "Trenches of the States Army at Forts Isabella and Sint-Anthonie during the Siege of Den Bosch, 1629",
+  "note": "Dutch, never translated. 'Loopgraven' = trenches, 'Staatse leger' = army of the States (General), 'beleg' = siege. Isabella, Sint-Anthonie and Den Bosch are names and stay as they are."
  }
 }
