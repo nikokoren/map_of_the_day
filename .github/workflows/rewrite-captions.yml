@@ -10,9 +10,20 @@ name: Rewrite Flagged Captions
 # read, and eight captions sat in it for a fortnight.
 #
 # So: when a flag lands, work out what the translator got wrong and write
-# the replacement into corrections.json. As a pull request, not a push --
-# a veto is the owner's own judgement going straight in, but a caption is
-# invented prose going onto somebody's wall, and that is worth a glance.
+# the replacement into corrections.json.
+#
+# Still a pull request, and merged by this job rather than by hand. The
+# glance it used to wait for was the only thing checking the work, so the
+# checks take its place: a rewrite that passes them is merged and the
+# branch deleted, one that does not is left open with the failure named.
+# Automatic where it is clean, a person where it is not.
+#
+# The checks are the ones that know about captions. daily.py --selftest
+# reads every correction against the pool -- that each matches the caption
+# it claims to fix, that it is what gets served, and that none points at a
+# map that has gone -- and translate.py --selftest is the guard rules a
+# rewrite is meant to satisfy. Both run without Pillow or a translator
+# installed, so this costs seconds.
 #
 # Inert until the repository has a Claude credential. Without one the job
 # says what is waiting and stops, so adding the secret later is the only
@@ -226,6 +237,7 @@ jobs:
       # fails loudly. It also bounds the blast radius: whatever else the
       # run touched on disk, only corrections.json can reach the branch.
       - name: Open a pull request with what changed
+        id: pr
         if: steps.waiting.outputs.pending != '0' && steps.gate.outputs.ready == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
@@ -291,6 +303,7 @@ jobs:
             gh pr edit "$OPEN_NUMBER" --title "$title" --body-file body.md
             echo "::notice::#$OPEN_NUMBER now carries $written caption(s);"\
                  "$PENDING were added by this run."
+            echo "number=$OPEN_NUMBER" >> "$GITHUB_OUTPUT"
             exit 0
           fi
           if ! gh pr create --title "$title" \
@@ -306,3 +319,59 @@ jobs:
             fi
             exit 1
           fi
+
+      # The glance this used to wait for, done by the checks instead.
+      #
+      # After the pull request exists, not before: if the checks object,
+      # the work is still pushed and still open, which is exactly the case
+      # a person should see. Nothing is lost either way.
+      - name: Merge it, or leave it open if the checks object
+        if: steps.pr.outputs.number != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NUMBER: ${{ steps.pr.outputs.number }}
+        run: |
+          set -uo pipefail
+          # Checked as the pull request would land it, not as the working
+          # tree this run happens to be standing in. -X ours keeps the
+          # branch's corrections where main has touched the same file.
+          git fetch origin main --quiet
+          if ! git merge --no-edit -X ours origin/main; then
+            echo "::warning::#$NUMBER does not merge cleanly with main; leaving it open"
+            exit 0
+          fi
+          # daily.py only: this repository's translate.py has no
+          # --selftest. Named rather than discovered, and a check that
+          # cannot run fails the job below instead of being skipped.
+          failed=""
+          for check in daily.py; do
+            python3 "$check" --selftest > check.log 2>&1 && continue
+            status=$?
+            if [ "$status" -eq 2 ]; then
+              # argparse's usage error: no --selftest on this script, so
+              # the gate is misconfigured rather than unhappy. Merge
+              # nothing -- a gate that silently skips a check it cannot
+              # find is worse than no gate.
+              echo "::error::$check does not support --selftest; the"\
+                   "merge gate is misconfigured"
+              cat check.log
+              exit 1
+            fi
+            failed="$check"
+            echo "::error::$check --selftest says no:"
+            sed -n 's/^.*FAIL/FAIL/p' check.log | head -20
+            break
+          done
+          if [ -n "$failed" ]; then
+            {
+              echo "Not merged automatically: \`$failed --selftest\` does not pass"
+              echo "against these captions, so this is here for a person to look at."
+              echo
+              sed -n 's/^.*FAIL/- /p' check.log | head -10
+            } > objection.md
+            gh pr comment "$NUMBER" --body-file objection.md
+            echo "::warning::#$NUMBER left open for review"
+            exit 0
+          fi
+          echo "checks pass; merging #$NUMBER"
+          gh pr merge "$NUMBER" --squash --delete-branch
