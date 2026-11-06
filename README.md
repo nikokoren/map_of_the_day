@@ -209,9 +209,7 @@ at least one. Eras are read off the year, so they cannot be wrong.
 | Key | Shown as | Maps | Repeats after |
 |---|---|---|---|
 | `all` | All Maps | 4451 | 12 years |
-| `city-plans` | City Plans | ~1380 | 3.8 years |
 | `birds-eye-views` | Bird's-Eye Views | ~1220 | 3.4 years |
-| `civil-war` | Civil War | ~715 | 2.0 years |
 | `railroads` | Railroads | ~690 | 1.9 years |
 | `roads-and-travel` | Roads & Travel | ~610 | 1.7 years |
 | `revolution` | Revolutionary War | ~475 | 1.3 years |
@@ -235,15 +233,60 @@ The theme-by-era matrix, for reference (the blanks are cells under 25 maps):
 
 | | 1700s | 1800-49 | 1850-69 | 1870-99 | 1900-29 |
 |---|---|---|---|---|---|
-| City Plans | 166 | 205 | 249 | 506 | 246 |
 | Bird's-Eye Views | - | - | 142 | 903 | 173 |
-| Civil War | - | - | 614 | 76 | - |
 | Railroads | - | 77 | 304 | 279 | 33 |
 | Roads & Travel | - | 73 | 264 | 261 | - |
 | Revolutionary War | 466 | - | - | - | - |
 | Battles & Forts | 57 | - | 180 | 68 | - |
 | Nautical Charts | 124 | 27 | 70 | - | - |
 | Exploration | 58 | 62 | 47 | - | - |
+
+### Three themes, removed
+
+Land & Property first, then City Plans and the Civil War. Plat books,
+estate surveys, town plans and battle maps: the first are 98% American
+and a mesh of thin lines on a panel, and the other two were judged not
+interesting enough to keep coming round for years.
+
+They are listed in `RETIRED_THEMES`, which is a list rather than three
+rules because the fourth should be a one-line change.
+
+**A map is only retired if every theme it carries is.** 713 of the
+1,454 city plans also carry a live theme and 223 of those are bird's-eye
+views; a bird's-eye view of a city is a bird's-eye view whatever else
+the Library tagged it, and it goes on being served as one. What is held
+back is the 1,493 maps that, after the removals, belong to no live
+category at all -- so the only places left to show them were "All Maps"
+and the eras, which is showing them to everyone precisely because
+nobody asked.
+
+Held back rather than cut from the pool, for the usual reason: the
+schedule is `divmod` by the pool's length over a hash of its
+membership, so dropping 1,493 maps reshuffles all fifteen remaining
+topics and voids the review already done. The pool is still 5,484.
+
+What it costs: "All Maps" serves 2,135 rather than 2,490, a repeat
+every 5.8 years instead of 6.8, and the American share falls from 44%
+to 41%.
+
+### Depth is measured on what a topic serves
+
+Removing the themes made an old blind spot matter. The depth check
+counted `maps_for`, which is everything a topic selects including every
+map held back from it -- so it read 437 for 1800-1849 while 148 could
+be shown, and it would have passed just as happily if every map in a
+topic were held back.
+
+It counts what a topic serves now, and the honest picture is thinner
+than the old comment claimed. Nautical Charts and Exploration have both
+shipped under a year since launch, so the year that comment asked for
+was never a bar anything was held to. Two marks instead: under four
+months a topic has collapsed and the run fails; under six it is
+reported every run without going red.
+
+One topic is under six months today: **1800 - 1849, at five** (148
+maps, down from 176 before the removals). It is the next thing a new
+source would fix, and the reason the maps pool needs one.
 
 ### Land & Property, removed
 

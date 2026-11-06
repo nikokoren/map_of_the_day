@@ -49,9 +49,7 @@ custom_fields:
       What kinds of map to draw from. Pick as many as you like, or none for
       all of them. Hold cmd (or ctrl) to select more than one.
     options:
-      - City Plans
       - Bird's-Eye Views
-      - Civil War
       - Railroads
       - Roads & Travel
       - Revolutionary War

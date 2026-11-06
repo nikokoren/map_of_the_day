@@ -146,9 +146,7 @@ RIGHTS = "No known restrictions on publication"
 # enough maps not to repeat inside a year.
 THEMES = [
     ("all",               "All Maps"),
-    ("city-plans",        "City Plans"),
     ("birds-eye-views",   "Bird's-Eye Views"),
-    ("civil-war",         "Civil War"),
     ("railroads",         "Railroads"),
     ("roads-and-travel",  "Roads & Travel"),
     ("revolution",        "Revolutionary War"),
@@ -352,6 +350,43 @@ def is_american(entry):
         str(entry.get(field) or "") for field in ("p", "t"))))
 
 
+# Themes the recipe no longer offers, in the order they were retired:
+# land ownership (plat books and estate surveys, 98% American and a mesh
+# of thin lines on a panel), city plans, and the Civil War -- mostly
+# dull battle maps, and not interesting enough to keep coming round for
+# years.
+#
+# A list rather than three rules, because this is the third one and the
+# fourth should be a one-line change.
+#
+# A map whose every theme is on this list has nothing left to be filed
+# under, so it is held back from everything -- see held_back. One that
+# also carries a live theme goes on appearing under that: a bird's-eye
+# view of a city is a bird's-eye view whatever else the Library tagged
+# it, and 223 of the city plans are exactly that.
+RETIRED_THEMES = frozenset(("land-ownership", "city-plans", "civil-war"))
+
+# How deep a topic has to be to be worth offering, measured on what it
+# serves. The floor is four months, which is collapse rather than
+# shallowness; the comfortable mark is six, which is roughly what the
+# thinnest shipping themes already manage.
+DEPTH_FLOOR = 120
+DEPTH_COMFORTABLE = 180
+
+
+def topic_depth(entries, topic):
+    """
+    How many maps a topic can actually show.
+
+    Not len(maps_for), which counts the whole subset including every map
+    held back from it. That is what the depth check used to count, so it
+    read 437 for 1800-1849 while 148 could be served, and it would have
+    passed just as happily if every map in a topic were held back.
+    """
+    return sum(1 for entry in maps_for(entries, topic)
+               if not held_back(entry, topic))
+
+
 # A parcel survey the harvest did not file as one. The topic groups come
 # from LOC's own subject headings, and 24 maps that are plainly estate
 # or plat surveys carry something else instead -- "world-and-hemispheres"
@@ -381,6 +416,24 @@ def is_land(entry):
     if "land-ownership" in (entry.get("g") or []):
         return True
     return bool(PARCEL_TITLE.search(entry.get("t") or ""))
+
+
+def retired_only(entry):
+    """
+    Whether every theme this map carries has been retired.
+
+    Such a map is reachable from nowhere by choice -- no option selects
+    it any more -- so the only places left are "All Maps" and the eras,
+    which are what a reader gets before choosing anything. Serving it
+    there shows it to everyone precisely because nobody asked for it.
+    """
+    themes = set(entry.get("g") or [])
+    if is_land(entry):
+        # Including the ones the harvest filed elsewhere and the title
+        # rule caught, or a parcel survey tagged city-plans would read
+        # as carrying a live theme.
+        themes.add("land-ownership")
+    return bool(themes) and themes <= RETIRED_THEMES
 
 
 def crowded_share(entry):
@@ -460,7 +513,7 @@ def held_back(entry, topic):
 
     Asked at pick time and never used to build a pool.
     """
-    if is_land(entry):
+    if is_land(entry) or retired_only(entry):
         return True
     return is_broad(topic) and crowded_out(entry)
 
@@ -2093,7 +2146,7 @@ def selftest(entries, day):
     # America whether the reader knows it or not: bird's-eye views has
     # 15 non-American maps out of 1,224, roads-and-travel 6 of 589.
     # Thinning inside one has nothing to swap in, so it must not.
-    for theme in ("birds-eye-views", "railroads", "civil-war"):
+    for theme in ("birds-eye-views", "railroads", "world-and-hemispheres"):
         american = next((e for e in entries
                          if theme in (e.get("g") or []) and is_american(e)
                          and not is_land(e)), None)
@@ -2107,54 +2160,67 @@ def selftest(entries, day):
     if len(maps_for(entries, "all")) != len(entries):
         failures.append("the general pool is being filtered, which "
                         "reshuffles every cell built on it")
-    # A topic chosen by name gets everything it covers. For most that
-    # is the harvest's own group; land-ownership also covers the parcel
-    # surveys recognised by title, since held_back keeps those out of
-    # everywhere else and a map reachable from nowhere is worse than one
-    # filed under the wrong heading.
-    for theme in ("city-plans", "railroads"):
+    # A topic chosen by name gets everything its group covers.
+    for theme in ("birds-eye-views", "railroads"):
         whole = [e for e in entries if theme in (e.get("g") or [])]
         if len(maps_for(entries, theme)) != len(whole):
             failures.append(theme + " is filtered, but it was chosen")
-    # Land ownership is gone as a choice, and that is the point: a topic
-    # in the settings is a topic in the review queue, so an option
-    # nobody wanted was still costing somebody an afternoon.
-    if any(slug == "land-ownership" for slug, _label in THEMES):
-        failures.append("land-ownership is still offered as a theme")
-    if "land-ownership" in all_topics(entries):
-        failures.append("land-ownership is still a topic, so the review "
-                        "queue will still ask about parcel surveys")
+    # A retired theme is gone as a choice, and that is the point: a
+    # topic in the settings is a topic in the review queue, so options
+    # nobody wanted were costing somebody an afternoon a week.
+    for retired in sorted(RETIRED_THEMES):
+        if any(slug == retired for slug, _label in THEMES):
+            failures.append(retired + " is still offered as a theme")
+        if retired in all_topics(entries):
+            failures.append(
+                retired + " is still a topic, so the review queue will "
+                "still ask about its maps")
 
     # But still in the pool, which is the part that costs nothing.
-    # Dropping 399 maps would reshuffle every topic and void the review
-    # already done; held back from everything, they keep their slots and
-    # a stand-in is served.
-    parcels = [e for e in entries if is_land(e)]
-    if len(parcels) < 300:
+    # Dropping 1,493 maps would reshuffle every topic and void the
+    # review already done; held back from everything, they keep their
+    # slots and a stand-in is served.
+    retired_maps = [e for e in entries if retired_only(e) or is_land(e)]
+    if len(retired_maps) < 1000:
         failures.append(
-            "only {} parcel surveys recognised -- the rule that reads "
-            "them has stopped working".format(len(parcels)))
+            "only {} maps read as retired -- the rules that recognise "
+            "them have stopped working".format(len(retired_maps)))
     if len(maps_for(entries, "all")) != len(entries):
-        failures.append("the parcel rule has reached the pool, which "
+        failures.append("a retirement has reached the pool, which "
                         "reshuffles every topic built on it")
+
+    # A map that still carries a live theme is not retired by its
+    # company: 223 city plans are also bird's-eye views and go on being
+    # served as those. Retiring a theme must not take them with it.
+    mixed = [e for e in entries
+             if set(e.get("g") or []) & RETIRED_THEMES
+             and set(e.get("g") or []) - RETIRED_THEMES
+             and not is_land(e)]
+    if not mixed:
+        failures.append("no map carries both a retired and a live theme, "
+                        "so the check below proves nothing")
+    else:
+        live = next(g for g in mixed[0]["g"] if g not in RETIRED_THEMES)
+        if held_back(mixed[0], live):
+            failures.append(
+                "{} is held back from {}, which it still belongs to"
+                .format(mixed[0]["id"], live))
     # Set apart, not merely thinned: under its own option and nowhere
     # else. Checked across every topic, not just the general feed,
     # because 373 of the 375 also carry another group -- 322 of them
     # city-plans -- so the themes are the door this has to close.
     for topic, _label in THEMES + [(slug, lab) for slug, lab, _a, _b in ERAS]:
-        if topic == "land-ownership":
-            continue
         pool = maps_for(entries, topic)
         if len(pool) < CELL_MIN:
             continue
         shown = [pick(pool, topic, day + timedelta(days=n), False)[0]
                  for n in range(3, 33)]
-        strays = [e["id"] for e in shown if is_land(e)]
+        strays = [e["id"] for e in shown
+                  if is_land(e) or retired_only(e)]
         if strays:
             failures.append(
-                "a parcel survey should never be served now that the "
-                "option is gone, but {} of {} maps served for {} is one, "
-                "e.g. {}".format(
+                "a map from a retired theme should never be served, but "
+                "{} of {} served for {} is one, e.g. {}".format(
                     len(strays), len(shown), topic, strays[0]))
     # The sampling above serves 30 maps a topic, and the parcel surveys
     # the title rule catches are 24 in 5,484 -- too rare to turn up in a
@@ -2174,11 +2240,12 @@ def selftest(entries, day):
             break
 
 
-    # And still there for the reader who asks for it.
-    chosen = [pick(maps_for(entries, "land-ownership"), "land-ownership",
-                   day + timedelta(days=n), False)[0] for n in range(3, 33)]
-    if not all(is_land(e) for e in chosen):
-        failures.append("the Land & Property option stopped serving its maps")
+    # There used to be a check here that the Land & Property option
+    # still served its own maps. It passed for nothing: no option
+    # selects them any more, so pick falls through to its last resort
+    # and hands one back, and `all(is_land(...))` was true of a list
+    # that should not have existed. Removed rather than repaired --
+    # the contract it tested is the one that was deliberately dropped.
 
     # 5g. A text flag drops the translation and keeps the map. The two
     #     judgements are separate: a good map with a wrong caption is
@@ -2254,12 +2321,77 @@ def selftest(entries, day):
                 "the pool".format(topic, len(subset), len(expected)))
 
     # 6. Every topic offered as a setting is deep enough that a reader
-    #    does not see the same map twice inside a year.
+    #    does not see the same map twice too soon.
+    #
+    #    Measured on what a topic *serves*, not what it selects. It used
+    #    to count maps_for, which is the whole subset including every map
+    #    held back from it -- so it read 437 for 1800-1849 while 148
+    #    could actually be shown, and it would have passed just as
+    #    happily if every map in a topic were held back.
+    #
+    #    Two numbers, because they answer different questions. Under
+    #    DEPTH_FLOOR a topic has collapsed and the run fails. Under
+    #    DEPTH_COMFORTABLE it is thinner than anyone would choose and
+    #    the run says so every time without going red: Nautical Charts
+    #    and Exploration have both shipped under a year since launch, so
+    #    the year in the old comment was never a bar anything was held
+    #    to, and quietly pretending otherwise is worse than printing the
+    #    number.
+    #    And that the measurement is the served one, against a topic
+    #    whose maps are all held back. Today nothing is near the floor,
+    #    so a depth check reading the wrong number passes either way --
+    #    this is the case that tells the two apart.
+    #    Not "a retired theme serves none", which was the first attempt
+    #    and was false: city-plans selects 1,454 and serves 384, because
+    #    the 713 that also carry a live theme are meant to go on being
+    #    served under it. One map, held back for a reason that has
+    #    nothing to do with the topic it is counted under.
+    held = [{"id": "depth-probe", "t": "Plat of nowhere in particular",
+             "g": ["railroads"], "y": 1880}]
+    if len(maps_for(held, "railroads")) != 1:
+        failures.append("the depth probe does not even select its own map")
+    elif topic_depth(held, "railroads") != 0:
+        failures.append(
+            "a topic whose only map is held back reports a depth of {} -- "
+            "the check is counting what it selects, not what it serves"
+            .format(topic_depth(held, "railroads")))
+    if not 0 < DEPTH_FLOOR < DEPTH_COMFORTABLE:
+        failures.append(
+            "the depth floor is {} and the comfortable mark {}, which is "
+            "not a bar".format(DEPTH_FLOOR, DEPTH_COMFORTABLE))
+
+    shallow = []
     for topic in [s for s, _ in THEMES] + [s for s, _, _, _ in ERAS]:
-        count = len(maps_for(entries, topic))
-        if count < 200:
-            failures.append("topic {} selects only {} maps"
-                            .format(topic, count))
+        serves = topic_depth(entries, topic)
+        if serves < DEPTH_FLOOR:
+            failures.append(
+                "topic {} serves only {} maps, a repeat every {:.0f} "
+                "months".format(topic, serves, serves / 30.4))
+        elif serves < DEPTH_COMFORTABLE:
+            shallow.append((topic, serves))
+    if shallow:
+        print("  thin, but shipping: " + ", ".join(
+            "{} {:.0f}mo".format(topic, n / 30.4) for topic, n in shallow))
+
+    #    And that the loop used the served number, not just that
+    #    topic_depth exists. There are topics that answer differently
+    #    either way: ones that select more than the comfortable mark and
+    #    serve less. A loop counting what a topic selects would have
+    #    nothing to say about them.
+    discriminating = {
+        topic for topic in ([s for s, _ in THEMES]
+                            + [s for s, _, _, _ in ERAS])
+        if len(maps_for(entries, topic)) >= DEPTH_COMFORTABLE
+        and topic_depth(entries, topic) < DEPTH_COMFORTABLE}
+    missed = sorted(discriminating - {t for t, _n in shallow})
+    if not discriminating:
+        print("  (no topic is shallow only once held-back maps are "
+              "discounted, so this check proves nothing today)")
+    elif missed:
+        failures.append(
+            "{} serves under the comfortable mark and was not reported; "
+            "the depth loop is counting what topics select".format(
+                missed[0]))
 
     # 6g. A map from somewhere other than the Library builds its own
     #     URLs. Both halves were written assuming one source: iiif_base
