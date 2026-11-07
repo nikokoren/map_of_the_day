@@ -1133,5 +1133,20 @@
   "was": "Kaart van de Engelse kust tussen de Isle of Wight en Dover",
   "title": "Map of the English coast between the Isle of Wight and Dover",
   "note": "Dutch, never translated. 'Kaart' = map, 'Engelse kust' = English coast, 'tussen ... en' = between ... and. Isle of Wight and Dover are already English place names."
+ },
+ "74694146": {
+  "was": "L'Amérique septentrionale,",
+  "title": "North America",
+  "note": "French, never translated. 'L'Amérique septentrionale' is period French for North America ('septentrional' = northern). The pool still held the French original."
+ },
+ "97683511": {
+  "was": "L'Amerique divisée en ses principales parties où sont distingués les uns des autres les estats : selon quils appartiennent presentement aux differents souverains de l'Europe : dressée sur les relations les plus recentes et rectifiées sur les dernieres observations",
+  "title": "America divided into its principal parts, in which the states are distinguished from one another according to which sovereigns of Europe they presently belong to: drawn from the most recent accounts and corrected by the latest observations",
+  "note": "French, never translated. 'divisée en ses principales parties' = divided into its principal parts; 'estats' = states (old spelling); 'selon qu'ils appartiennent présentement aux différents souverains de l'Europe' = according to which of Europe's various sovereigns they presently belong to; 'relations' = accounts/reports, not 'relationships'; 'rectifiées' = corrected."
+ },
+ "rijks:RP-P-1909-444": {
+  "was": "Beleg van Duinkerken, 1646",
+  "title": "Siege of Dunkirk, 1646",
+  "note": "Dutch, never translated. 'Beleg' = siege; 'Duinkerken' is the Dutch name of Dunkirk (French Dunkerque), a place name, not vocabulary."
  }
 }
