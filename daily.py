@@ -647,6 +647,42 @@ def iiif(service, box, quality="gray"):
         iiif_base(service), box[0], box[1], quality)
 
 
+# How to ask each host for the scan at its own size. IIIF 2 spells that
+# `full` and IIIF 3 renamed it `max`, and nothing accepts both: measured,
+# the Library answers 400 to `max`, and the Rijksmuseum's Micrio host
+# answers 400 to `full`. Keyed on the host rather than the source,
+# because a map's service is either a bare Library id or a whole URL.
+MASTER_SIZE = {"iiif.micr.io": "max"}
+MASTER_SIZE_DEFAULT = "full"
+
+
+def master_url(entry):
+    """
+    The largest the archive will serve, for someone who wants to print it.
+
+    The scan at its own size rather than fitted to a panel, and in
+    colour: the feed asks for grey because a panel is grey, and a sheet
+    of paper is not.
+    """
+    base = iiif_base(entry["s"])
+    host = base.split("://", 1)[-1].split("/", 1)[0]
+    size = MASTER_SIZE.get(host, MASTER_SIZE_DEFAULT)
+    return "{}/full/{}/0/default.jpg".format(base, size)
+
+
+def master_pixels(entry):
+    """
+    (width, height) of what master_url serves, or None.
+
+    Worth saying next to the link: it is the number that decides whether
+    a map can be printed at the size somebody wants it.
+    """
+    width, height = entry.get("w"), entry.get("h")
+    if not (width and height):
+        return None
+    return int(width), int(height)
+
+
 def image_urls(entry):
     """
     The Library's IIIF service does the resizing and the greyscale
@@ -1630,6 +1666,11 @@ def review_manifest(entries, day, days, path):
                 "byline": byline(entry),
                 "thumb": iiif(entry["s"], (400, 400), "default"),
                 "full": iiif(entry["s"], WARM_BOX, WARM_QUALITY),
+                # The scan at its own size, for printing, with what that
+                # size is. Distinct from "full" above, which is the warm
+                # panel image: this one is the master.
+                "master": master_url(entry),
+                "pixels": master_pixels(entry),
                 "item": item_url(entry),
                 "when": [],
             })
@@ -2392,6 +2433,41 @@ def selftest(entries, day):
             "{} serves under the comfortable mark and was not reported; "
             "the depth loop is counting what topics select".format(
                 missed[0]))
+
+    # 6f. The printable link. Separate from the panel URL on purpose:
+    #     the panel gets a map fitted to it in grey, a sheet of paper
+    #     gets the scan in colour.
+    hosts = {}
+    for entry in entries:
+        base = iiif_base(entry["s"])
+        hosts.setdefault(base.split("://", 1)[-1].split("/", 1)[0], entry)
+    for host, entry in sorted(hosts.items()):
+        link = master_url(entry)
+        if link == iiif(entry["s"], (800, 480)):
+            failures.append("the printable link for " + host +
+                            " is the panel image")
+        if "/0/default.jpg" not in link:
+            failures.append("the printable link for " + host +
+                            " asks for grey: " + link)
+    #     Pinned to the measurement rather than read back off
+    #     MASTER_SIZE, which would pass whatever it said. IIIF 2 spells
+    #     this size `full` and IIIF 3 `max`; Micrio answers 400 to
+    #     `full`, the Library answers 400 to `max`.
+    if "iiif.micr.io" in hosts:
+        if not master_url(hosts["iiif.micr.io"]).endswith(
+                "/full/max/0/default.jpg"):
+            failures.append("Micrio must be asked for max, not " +
+                            master_url(hosts["iiif.micr.io"]))
+    if "tile.loc.gov" in hosts:
+        if "/full/full/0/" not in master_url(hosts["tile.loc.gov"]):
+            failures.append("the Library must be asked for full, not " +
+                            master_url(hosts["tile.loc.gov"]))
+    sized = next((e for e in entries if e.get("w") and e.get("h")), None)
+    if sized and master_pixels(sized) != (int(sized["w"]), int(sized["h"])):
+        failures.append("the size offered is not the scan's own")
+    if master_pixels({"id": "x", "s": "y"}) is not None:
+        failures.append("a map nobody measured is being given a size; a "
+                        "guess is worse than silence next to a print link")
 
     # 6g. A map from somewhere other than the Library builds its own
     #     URLs. Both halves were written assuming one source: iiif_base

@@ -156,6 +156,11 @@ def main():
         "n": len(i.get("when") or []),
         "new": i["id"] not in previous,
         "img": i.get("thumb") or "",
+        # The scan at its own size, and what that size is. For printing:
+        # the pixel count is what decides whether a map can be printed
+        # at the size somebody wants it.
+        "fullimg": i.get("master") or "",
+        "px": i.get("pixels") or None,
     } for i in items]
 
     payload = json.dumps({

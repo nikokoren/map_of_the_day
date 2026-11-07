@@ -98,6 +98,9 @@ button[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-colo
 .card[data-fix="stale"] .fix{color:var(--veto)}
 .card[data-star="1"]{border-color:var(--star);background:var(--star-soft)}
 .card[data-star="1"] .acts .star{background:var(--star);color:#fff}
+.full{font-size:10.5px;color:var(--muted);text-decoration:none;
+  border-bottom:1px dotted var(--rule)}
+.full:hover{color:var(--ink)}
 .prog{font:11.5px/1.5 ui-monospace,monospace;color:var(--muted);
   padding:6px 0 0;border-top:1px dotted var(--rule);margin-top:8px}
 .prog b{color:var(--ink)}
@@ -341,6 +344,26 @@ textarea{width:100%;min-height:210px;font-family:"IBM Plex Mono",monospace;
     el.querySelector(".den").textContent =
       it.d == null ? "unmeasured" : it.d + " " + (L.measure||"");
     el.querySelector(".when").textContent = when + (it.n > 1 ? "  +" + (it.n-1) : "");
+    // The scan at its own size, for printing. Alongside the measurement
+    // rather than among the buttons: it is a thing to open, not a
+    // decision to record. The pixel size comes with it because that is
+    // what decides whether a map prints at the size somebody wants.
+    if (it.fullimg) {
+      var a = document.createElement("a");
+      a.className = "full";
+      a.href = it.fullimg;
+      a.target = "_blank";
+      a.rel = "noopener";
+      a.textContent = it.px
+        ? "full size " + it.px[0] + "\u00d7" + it.px[1]
+        : "full size";
+      if (it.px) {
+        a.title = "prints to about "
+          + (it.px[0] / 300).toFixed(1) + " by "
+          + (it.px[1] / 300).toFixed(1) + " inches at 300dpi";
+      }
+      el.querySelector(".foot").appendChild(a);
+    }
     // The source line and the flag button go together: both exist only
     // where English actually replaced the archive's words. Drawing a
     // dead button on the other 92% made the row look broken.
