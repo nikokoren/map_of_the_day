@@ -1283,5 +1283,35 @@
   "was": "Kaart van de versterkingen van Namen bij het beleg in 1695",
   "title": "Map of the fortifications of Namur during the siege of 1695",
   "note": "Dutch, never translated. 'Namen' is the Dutch name of Namur (Belgium), a place; same caption as RP-P-OB-77.250."
+ },
+ "2021668499": {
+  "was": "Sketch Map of British Guiana.",
+  "title": "Sketch Map of British Guiana.",
+  "note": "Already English; flagged only because language detection returned unknown. Wording is correct and British Guiana (present-day Guyana) is a place name kept as is. Caption left unchanged on purpose; no fault to fix."
+ },
+ "99447785": {
+  "was": "Gipsometricheskai︠a︡ karta Rossīĭskoĭ Imperīi : (opyt izobrazhenīi︠a︡ relʹefa Imperīi)",
+  "title": "Hypsometric map of the Russian Empire: (an attempt at depicting the relief of the Empire)",
+  "note": "Russian, Library of Congress-style romanization (Gipsometricheskaia karta Rossiiskoi Imperii), never translated. Gipsometricheskaia is 'hypsometric' (elevation shown by tints), not a name; Rossiiskaia Imperiia is the Russian Empire. Opyt izobrazheniia rel'efa = 'an attempt at depicting the relief'."
+ },
+ "rijks:RP-P-1881-A-4850": {
+  "was": "Kaart van beleg en verovering van Sas-van-Gent, 1644",
+  "title": "Map of the siege and capture of Sas van Gent, 1644",
+  "note": "Dutch, never translated. Sas-van-Gent (Sas van Gent) is a town in Zeeland, a place name kept as is; beleg en verovering = siege and capture."
+ },
+ "rijks:RP-P-1891-A-16621": {
+  "was": "Wereldkaart met een allegorie op de vier elementen",
+  "title": "World map with an allegory of the four elements",
+  "note": "Dutch, never translated. No proper names; Wereldkaart = world map, vier elementen = four elements."
+ },
+ "rijks:RP-P-1909-443": {
+  "was": "Beleg van Hulst, 1645",
+  "title": "Siege of Hulst, 1645",
+  "note": "Dutch, never translated. Hulst is a town in Zeeland Flanders, a place name kept as is, not vocabulary; Beleg = siege."
+ },
+ "rijks:RP-P-1910-2197": {
+  "was": "Kaart van het fort Schenckenschans, veroverd door de Fransen in 1672",
+  "title": "Map of the fort of Schenckenschans, captured by the French in 1672",
+  "note": "Dutch, never translated. Schenckenschans (Schenkenschans) is a fortress on the Rhine near Kleve, a place name kept in its period spelling; veroverd door de Fransen = captured by the French."
  }
 }
