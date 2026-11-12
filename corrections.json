@@ -1148,5 +1148,140 @@
   "was": "Beleg van Duinkerken, 1646",
   "title": "Siege of Dunkirk, 1646",
   "note": "Dutch, never translated. 'Beleg' = siege; 'Duinkerken' is the Dutch name of Dunkirk (French Dunkerque), a place name, not vocabulary."
+ },
+ "00560609": {
+  "was": "Plano ichnographico de la ciudad de Mexico que demuestra el reglamento general de sus calles asi para la comodidad y hermosura, como para la correccion y extirpacion de las maldades ge. hay en sus barrios, por la infinidad de sitios escondidos, callejones sin transito, ruinas y paderones que las ocasionan, a pesar del zelo de los justics. de orden del Exmo. Sr. Conde Revilla Gigedo por el Mtro. Mayor D. Ignacio Castera, año de 1794",
+  "title": "Ichnographic plan of the city of Mexico, showing the general regulation of its streets, both for comfort and beauty and for the correction and eradication of the evils found in its districts, owing to the infinity of hidden places, dead-end alleys, ruins and paderones that cause them, despite the zeal of the justices. By order of the Most Excellent Lord Count of Revilla Gigedo, by Master Mayor Don Ignacio Castera, year 1794",
+  "note": "Spanish (18th-c. spelling), never translated. 'Ichnographico' = ground-plan (ichnography), not a stray word; 'Mtro. Mayor' = Maestro Mayor, the city's chief architect; 'ge.' = que and 'justics.' = justicias are abbreviations; 'Revilla Gigedo' (viceroy) and 'Ignacio Castera' are names. 'paderones' is left as written (probably paredones, ruined walls, but the caption does not say). Written against the re-catalogued caption."
+ },
+ "2003623130": {
+  "was": "Plan de la Nouvelle Orleans",
+  "title": "Plan of New Orleans",
+  "note": "French, 'Plan de la Nouvelle Orleans'. The published words were right but in French word order ('New Orleans Plan'); a place name stays a name, so New Orleans is kept whole."
+ },
+ "2004629013": {
+  "was": "Nouvelle carte physique, politique, industrielle & commericale de l'Amerique Centrale et des Antilles : avec un plan spécial des possessions de la Compagnie belge de colonisation dans l'Amerique Centrale, état de Guatemala",
+  "title": "New physical, political, industrial and commercial map of Central America and the Antilles: with a special plan of the possessions of the Belgian Colonisation Company in Central America, State of Guatemala",
+  "note": "French, published cut off at 'special plan of…', losing the Belgian colonisation company and Guatemala. 'commericale' is the archive's own typo for commerciale. Antilles kept as the proper regional name."
+ },
+ "2004629230": {
+  "was": "Persia (Iran), Afghanistan and Baluchistan",
+  "title": "Persia (Iran), Afghanistan and Baluchistan",
+  "note": "Already English; the pool read 'Persian (Iran)', an adjective for a place name, flagged as detected-language id. The archive's own words are 'Persia (Iran)'. Baluchistan is a region name, kept."
+ },
+ "2005630142": {
+  "was": "Qubbec, ville de l'Amerique septentrionale dans la Nouvelle France avec titre d'Eveché située sur le fleuve de St. Laurens a 310 degrez 17 minutes de longitude et 46 degrez 55 minutes de latitude : elle fut Assiegée par les Anglois sur les Francois par qui elle est encore possédée l'an 1670 depuis le 16e octobre jusqu'au 22e du meme Mois : monsr de frontenac etant pour lors gouverneur du pays qui leur fit hontue sement lever le siege",
+  "title": "Québec, city of North America in New France with the title of bishopric, situated on the river St. Lawrence at 310 degrees 17 minutes longitude and 46 degrees 55 minutes latitude: it was besieged by the English, from the French, by whom it is still held, in the year 1670 from the 16th of October to the 22nd of the same month: Monsieur de Frontenac being at that time governor of the country, who shamefully made them raise the siege",
+  "note": "French (17th-c. spelling), never translated. The archive's 'Qubbec' is a dropped accent for Québec. 'St. Laurens' is the St. Lawrence; 'Eveché' = bishopric; 'hontuesement' = shamefully; 'lever le siege' = raise the siege. Frontenac is a person. The caption says 1670 and the translation keeps it. Written against the re-catalogued caption."
+ },
+ "2006636637": {
+  "was": "Letts's bird's eye view of the approaches to India",
+  "title": "Letts's bird's eye view of the approaches to India",
+  "note": "Already English; no translation needed. Letts is the publisher's surname, a name not a word. Flagged only because language detection failed."
+ },
+ "2013593031": {
+  "was": "Kriegskarte von Agypten, Palastina und Arabien",
+  "title": "War Map of Egypt, Palestine and Arabia",
+  "note": "German. 'Palastina' was left half-translated in the pool (a lost umlaut, Palästina) and should read Palestine; Agypten likewise (Ägypten) is Egypt."
+ },
+ "2017590449": {
+  "was": "Nova terrae-Mariae tabula",
+  "title": "New map of Terra Mariae (Maryland)",
+  "note": "Latin, never translated. 'Terrae-Mariae' is Mary's Land, the colonial name of Maryland (Lord Baltimore's colony, per the dedication) and is kept as a name."
+ },
+ "2017590615": {
+  "was": "Nova Virginiae tabvla",
+  "title": "New map of Virginia",
+  "note": "Latin, never translated. 'Nova Virginiae tabvla' = new map of Virginia; 'tabvla' uses v for u."
+ },
+ "74695315": {
+  "was": "Canada IIe. feuille, XXXV, B 32",
+  "title": "Canada, sheet II, XXXV, B 32",
+  "note": "French, never translated. 'IIe. feuille' = 2nd sheet (feuille), not a title word; XXXV and B 32 are the sheet's own reference numbers and are kept."
+ },
+ "77696392": {
+  "was": "Plan goroda Tomska s prilegai︠u︡shcheĭ k nemu zheli︠e︡znodorozhnoĭ vi︠e︡tvʹi︠u︡",
+  "title": "Plan of the city of Tomsk with its adjoining railway branch",
+  "note": "Russian in library transliteration, which the pool translator took for something else: 'Plan of Gorida Tomska with its fits'. 'goroda' = of the city, Tomska = Tomsk (a place), 'prilegai︠u︡shcheĭ k nemu' = adjoining it, 'zheli︠e︡znodorozhnoĭ vi︠e︡tvʹi︠u︡' = railway branch."
+ },
+ "80691936": {
+  "was": "Yamashiro no Kuni ezu",
+  "title": "Map of Yamashiro Province",
+  "note": "Japanese (romanised), never translated. 'Kuni' = province, 'ezu' = pictorial map; Yamashiro is the province's name (around Kyoto) and stays a name."
+ },
+ "88691705": {
+  "was": "[Nihon-zu sara]",
+  "title": "[Map of Japan (Nihon-zu sara)]",
+  "note": "Japanese (romanised), never translated. 'Nihon-zu' = map of Japan. 'sara' is left as written: the caption does not say what it means and it is not guessed at. Brackets are the cataloguer's. Written against the re-catalogued caption."
+ },
+ "88694864": {
+  "was": "Seisen Dai Nihon zenzu, ichimei, Dōchū hitori annai : tsuketari, meishōga iri",
+  "title": "Newly selected complete map of Great Japan, also called a Solo Traveller's Guide to the Highways: with pictures of famous places added",
+  "note": "Japanese (romanised), never translated. 'Seisen' = carefully selected/revised, 'Dai Nihon zenzu' = complete map of Great Japan, 'ichimei' = also called, 'Dōchū hitori annai' = a lone traveller's guide to the road, 'tsuketari' = with added, 'meishōga iri' = containing pictures of famous places."
+ },
+ "gm72003581": {
+  "was": "A draught of the Bay of Honduras and part of the Musquetto Shore",
+  "title": "A draught of the Bay of Honduras and part of the Musquetto Shore",
+  "note": "Already English; 'draught' is the period word for chart or plan and 'Musquetto Shore' the 18th-c. spelling of the Mosquito Coast. Kept in the archive's own words; flagged only because language detection failed."
+ },
+ "rijks:NG-501-30": {
+  "was": "Kaart van de kust van Spanje en Portugal",
+  "title": "Map of the coast of Spain and Portugal",
+  "note": "Dutch, never translated. Kaart = map."
+ },
+ "rijks:RP-P-1896-A-19368-221": {
+  "was": "Plattegrond van de stad Groningen tijdens het beleg van 1594",
+  "title": "Plan of the city of Groningen during the siege of 1594",
+  "note": "Dutch, never translated. 'Plattegrond' = ground plan; 'beleg' = siege; Groningen is a city name."
+ },
+ "rijks:RP-P-1905-277": {
+  "was": "Slag bij Fleurus, 1690",
+  "title": "Battle of Fleurus, 1690",
+  "note": "Dutch, never translated. 'Slag bij' = battle of; Fleurus is a place name."
+ },
+ "rijks:RP-P-1909-378": {
+  "was": "Belegering van Armentières, 1647",
+  "title": "Siege of Armentières, 1647",
+  "note": "Dutch, never translated. 'Belegering' = siege; Armentières is a place name."
+ },
+ "rijks:RP-P-1909-393": {
+  "was": "Beleg van Bergen, 1709",
+  "title": "Siege of Mons (Bergen), 1709",
+  "note": "Dutch, never translated. 'Bergen' here is the Dutch name of Mons in Hainaut (siege of 1709), not Bergen in Norway or Bergen op Zoom; both names given so neither is lost."
+ },
+ "rijks:RP-P-1909-441": {
+  "was": "Beleg van Breda, 1637",
+  "title": "Siege of Breda, 1637",
+  "note": "Dutch, never translated. Breda is a place name."
+ },
+ "rijks:RP-P-1910-2233": {
+  "was": "Mislukt beleg van Brussel door de Fransen, 1708",
+  "title": "Failed siege of Brussels by the French, 1708",
+  "note": "Dutch, never translated. 'Mislukt beleg' = failed siege; 'Brussel' is Brussels, 'de Fransen' the French."
+ },
+ "rijks:RP-P-AO-16-111": {
+  "was": "Kaart van de baronie van Breda met het beleg van 1624-1625",
+  "title": "Map of the barony of Breda with the siege of 1624-1625",
+  "note": "Dutch, never translated. 'Baronie' = barony; Breda is a place name."
+ },
+ "rijks:RP-P-OB-50.149": {
+  "was": "Kaart van de kust van Noorwegen en Zweden tussen Merdøy en Uddevalla",
+  "title": "Map of the coast of Norway and Sweden between Merdøy and Uddevalla",
+  "note": "Dutch, never translated. Merdøy (Norwegian island) and Uddevalla (Swedish town) are place names; the ø is kept."
+ },
+ "rijks:RP-P-OB-50.150": {
+  "was": "Kaart een deel van de kust van Noorwegen en Zweden",
+  "title": "Map of part of the coast of Norway and Sweden",
+  "note": "Dutch, never translated. 'Kaart een deel van' (sic, a missing 'van') = map of part of."
+ },
+ "rijks:RP-P-OB-77.250": {
+  "was": "Kaart van de versterkingen van Namen bij het beleg in 1695",
+  "title": "Map of the fortifications of Namur during the siege of 1695",
+  "note": "Dutch, never translated. 'Namen' is the Dutch name of Namur (Belgium), a place; the siege is that of 1695."
+ },
+ "rijks:RP-P-OB-77.251": {
+  "was": "Kaart van de versterkingen van Namen bij het beleg in 1695",
+  "title": "Map of the fortifications of Namur during the siege of 1695",
+  "note": "Dutch, never translated. 'Namen' is the Dutch name of Namur (Belgium), a place; same caption as RP-P-OB-77.250."
  }
 }
