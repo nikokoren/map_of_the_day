@@ -1576,5 +1576,35 @@
   "lang": "",
   "shown": "Kaart van het fort Schenckenschans, veroverd door de Fransen in 1672",
   "source": "Kaart van het fort Schenckenschans, veroverd door de Fransen in 1672"
+ },
+ {
+  "id": "2004632029",
+  "lang": "lv",
+  "shown": "Urb Salvador",
+  "source": "Urbs Salvador"
+ },
+ {
+  "id": "73697081",
+  "lang": "",
+  "shown": "Carta de la isla de San Christoval",
+  "source": "Carta de la isla de San Christoval"
+ },
+ {
+  "id": "74690951",
+  "lang": "fr",
+  "shown": "Map of the Golf of Mexico and the Isles of the West Indies, reduced from the great Anglo map of Popple",
+  "source": "Carte du Golphe du Mexique et des isles Antilles, reduite de la grande carte angloise de Popple,"
+ },
+ {
+  "id": "gm71002182",
+  "lang": "fr",
+  "shown": "General map of the Atlantic or Western Ocean",
+  "source": "Carte g\u00e9n\u00e9rale de l'Oc\u00e9an Atlantique ou Occidental,"
+ },
+ {
+  "id": "rijks:RP-P-AO-16-130A",
+  "lang": "",
+  "shown": "Beleg van Grave, 1602",
+  "source": "Beleg van Grave, 1602"
  }
 ]
