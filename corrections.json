@@ -1313,5 +1313,30 @@
   "was": "Kaart van het fort Schenckenschans, veroverd door de Fransen in 1672",
   "title": "Map of the fort of Schenckenschans, captured by the French in 1672",
   "note": "Dutch, never translated. Schenckenschans (Schenkenschans) is a fortress on the Rhine near Kleve, a place name kept in its period spelling; veroverd door de Fransen = captured by the French."
+ },
+ "2004632029": {
+  "was": "Urbs Salvador",
+  "title": "City of Salvador",
+  "note": "Latin, not Latvian: language detection tagged it lv and a translator turned Urbs into 'Urb'. Urbs is Latin for 'city', so this is 'City of Salvador' (Salvador, Bahia, Brazil, from Montanus's 1671 atlas). Salvador is a place name and stays as is."
+ },
+ "73697081": {
+  "was": "Carta de la isla de San Christoval,",
+  "title": "Chart of the island of San Christoval",
+  "note": "Spanish, never translated (language came back unknown). Carta is a chart, isla is island. San Christoval is the Spanish name of the island (Saint Kitts) and is kept as the name the map carries, not modernised or translated to Saint Christopher. The pool's caption now carries a trailing comma from re-cataloguing; 'was' includes it, the replacement drops it."
+ },
+ "74690951": {
+  "was": "Carte du Golphe du Mexique et des isles Antilles, reduite de la grande carte angloise de Popple,",
+  "title": "Map of the Gulf of Mexico and the Antilles Islands, reduced from the large English map by Popple",
+  "note": "Golphe is the old French spelling of golfe, 'gulf'; it was copied as the English 'Golf'. 'isles Antilles' are the Antilles islands, which a loose rendering turned into 'Isles of the West Indies'. 'grande carte angloise' is 'large English map', not 'great Anglo map' (angloise is the period spelling of anglaise). Popple is the English cartographer (Henry Popple) and stays a name. The trailing comma is catalogue punctuation, dropped."
+ },
+ "gm71002182": {
+  "was": "Carte générale de l'Océan Atlantique ou Occidental,",
+  "title": "General chart of the Atlantic or Western Ocean",
+  "note": "Published wording was already close; no outright error found. Tightened only: 'Carte' on a Mercator sea chart from the Depot de la marine is better a chart, and 'Occidental' is the Western Ocean, an alternative name for the Atlantic, kept as such. Trailing catalogue comma dropped."
+ },
+ "rijks:RP-P-AO-16-130A": {
+  "was": "Beleg van Grave, 1602",
+  "title": "Siege of Grave, 1602",
+  "note": "Dutch, never translated (language came back unknown). Beleg is 'siege'. Grave is a town in North Brabant, a place name, not the English word 'grave'; it stays as Grave. 1602 is the year of the siege."
  }
 }
