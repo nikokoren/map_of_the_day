@@ -7,6 +7,16 @@ on:
     - cron: "20 3 1 * *"
   workflow_dispatch:
     inputs:
+      # The Rijksmuseum listing holds 4,813 ids and 612 have been
+      # resolved: at 400 a monthly run the rest is ten months away,
+      # and it is the only non-American source in the pool. Resolving
+      # 400 took under two minutes on 1 November, so the budget is a
+      # dial rather than a limit -- raise it on a dispatch to clear the
+      # backlog in one go.
+      rijks_budget:
+        description: "Rijksmuseum maps to resolve this run (default 400)"
+        required: false
+        default: ""
       pages:
         description: "Max pages per collection (100 records each)"
         required: false
@@ -41,7 +51,12 @@ jobs:
         run: python3 harvest.py --selftest
 
       - name: Harvest map pool from the Library of Congress
-        run: python3 harvest.py --pages "${{ github.event.inputs.pages || 25 }}"
+        env:
+          RIJKS_BUDGET: ${{ github.event.inputs.rijks_budget }}
+        run: |
+          python3 harvest.py \
+            --pages "${{ github.event.inputs.pages || 25 }}" \
+            ${RIJKS_BUDGET:+--rijks-budget "$RIJKS_BUDGET"}
 
       # The Rijksmuseum resolutions are the expensive part of this job
       # and they come first, so a run that dies in the loc.gov crawl has
