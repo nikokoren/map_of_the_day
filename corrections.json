@@ -1398,5 +1398,15 @@
   "was": "Beleg van Geertruidenberg, 1593",
   "title": "Siege of Geertruidenberg, 1593",
   "note": "Dutch, never translated. Beleg = siege. Geertruidenberg is a town in North Brabant, a place name, kept as is; 1593 is the year of the siege in the caption (the print is dated 1595)."
+ },
+ "99463778": {
+  "was": "Chart shewing the North West Passage discovered by H.M. Ship Investigator : also the coast explored in search of Sir J. Franklin by Sir Jas. Ross, 1848 & 49 ... [et al.]",
+  "title": "Chart showing the North West Passage discovered by H.M. Ship Investigator : also the coast explored in search of Sir J. Franklin by Sir Jas. Ross, 1848 & 49 ... [et al.]",
+  "note": "Already English, never translated; flagged only for the archaic spelling 'shewing' (= showing). Modernised that one word and kept everything else as catalogued: H.M. Ship Investigator is a ship name, Sir J. Franklin and Sir Jas. Ross are people (Jas. = James), and '[et al.]' is the archive's own cataloguing mark."
+ },
+ "rijks:RP-P-1905-279": {
+  "was": "Kaart van de slag bij Landen, 1693",
+  "title": "Map of the Battle of Landen, 1693",
+  "note": "Dutch, never translated. Kaart = map, slag = battle, 'bij' = at/of. Landen is a place name (the Battle of Landen, also called Neerwinden, 1693), kept as is."
  }
 }
