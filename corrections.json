@@ -1338,5 +1338,65 @@
   "was": "Beleg van Grave, 1602",
   "title": "Siege of Grave, 1602",
   "note": "Dutch, never translated (language came back unknown). Beleg is 'siege'. Grave is a town in North Brabant, a place name, not the English word 'grave'; it stays as Grave. 1602 is the year of the siege."
+ },
+ "2001627799": {
+  "was": "Texas : nach den besten Quellen",
+  "title": "Texas: according to the best sources",
+  "note": "German, 'nach den besten Quellen' = 'according to the best sources'. Published wording was already faithful; only the catalogue's space before the colon is normalised. Texas is the place and stays as is."
+ },
+ "2006629776": {
+  "was": "Carte de la decouverte faite l'an 1673 dans l'Amerique Septentrionale",
+  "title": "Map of the discovery made in 1673 in North America",
+  "note": "French 'l'Amérique Septentrionale' is simply 'North America' (septentrional = northern); the translator left a stray 'the' in 'in the North America'. It is Marquette's 1673 Mississippi expedition; no names appear in the caption itself."
+ },
+ "2017585701": {
+  "was": "Mappe-monde, ou carte generale de la terre : divisée en deux hemispheres suivant la projection la plus commune ou tous les points principaux sont placez sur les observations de mrs. de l'Academie royale des sciences",
+  "title": "World map, or general map of the earth: divided into two hemispheres according to the most common projection, in which all the principal points are placed according to the observations of Messrs. of the Royal Academy of Sciences",
+  "note": "Never translated (language came back unknown); the pool holds the archive's longer re-catalogued French title. 'Mappe-monde' is a world map, 'mrs.' is Messieurs, and 'Academie royale des sciences' is the Royal Academy of Sciences in Paris, a named institution. Nicolas de Fer's hemispheres."
+ },
+ "2021668681": {
+  "was": "An Exact Draught of the Bay and Harbour of Vigo.",
+  "title": "An Exact Draught of the Bay and Harbour of Vigo",
+  "note": "Already English, so the 'unknown' language flag just meant nothing was ever run. Wording kept: 'Draught' is the period spelling of draft, i.e. a drawn plan, not a modernisation error. Vigo is the Galician port (battle of 23 October 1702) and stays a name. Trailing catalogue full stop dropped."
+ },
+ "73696293": {
+  "was": "Plan de la ville et du port de Louisbourg levé en 1756",
+  "title": "Plan of the town and port of Louisbourg, surveyed in 1756",
+  "note": "French 'levé' on a plan means surveyed (lever un plan = to survey), not 'raised'; the translator took the literal verb. Louisbourg is the fortress town in Nova Scotia and stays as spelled. 'Ville' as town rather than city, since Louisbourg was a small fortified town."
+ },
+ "74691324": {
+  "was": "Carte réduite de l'isle de la Martinique",
+  "title": "Reduced chart of the island of Martinique",
+  "note": "'Carte réduite' is the technical name for a Mercator sea chart (the 'reduced' refers to the projection's reduced meridian degrees), so 'chart', not 'map'. Martinique stays a name; 'isle' is old spelling of île, rendered island."
+ },
+ "96686648": {
+  "was": "Derrotero hecho por Antonio Vélez y Escalante, misionero para mejor conocimiento de las misiones, pueblos de indios y presidios que se hallan en el Camino de Monterrey a Santa Fe de Nuebo Mexico",
+  "title": "Itinerary made by Antonio Vélez [de] Escalante, missionary, for better knowledge of the missions, Indian pueblos and presidios found on the road from Monterrey to Santa Fe de Nuevo México",
+  "note": "Spanish, never translated (language unknown); the pool holds the longer re-catalogued title. 'Derrotero' is a route log or itinerary (originally a sailor's term). Pueblos and presidios are kept as the period terms for Indian towns and frontier forts. The archive's 'Nuebo' is the manuscript spelling of Nuevo; the place is Santa Fe de Nuevo México. Names (Escalante, Monterrey, Santa Fe) kept. Nothing added about the 1776 expedition, as the caption does not say it."
+ },
+ "98687116": {
+  "was": "Kartenskizze von Africa zur vergleichenden Übersicht der Reisen Dr. Barth's und Dr. Livingstone's",
+  "title": "Sketch map of Africa for a comparative overview of the travels of Dr. Barth and Dr. Livingstone",
+  "note": "German 'Kartenskizze' is a sketch map (published as the awkward 'Map sketch'); 'Dr. Barth's und Dr. Livingstone's' is an old-style genitive with apostrophe, so 'the travels of Dr. Barth and Dr. Livingstone'. Heinrich Barth and David Livingstone remain names."
+ },
+ "gm71002364": {
+  "was": "Carte de la partie de la Virginie ou l'armée combinée de France & des États-Unis de l'Amérique a fait prisonnière l'Armée anglaise commandée par Lord Cornwallis le 19 octobre. 1781, avec le plan de l'attaque d'York-town & de Glocester",
+  "title": "Map of the part of Virginia where the combined army of France and the United States of America took the English army commanded by Lord Cornwallis prisoner on 19 October 1781, with the plan of the attack on Yorktown and Gloucester",
+  "note": "Two faults. 'a fait prisonnière' is 'took prisoner', not 'imprisoned'; and the published caption was cut off with an ellipsis after 'English Army', losing Cornwallis, the date and the plan of the attack. Archive's 'Glocester' is an old spelling of Gloucester (Gloucester Point); York-town is Yorktown. 'Armée' lowercased as common noun."
+ },
+ "74690544": {
+  "was": "Carte hydrographique de la baye de la Havana. Avec le Plan de la ville et de ses forts pour joindre a la Carte de l'isle de Cube. Dressée au Dépot des cartes et plans de la marine, pour le service des vaisseaux du roy. Par ordre de M. le duc de Choiseul, colonel général des suisses et grisons, ministre de la guerre et de la marine, 1762",
+  "title": "Hydrographic chart of the bay of Havana. With the plan of the city and its forts, to join the chart of the island of Cuba. Drawn up at the Depot of Charts and Plans of the Navy, for the service of the King's ships. By order of M. the Duc de Choiseul, Colonel General of the Swiss and Grisons, Minister of War and of the Navy, 1762",
+  "note": "Three faults. French 'Cube' is the old French spelling of Cuba, which the translator rendered as the solid, 'Cube Isle'; 'Dressée' on a chart is 'drawn up', not 'Dressed'; and the published text was truncated with an ellipsis, losing the Depot, the Duc de Choiseul and the date. Havana (Havane/Havana) and Choiseul are names. 'Dépot des cartes et plans de la marine' is the French navy's chart office."
+ },
+ "rijks:NG-501-31": {
+  "was": "Zeekaart van de zee ten westen van Ierland",
+  "title": "Sea chart of the sea west of Ireland",
+  "note": "Dutch, never translated (language unknown). Zeekaart is a sea chart (nautical chart), not a 'map of the sea'; 'ten westen van' = to the west of; Ierland is Ireland."
+ },
+ "rijks:RP-P-AO-14-51": {
+  "was": "Beleg van Geertruidenberg, 1593",
+  "title": "Siege of Geertruidenberg, 1593",
+  "note": "Dutch, never translated. Beleg = siege. Geertruidenberg is a town in North Brabant, a place name, kept as is; 1593 is the year of the siege in the caption (the print is dated 1595)."
  }
 }
