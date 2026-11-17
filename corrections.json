@@ -1408,5 +1408,25 @@
   "was": "Kaart van de slag bij Landen, 1693",
   "title": "Map of the Battle of Landen, 1693",
   "note": "Dutch, never translated. Kaart = map, slag = battle, 'bij' = at/of. Landen is a place name (the Battle of Landen, also called Neerwinden, 1693), kept as is."
+ },
+ "2003623405": {
+  "was": "Pascaert van Nieuw Nederlandt Virginia, ende Nieuw-Engelandt verthonendt alles wat van die landin by See, oft by land is ondect oft Bekent",
+  "title": "Sea chart of New Netherland, Virginia, and New England, showing everything of the lands that has been discovered or is known, by sea or by land",
+  "note": "Early modern Dutch, never translated. Pascaert = sea chart (portolan-style), verthonendt = showing, landin = lands, ondect = ontdekt (discovered), Bekent = known. Nieuw Nederlandt (New Netherland), Virginia and Nieuw-Engelandt (New England) are place names, kept as names. Written against the re-catalogued, longer caption."
+ },
+ "2004629154": {
+  "was": "Assyria vetvs diuisa in Syriam, Messopotamiam, Babyloniam, et Assyriam",
+  "title": "Ancient Assyria, divided into Syria, Mesopotamia, Babylonia, and Assyria",
+  "note": "Latin, never translated. vetvs = vetus (ancient; u printed as v), diuisa = divisa (divided), in + accusative = into. Syria, Mesopotamia, Babylonia and Assyria are region names, kept as names."
+ },
+ "74692586": {
+  "was": "Plan de la barre et du havre de Charles-Town d'après un plan anglois levé en 1776",
+  "title": "Plan of the bar and harbour of Charles-Town, from an English plan surveyed in 1776",
+  "note": "French. 'anglois' (old spelling of anglais) means English, not 'Anglo'; 'levé' on a plan means surveyed (lever un plan), not 'raised'; 'plan' is a plan, not a 'map'. Charles-Town (now Charleston) kept as the archive's name."
+ },
+ "rijks:RP-P-1910-2222": {
+  "was": "Beleg van 's-Hertogenbosch, 1629",
+  "title": "Siege of 's-Hertogenbosch, 1629",
+  "note": "Dutch, never translated. Beleg = siege. 's-Hertogenbosch is a city name (the 1629 siege by Frederick Henry), kept as is with its leading 's apostrophe."
  }
 }
