@@ -1428,5 +1428,40 @@
   "was": "Beleg van 's-Hertogenbosch, 1629",
   "title": "Siege of 's-Hertogenbosch, 1629",
   "note": "Dutch, never translated. Beleg = siege. 's-Hertogenbosch is a city name (the 1629 siege by Frederick Henry), kept as is with its leading 's apostrophe."
+ },
+ "2021668432": {
+  "was": "Mappamundi.",
+  "title": "Mappamundi (world map)",
+  "note": "Never translated: the archive's whole caption is the single word 'Mappamundi', the medieval term for a world map (here the Giovanni Leardo map). Kept the term, which is a real English word, and added the plain gloss; no other detail is in the caption."
+ },
+ "98688439": {
+  "was": "Karte der verschiendenen Pacific Eisenbahnen und deren Verbindung mit anderen Bahnen; für die \"N.Y. Handels Zeitung\" gezeichne",
+  "title": "Map of the various Pacific railroads and their connections with other railroads; drawn for the \"N.Y. Handels Zeitung\"",
+  "note": "German, never translated. 'Eisenbahnen' = railroads, 'Verbindung mit' = connection with, 'gezeichne[t]' = drawn. The archive caption is cut off mid-word ('gezeichne', 'verschiendenen' is also its own misspelling of 'verschiedenen'). 'N.Y. Handels Zeitung' is a newspaper's name (New York commercial gazette), kept as a name, with the closing quote the truncated caption lacked."
+ },
+ "rijks:NG-501-35": {
+  "was": "Kaart van het Kanaal en de kusten van Zuid Engeland en Noordwest Frankrijk",
+  "title": "Map of the Channel and the coasts of southern England and northwest France",
+  "note": "Dutch, never translated. 'het Kanaal' is the English Channel; 'Zuid Engeland' = southern England, 'Noordwest Frankrijk' = northwest France. Kaart = map."
+ },
+ "rijks:RP-P-1905-6759": {
+  "was": "Beleg van Namen, 1695",
+  "title": "Siege of Namur, 1695",
+  "note": "Dutch, never translated. Beleg = siege. 'Namen' is the Dutch name of Namur (Belgium), not the English word 'names'; English name used for the place."
+ },
+ "rijks:RP-P-1909-392": {
+  "was": "Belegering van Gent, 1708",
+  "title": "Siege of Ghent, 1708",
+  "note": "Dutch, never translated. Belegering = siege. 'Gent' is the Dutch name of Ghent (Belgium), not a given name or common word; English name used for the place."
+ },
+ "rijks:RP-P-OB-77.249": {
+  "was": "Kaart van Namen en omgeving tijdens het beleg, 1695",
+  "title": "Map of Namur and its surroundings during the siege, 1695",
+  "note": "Dutch, never translated. Kaart = map, 'omgeving' = surroundings, beleg = siege. 'Namen' is the Dutch name of Namur (Belgium), not 'names'."
+ },
+ "rijks:RP-P-OB-77.253": {
+  "was": "Beleg en inname van Namen door de geallieerden, 1695",
+  "title": "Siege and capture of Namur by the allies, 1695",
+  "note": "Dutch, never translated. 'Beleg en inname' = siege and capture, 'geallieerden' = the allies (the 1695 Allied siege of Namur). 'Namen' is the Dutch name of Namur, not 'names'."
  }
 }
