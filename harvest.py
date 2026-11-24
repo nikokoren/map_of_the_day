@@ -74,11 +74,25 @@ MAX_WAIT_PER_FETCH = 130
 # commit step keeps nothing -- which is the difference between a bad
 # harvest and a lost one.
 CRAWL_MINUTES = 35
+# Measuring is the job's other long pole, and it was capped by count
+# alone. A measurement downloads the map, so when loc.gov is throttling
+# it costs seconds rather than milliseconds: on 24 November 300 of them
+# took 51 minutes, the job hit its 90-minute wall, and the run never
+# reached the step that writes the pool -- an evening's crawl and 4,571
+# freshly resolved Rijksmuseum maps sat in the cache instead of going on
+# the feed. So measuring gets a deadline as well, late enough to be
+# generous and early enough to leave the pool and the commit their time.
+MEASURE_MINUTES = 72
 _started = time.time()
 
 
 def crawl_seconds_left(budget_minutes=CRAWL_MINUTES):
     return budget_minutes * 60 - (time.time() - _started)
+
+
+def out_of_measuring_time():
+    """Whether to stop measuring and get on with writing the pool."""
+    return crawl_seconds_left(MEASURE_MINUTES) <= 0
 # How much of the pool may go missing before a harvest is refused.
 POOL_FLOOR = 0.6
 TIMEOUT = 60
@@ -1398,6 +1412,12 @@ def build_pool(max_pages, rijks_budget=RIJKS_BUDGET):
         sys.stderr.write("measuring {} of {} unmeasured maps\n"
                          .format(len(todo), len(unmeasured)))
         for i, entry in enumerate(todo, 1):
+            if out_of_measuring_time():
+                # What is measured is cached, so the ones left over are
+                # the next run's first business, not lost work.
+                sys.stderr.write("  out of measuring time at {}/{}\n"
+                                 .format(i, len(todo)))
+                break
             result = measure(entry)
             if result:
                 quality[entry["s"]] = list(result)
@@ -1542,6 +1562,20 @@ def selftest():
     # of backoff each is more than ninety minutes, and a run that does
     # not reach its commit step keeps nothing -- not even the
     # Rijksmuseum resolutions that had already succeeded.
+    check("measuring has a deadline of its own", not out_of_measuring_time())
+    was_started = globals()["_started"]
+    try:
+        globals()["_started"] = was_started - (MEASURE_MINUTES + 1) * 60
+        check("and it trips once the job is nearly up",
+              out_of_measuring_time())
+    finally:
+        globals()["_started"] = was_started
+    check("and it leaves time to write the pool and commit",
+          MEASURE_MINUTES < 80,
+          "{} minutes of a 90-minute job".format(MEASURE_MINUTES))
+    check("and it outlasts the crawl, which runs first",
+          MEASURE_MINUTES > CRAWL_MINUTES)
+
     check("the crawl is time-boxed", CRAWL_MINUTES > 0)
     check("and leaves the job room to measure and commit",
           CRAWL_MINUTES < 60,
