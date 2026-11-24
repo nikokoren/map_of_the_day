@@ -21,6 +21,7 @@ no per-item follow-up, which keeps a full harvest around 150 requests.
 
 import argparse
 import http.client
+import io
 import json
 import os
 import re
@@ -177,6 +178,35 @@ DESC_REJECT = ["braille", "relief model", "globe gores"]
 # is over three years of daily picks in a single category and eleven
 # years across the whole pool.
 PER_CATEGORY_CAP = 1200
+CORRECTIONS = os.path.join(HERE, "corrections.json")
+
+
+def spoken_for():
+    """Ids somebody has hand-written a caption for.
+
+    A correction is the most expensive data here: a person read the map,
+    worked out what the catalogue got wrong, and wrote the fix. The cap
+    must not quietly spend one. daily.py refuses a pool where a
+    correction has no map -- "worse than none", it says, because nobody
+    would know it had lapsed -- and it is right to. Harvesting 4,571
+    Rijksmuseum maps in one go is what found this: the newcomers
+    outranked incumbents in categories already at the cap, and 116
+    hand-written Rijksmuseum captions were about to be cut.
+    """
+    try:
+        with io.open(CORRECTIONS, encoding="utf-8") as handle:
+            return set(json.load(handle))
+    except (IOError, OSError, ValueError):
+        # No corrections yet, or a file we cannot read. Capping by
+        # render quality alone is the old behaviour and loses nothing.
+        return set()
+
+
+def cap_key(entry, quality, curated):
+    """How maps queue for a place under the cap; lowest goes first."""
+    return (str(entry["id"]) not in curated,
+            render_rank(quality.get(entry["s"])),
+            -score(entry))
 
 POOL_VERSION = 1
 
@@ -1437,9 +1467,10 @@ def build_pool(max_pages, rijks_budget=RIJKS_BUDGET):
     # Cap each category. Ranking is by how the map renders, falling back
     # to the metadata score to separate maps that render alike.
     kept = []
+    curated = spoken_for()
     for category in sorted({c for c, _, _, _ in SOURCES}):
         group = [e for e in readable_candidates if e["k"] == category]
-        group.sort(key=lambda e: (render_rank(quality.get(e["s"])), -score(e)))
+        group.sort(key=lambda e: cap_key(e, quality, curated))
         if len(group) > PER_CATEGORY_CAP:
             stats["over category cap"] += len(group) - PER_CATEGORY_CAP
         kept.extend(group[:PER_CATEGORY_CAP])
@@ -1562,6 +1593,21 @@ def selftest():
     # of backoff each is more than ninety minutes, and a run that does
     # not reach its commit step keeps nothing -- not even the
     # Rijksmuseum resolutions that had already succeeded.
+    # Two real pool entries, lifted from pool.json, with the one
+    # that reads worse given the better measurement -- so the cap
+    # would prefer it on render quality alone, and only the
+    # hand-written caption can outrank it.
+    plain = {"c": "Twining, Alexander C. (Alexander Catlin), 1801-1884", "d": "Relief shown by hachures. Includes \"Profile of route by Sodom Brook\" and \"Profile of route by Holt's Hill.\" LC copies imperfect: Creased and wrinkled.", "h": 5548, "id": "00553990", "k": "cities", "m": "1 map ; 37 x 27 cm.", "p": "New Haven Region, Connecticut", "s": "plain", "t": "Map showing the routes of the contemplated rail road from New-Haven to Hartford", "w": 3940, "y": 1800}
+    fixed = {"c": "Anville, Jean Baptiste Bourguignon d', 1697-1782", "d": "Relief shown pictorially. \"Avec privilège du Roi.\"", "h": 5976, "id": "00552972", "k": "cities", "m": "1 atlas (64 leaves) : ill., 50 maps (some hand col.) ; 56...", "p": "China", "s": "fixed", "t": "Atlas général de la Chine, de la Tartarie chinoise, et du Tibet : pour servir aux différentes descriptions et histoires de cet empire", "w": 3720, "y": 1790}
+    best = {"plain": [255, 255], "fixed": [8, 2]}
+    check("a hand-written caption keeps its map under the cap",
+          cap_key(fixed, best, {"00552972"}) <
+          cap_key(plain, best, {"00552972"}))
+    check("and a map nobody has written for still ranks on how it reads",
+          cap_key(plain, best, set()) < cap_key(fixed, best, set()))
+    check("and corrections are read from the file, not assumed",
+          isinstance(spoken_for(), set))
+
     check("measuring has a deadline of its own", not out_of_measuring_time())
     was_started = globals()["_started"]
     try:
