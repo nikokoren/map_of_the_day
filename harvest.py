@@ -192,6 +192,20 @@ PER_CATEGORY_CAP = 1200
 # install has chosen changes, and the LoC world maps stop being
 # displaced.
 RIJKS_CATEGORY = "rijksmuseum"
+
+
+def pooled(record):
+    """A cached Rijksmuseum record, filed under the current bucket.
+
+    rijks_resolve bakes the bucket into the record it caches, and the
+    cache is emitted as it stands -- a resolve only happens once per id,
+    so changing the constant alone moved nothing: all 4,571 records kept
+    the "world" they were resolved under. Which bucket a map counts
+    against is the harvest's decision today, not the source's from
+    whenever it was first read, so it is applied on the way out. The
+    record in the cache is left alone.
+    """
+    return dict(record, k=RIJKS_CATEGORY)
 CORRECTIONS = os.path.join(HERE, "corrections.json")
 
 
@@ -1292,7 +1306,7 @@ def rijks_maps(budget, stats, max_pages=MAX_PAGES):
                 cache["resolved"][object_id] = entry
         save_rijks(cache)
 
-    kept = [e for e in cache["resolved"].values() if e]
+    kept = [pooled(e) for e in cache["resolved"].values() if e]
     sys.stderr.write("  rijks: {} maps from {} resolved ({} still to do)\n"
                      .format(len(kept), len(cache["resolved"]),
                              len(cache["ids"]) - len(cache["resolved"])))
@@ -1629,6 +1643,27 @@ def selftest():
     plain = {"c": "Twining, Alexander C. (Alexander Catlin), 1801-1884", "d": "Relief shown by hachures. Includes \"Profile of route by Sodom Brook\" and \"Profile of route by Holt's Hill.\" LC copies imperfect: Creased and wrinkled.", "h": 5548, "id": "00553990", "k": "cities", "m": "1 map ; 37 x 27 cm.", "p": "New Haven Region, Connecticut", "s": "plain", "t": "Map showing the routes of the contemplated rail road from New-Haven to Hartford", "w": 3940, "y": 1800}
     fixed = {"c": "Anville, Jean Baptiste Bourguignon d', 1697-1782", "d": "Relief shown pictorially. \"Avec privilège du Roi.\"", "h": 5976, "id": "00552972", "k": "cities", "m": "1 atlas (64 leaves) : ill., 50 maps (some hand col.) ; 56...", "p": "China", "s": "fixed", "t": "Atlas général de la Chine, de la Tartarie chinoise, et du Tibet : pour servir aux différentes descriptions et histoires de cet empire", "w": 3720, "y": 1790}
     best = {"plain": [255, 255], "fixed": [8, 2]}
+    # Through rijks_maps itself, not just the helper: the bucket was
+    # changed once in the resolver alone, which moved nothing, because
+    # the cache is what the harvest actually reads.
+    stale = {"id": "rijks:x", "k": "world", "t": "Kaart"}
+    fake = {"done": True, "ids": ["one"], "resolved": {"one": dict(stale)}}
+    real_load, real_save = load_rijks, save_rijks
+    try:
+        globals()["load_rijks"] = lambda: fake
+        globals()["save_rijks"] = lambda cache: None
+        out = rijks_maps(0, Counter())
+    finally:
+        globals()["load_rijks"] = real_load
+        globals()["save_rijks"] = real_save
+    check("a record cached under the old bucket is refiled on the way out",
+          [e["k"] for e in out] == [RIJKS_CATEGORY],
+          "got {}".format([e.get("k") for e in out]))
+    check("and the cached record itself is left alone",
+          fake["resolved"]["one"]["k"] == "world")
+    check("and the refiling does not lose the record",
+          len(out) == 1 and out[0]["id"] == "rijks:x")
+
     check("the Rijksmuseum has a quota bucket of its own",
           RIJKS_CATEGORY not in {c for c, _, _, _ in SOURCES})
     check("and no reader setting names a category",
