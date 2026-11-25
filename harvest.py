@@ -178,6 +178,20 @@ DESC_REJECT = ["braille", "relief model", "globe gores"]
 # is over three years of daily picks in a single category and eleven
 # years across the whole pool.
 PER_CATEGORY_CAP = 1200
+# Categories are quota buckets, not anything a reader picks: each one is
+# a Library of Congress collection, capped so no single collection can
+# swamp the pool. daily.py never reads this field -- what a reader
+# chooses is the theme and era in "g", worked out from the map's own
+# title.
+#
+# The Rijksmuseum is not an LoC collection, so its resolver had to put
+# something here and used "world", the bucket the World Digital Library
+# already filled. That meant 4,571 resolved Rijksmuseum maps queueing
+# for the 606 places left in one 1,200 quota. Its own bucket is the
+# whole fix: no reader's setting mentions a category, so nothing any
+# install has chosen changes, and the LoC world maps stop being
+# displaced.
+RIJKS_CATEGORY = "rijksmuseum"
 CORRECTIONS = os.path.join(HERE, "corrections.json")
 
 
@@ -207,6 +221,30 @@ def cap_key(entry, quality, curated):
     return (str(entry["id"]) not in curated,
             render_rank(quality.get(entry["s"])),
             -score(entry))
+
+
+def cap_categories(candidates, quality, stats=None):
+    """Thin each quota bucket down to PER_CATEGORY_CAP.
+
+    Over the buckets the candidates actually carry, not the ones SOURCES
+    lists: a bucket no LoC collection feeds -- the Rijksmuseum's -- would
+    otherwise be skipped, and every map in it silently dropped.
+
+    Ranking is by how the map renders, falling back to the metadata score
+    to separate maps that render alike, except that a map somebody has
+    written a caption for queues first and so survives the cap.
+    """
+    if stats is None:
+        stats = Counter()
+    curated = spoken_for()
+    kept = []
+    for category in sorted({e["k"] for e in candidates}):
+        group = [e for e in candidates if e["k"] == category]
+        group.sort(key=lambda e: cap_key(e, quality, curated))
+        if len(group) > PER_CATEGORY_CAP:
+            stats["over category cap"] += len(group) - PER_CATEGORY_CAP
+        kept.extend(group[:PER_CATEGORY_CAP])
+    return kept
 
 POOL_VERSION = 1
 
@@ -1154,7 +1192,7 @@ def rijks_resolve(object_id, stats):
         "pub": "",
         "sc": "",
         "subj": [],
-        "k": "world",
+        "k": RIJKS_CATEGORY,
         "col": "Rijksmuseum",
         "g": topics_for(title, [], "Rijksmuseum"),
         "s": base,
@@ -1464,16 +1502,7 @@ def build_pool(max_pages, rijks_budget=RIJKS_BUDGET):
         else:
             stats["renders as grey mush"] += 1
 
-    # Cap each category. Ranking is by how the map renders, falling back
-    # to the metadata score to separate maps that render alike.
-    kept = []
-    curated = spoken_for()
-    for category in sorted({c for c, _, _, _ in SOURCES}):
-        group = [e for e in readable_candidates if e["k"] == category]
-        group.sort(key=lambda e: cap_key(e, quality, curated))
-        if len(group) > PER_CATEGORY_CAP:
-            stats["over category cap"] += len(group) - PER_CATEGORY_CAP
-        kept.extend(group[:PER_CATEGORY_CAP])
+    kept = cap_categories(readable_candidates, quality, stats)
     kept.sort(key=lambda e: e["id"])
     return kept, stats
 
@@ -1600,6 +1629,22 @@ def selftest():
     plain = {"c": "Twining, Alexander C. (Alexander Catlin), 1801-1884", "d": "Relief shown by hachures. Includes \"Profile of route by Sodom Brook\" and \"Profile of route by Holt's Hill.\" LC copies imperfect: Creased and wrinkled.", "h": 5548, "id": "00553990", "k": "cities", "m": "1 map ; 37 x 27 cm.", "p": "New Haven Region, Connecticut", "s": "plain", "t": "Map showing the routes of the contemplated rail road from New-Haven to Hartford", "w": 3940, "y": 1800}
     fixed = {"c": "Anville, Jean Baptiste Bourguignon d', 1697-1782", "d": "Relief shown pictorially. \"Avec privilège du Roi.\"", "h": 5976, "id": "00552972", "k": "cities", "m": "1 atlas (64 leaves) : ill., 50 maps (some hand col.) ; 56...", "p": "China", "s": "fixed", "t": "Atlas général de la Chine, de la Tartarie chinoise, et du Tibet : pour servir aux différentes descriptions et histoires de cet empire", "w": 3720, "y": 1790}
     best = {"plain": [255, 255], "fixed": [8, 2]}
+    check("the Rijksmuseum has a quota bucket of its own",
+          RIJKS_CATEGORY not in {c for c, _, _, _ in SOURCES})
+    check("and no reader setting names a category",
+          "\"k\"" not in io.open(os.path.join(HERE, "daily.py"),
+                                 encoding="utf-8").read())
+    # The bucket no collection feeds is the one the cap used to skip,
+    # which dropped every map in it instead of thinning it.
+    own = [dict(plain, id="r%d" % i, k=RIJKS_CATEGORY)
+           for i in range(PER_CATEGORY_CAP + 5)]
+    capped = cap_categories(own, {"plain": [255, 255]})
+    check("and its maps are thinned to the cap, not dropped",
+          len(capped) == PER_CATEGORY_CAP,
+          "kept {} of {}".format(len(capped), len(own)))
+    check("and a bucket under the cap keeps all of it",
+          len(cap_categories(own[:3], {"plain": [255, 255]})) == 3)
+
     check("a hand-written caption keeps its map under the cap",
           cap_key(fixed, best, {"00552972"}) <
           cap_key(plain, best, {"00552972"}))

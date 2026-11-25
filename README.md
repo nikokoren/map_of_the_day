@@ -574,9 +574,14 @@ with which panel ends up showing the map.
 Everything above is a constant at the top of `harvest.py`:
 `SOURCES`, `MAX_YEAR`, `MIN_SHORT_SIDE`, `MIN_ASPECT`/`MAX_ASPECT`,
 `TITLE_REJECT`, `PER_CATEGORY_CAP`. Adding a collection is one line in
-`SOURCES` plus a label in `CATEGORY_LABELS` in `daily.py`; the
-daily job discovers the new category from the pool on its own and starts
-writing a file for it.
+`SOURCES`.
+
+A category is a quota bucket and nothing else: it caps one collection so
+it cannot swamp the pool, and `daily.py` never reads it. What a reader
+picks is the theme and era in `g`, worked out from the map's own title.
+A bucket does not have to come from `SOURCES` -- the Rijksmuseum is not
+an LoC collection and has `RIJKS_CATEGORY` to itself -- so the cap runs
+over the buckets the maps actually carry.
 
 Changing `SALT` in `daily.py` reshuffles the entire schedule.
 Changing the pool changes future picks but not today's, because the pick is
